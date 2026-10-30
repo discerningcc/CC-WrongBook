@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#f5f5f5">
+
+    <!-- 标题栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#ffffff"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:elevation="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:text="题库管理"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#222222"/>
+
+        <TextView
+            android:id="@+id/btn_new_bank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:layout_marginEnd="8dp"
+            android:text="新建"
+            android:textSize="16sp"
+            android:textColor="#1f6aa5"/>
+
+        <TextView
+            android:id="@+id/btn_import_bank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:layout_marginEnd="8dp"
+            android:text="导入"
+            android:textSize="16sp"
+            android:textColor="#1f6aa5"/>
+
+        <TextView
+            android:id="@+id/btn_export_bank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:layout_marginEnd="16dp"
+            android:text="导出"
+            android:textSize="16sp"
+            android:textColor="#1f6aa5"/>
+    </LinearLayout>
+
+    <!-- 操作提示 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:text="点击题库切换使用；长按题库可重命名 / 导出 / 删除"
+        android:textSize="13sp"
+        android:textColor="#888888"/>
+
+    <!-- 题库列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_banks"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="20dp"/>
+
+</LinearLayout>

@@ -61,11 +61,19 @@ public class MainActivity extends AppCompatActivity {
         int queued = QuestionStorage.buildTodayQueue(this).size();
         int dueAll = QuestionStorage.getTodayReview(this).size();
         int budget = QuestionStorage.getDailyBudget(this);
-        String text = "今日复习：已排 " + queued + " / 到期 " + dueAll;
+        String text;
         if (budget <= 0) {
-            text += "（不限量）";
-        } else if (dueAll > queued) {
-            text += "（预算 " + budget + "，其余顺延）";
+            text = "今日复习：已排 " + queued + " / 到期 " + dueAll + "（不限量）";
+        } else {
+            int done = QuestionStorage.getTodayDone(this);
+            int remain = Math.max(0, budget - done);
+            if (done >= budget) {
+                text = "今日目标已完成 " + done + "/" + budget
+                        + "（到期还剩 " + dueAll + " 道，可点开始复习继续多做）";
+            } else {
+                text = "今日复习：目标 " + budget + " · 已完成 " + done
+                        + " · 还剩 " + remain + "（到期 " + dueAll + "）";
+            }
         }
         ((TextView) findViewById(R.id.tv_today_review)).setText(text);
     }

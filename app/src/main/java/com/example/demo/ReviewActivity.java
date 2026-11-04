@@ -105,22 +105,45 @@ public class ReviewActivity extends AppCompatActivity {
             if (old != null) SessionStorage.archive(this, old, ReviewSession.STATUS_ABANDONED);
         }
         List<Question> today = QuestionStorage.buildTodayQueue(this);
+        int budget = QuestionStorage.getDailyBudget(this);
+        int dueAll = QuestionStorage.getTodayReview(this).size();
         if (today == null || today.isEmpty()) {
-            showEmptyState();
+            // 队列空：可能是真没题到期，也可能是今日目标已完成（还有题但预算额度没了）
+            if (budget > 0 && dueAll > 0) {
+                int done = QuestionStorage.getTodayDone(this);
+                showPrompt("今日目标已完成",
+                        "今日目标 " + budget + " 道，已完成 " + done + " 道；\n还有 " + dueAll + " 道到期，要继续多做一些吗？",
+                        "继续多做（" + dueAll + " 道）", this::launchExtraSession,
+                        "休息一下", this::finish,
+                        "退出", this::finish,
+                        this::finish);
+            } else {
+                showEmptyState();
+            }
             return;
         }
         Collections.shuffle(today);
         session = SessionStorage.create(this, bankId, bankName, today);
         finished = false;
-        int dueAll = QuestionStorage.getTodayReview(this).size();
-        int budget = QuestionStorage.getDailyBudget(this);
+        int done = QuestionStorage.getTodayDone(this);
         String tip = "已开始新一轮复习：共 " + session.items.size() + " 题";
         if (budget <= 0) {
             tip += "（不限量）";
         } else if (dueAll > session.items.size()) {
-            tip += "（今日到期 " + dueAll + "，预算 " + budget + "，其余顺延）";
+            tip += "（今日目标 " + budget + " · 已完成 " + done + " · 还剩 "
+                    + (budget - done) + "，其余顺延）";
         }
         showBanner(tip);
+        showCurrentQuestion();
+    }
+
+    /** 今日目标已答满后，用户选择「继续多做」：把全部到期题塞进来 */
+    private void launchExtraSession() {
+        List<Question> all = QuestionStorage.getTodayReview(this);
+        Collections.shuffle(all);
+        session = SessionStorage.create(this, bankId, bankName, all);
+        finished = false;
+        showBanner("今日目标已超额，复习全部剩余到期题：共 " + all.size() + " 题");
         showCurrentQuestion();
     }
 
@@ -420,6 +443,19 @@ public class ReviewActivity extends AppCompatActivity {
                 again.hadImages = item.hadImages;
                 session.items.add(again);
             }
+        }
+
+        // 今日目标计数：记得/模糊/不会算 1 道；跳过不算；
+        // 答错重做的第二遍不重复扣（同一题已答过一次）
+        if (!ReviewSession.RESULT_SKIP.equals(result)) {
+            boolean isRedo = false;
+            for (ReviewSession.Item it : session.items) {
+                if (it != item && item.questionId.equals(it.questionId) && it.answeredAt > 0) {
+                    isRedo = true;
+                    break;
+                }
+            }
+            if (!isRedo) QuestionStorage.incTodayDone(this);
         }
 
         session.currentIndex++;

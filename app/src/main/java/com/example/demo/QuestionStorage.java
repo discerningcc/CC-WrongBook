@@ -49,6 +49,9 @@ public class QuestionStorage {
     private static final String KEY_MIGRATED_V5 = "data_migrated_v5";
     public static final String KEY_DAILY_BUDGET = "daily_review_budget";
     public static final int DEFAULT_DAILY_BUDGET = 50;
+    /** 今日已完成题数（按自然日跨天清零） */
+    private static final String KEY_PROGRESS_DATE = "today_progress_day";
+    private static final String KEY_PROGRESS_DONE = "today_progress_done";
     /** S 级长期抽查间隔（天） */
     public static final int S_INTERVAL_DAYS = 30;
     private static final String OLD_FILE = "questions_data.txt";
@@ -122,6 +125,32 @@ public class QuestionStorage {
                 .edit().putInt(KEY_DAILY_BUDGET, n).apply();
     }
 
+    /** 今天已经按目标完成的题数（跨自然日自动清零） */
+    public static int getTodayDone(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        long today = getDayNumberLocal(System.currentTimeMillis());
+        if (sp.getLong(KEY_PROGRESS_DATE, -1) != today) return 0;
+        return sp.getInt(KEY_PROGRESS_DONE, 0);
+    }
+
+    /** 答完一道（记得/模糊/不会）后计数；跳过和答错重做的第二遍不调用这里 */
+    public static void incTodayDone(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        long today = getDayNumberLocal(System.currentTimeMillis());
+        SharedPreferences.Editor e = sp.edit();
+        if (sp.getLong(KEY_PROGRESS_DATE, -1) != today) {
+            e.putLong(KEY_PROGRESS_DATE, today).putInt(KEY_PROGRESS_DONE, 0);
+        }
+        e.putInt(KEY_PROGRESS_DONE, sp.getInt(KEY_PROGRESS_DONE, 0) + 1).apply();
+    }
+
+    /** 今日目标还剩多少额度；不限量（budget<=0）返回很大的数 */
+    public static int getRemainingBudget(Context context) {
+        int budget = getDailyBudget(context);
+        if (budget <= 0) return Integer.MAX_VALUE;
+        return Math.max(0, budget - getTodayDone(context));
+    }
+
     /**
      * 今日实际进 session 的队列：
      * 1) E / 逾期 D、C、B、A 优先（E 先排，其余按最久没更新）；
@@ -163,9 +192,13 @@ public class QuestionStorage {
             return queue;
         }
 
-        int sCap = Math.max(1, (int) (budget * 0.05f));
+        // 预算 = 今日目标：队列只装到「预算 - 今日已完成」为止；答满目标返回空队列
+        int remaining = getRemainingBudget(context);
+        if (remaining <= 0) return queue;
+
+        int sCap = Math.max(1, (int) (remaining * 0.05f));
         int sTake = Math.min(sList.size(), sCap);
-        int youngTake = Math.min(young.size(), budget - sTake);
+        int youngTake = Math.min(young.size(), remaining - sTake);
 
         queue.addAll(young.subList(0, youngTake));
         queue.addAll(sList.subList(0, sTake));

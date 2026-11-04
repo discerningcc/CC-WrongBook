@@ -114,9 +114,9 @@ public class ReviewActivity extends AppCompatActivity {
                 showPrompt("今日目标已完成",
                         "今日目标 " + budget + " 道，已完成 " + done + " 道；\n还有 " + dueAll + " 道到期，要继续多做一些吗？",
                         "继续多做（" + dueAll + " 道）", this::launchExtraSession,
-                        "休息一下", this::finish,
-                        "退出", this::finish,
-                        this::finish);
+                        "回首页", this::finish,
+                        null, null,
+                        null);
             } else {
                 showEmptyState();
             }

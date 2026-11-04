@@ -61,7 +61,9 @@ public class ReviewActivity extends AppCompatActivity {
             // 跨自然日：交给用户决定继续还是重新开始
             showCrossDayPrompt(active);
         } else {
-            resumeSession(active, true);
+            // savedInstanceState 不为空 = 这次 onCreate 是系统重建（横竖屏切换、分屏切换等），
+            // 用户并没有"重新进来"，不该再弹一次「已恢复上次进度」的提示条
+            resumeSession(active, savedInstanceState == null);
         }
     }
 

@@ -97,32 +97,51 @@ public class QuestionStorage {
     /** 今日待复习（自动根据设置选择模式） */
     public static List<Question> getTodayReview(Context context) {
         List<Question> result = new ArrayList<>();
-        long now = System.currentTimeMillis();
-        long oneDay = 1000L * 60 * 60 * 24;
-
-        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        boolean naturalDayEnabled = sp.getBoolean(SettingsActivity.KEY_NATURAL_DAY, true);
-
         for (Question q : loadAll(context)) {
-            long days;
-            if (naturalDayEnabled) {
-                // 自然日模式 → 使用【本地时区】计算天数
-                days = getDayNumberLocal(now) - getDayNumberLocal(q.updateTime);
-            } else {
-                // 满24小时模式
-                days = (now - q.updateTime) / oneDay;
-            }
-            boolean need = false;
-            switch (q.status) {
-                case "E": need = true; break;
-                case "D": need = days >= 3; break;
-                case "C": need = days >= 7; break;
-                case "B": need = days >= 15; break;
-                case "A": need = false; break;
-            }
-            if (need) result.add(q);
+            if (isDue(context, q)) result.add(q);
         }
         return result;
+    }
+
+    /** 该题今天是否该复习：与 getTodayReview 同一口径，题目列表的“今日到期”筛选也用它 */
+    public static boolean isDue(Context context, Question q) {
+        if (q == null) return false;
+        int interval = intervalDaysOf(q.status);
+        if (interval < 0) return false;   // A：不再安排
+        if (interval == 0) return true;   // E：随时都该复习
+        return daysSince(context, q) >= interval;
+    }
+
+    /** 等级对应的复习间隔（天）：E=0（随时），D=3，C=7，B=15，A=-1（不再安排） */
+    public static int intervalDaysOf(String status) {
+        if (status == null) return 0;
+        switch (status) {
+            case "D": return 3;
+            case "C": return 7;
+            case "B": return 15;
+            case "A": return -1;
+            default: return 0;
+        }
+    }
+
+    /** 距上次更新过了多少天（跟随设置页的“自然日 / 满 24 小时”开关） */
+    public static long daysSince(Context context, Question q) {
+        if (q == null) return 0;
+        long now = System.currentTimeMillis();
+        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (sp.getBoolean(SettingsActivity.KEY_NATURAL_DAY, true)) {
+            return getDayNumberLocal(now) - getDayNumberLocal(q.updateTime);
+        }
+        return (now - q.updateTime) / (1000L * 60 * 60 * 24);
+    }
+
+    /** 题目列表里展示的到期文案 */
+    public static String dueText(Context context, Question q) {
+        int interval = intervalDaysOf(q.status);
+        if (interval < 0) return "已掌握";
+        if (interval == 0) return "待复习";
+        long left = interval - daysSince(context, q);
+        return left <= 0 ? "今天到期" : left + " 天后到期";
     }
 
     public static Question findById(Context context, String qid) {

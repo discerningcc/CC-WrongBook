@@ -1,60 +1,169 @@
 package com.example.demo;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SearchView;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class QuestionBankActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerView;
+    private static final int FILTER_ALL = 0;
+    private static final int FILTER_TODAY = 1;
+    private static final int FILTER_IMAGE = 2;
+    private static final int FILTER_TEXT = 3;
+
+    private static final String[] FILTER_LABELS = {"全部", "今日到期", "只有图片", "有文本"};
+    private static final long SEARCH_DEBOUNCE_MS = 250;
+    private static final String STATE_FILTER = "list_filter";
+    private static final String STATE_KEYWORD = "list_keyword";
+
     private SearchView searchView;
+    private TextView tvStats;
+    private TextView tvEmpty;
     private Adapter adapter;
-    private List<Question> allQuestions;
+
+    /** 题库全量（最新添加在前） */
+    private final List<Question> allQuestions = new ArrayList<>();
+    /** 当前实际展示的集合（筛选 + 搜索之后） */
+    private final List<Question> shown = new ArrayList<>();
+
+    private final TextView[] chips = new TextView[FILTER_LABELS.length];
+    private int filter = FILTER_ALL;
+
+    /** 搜索关键词的拆分结果（小写），空表示没有搜索 */
+    private final List<String> tokens = new ArrayList<>();
+    /** 搜索框里的原始文本（用于旋转重建后回填） */
+    private String keywordText = "";
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable pendingSearch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question_bank);
 
-        recyclerView = findViewById(R.id.recyclerView);
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
         searchView = findViewById(R.id.search_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        tvStats = findViewById(R.id.tv_stats);
+        tvEmpty = findViewById(R.id.tv_empty);
 
-        // 只创建一次适配器（不会再重复创建）
-        allQuestions = new ArrayList<>();
-        adapter = new Adapter(allQuestions);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new Adapter(shown);
         recyclerView.setAdapter(adapter);
+
+        // 进页面时不要自动弹出软键盘（旋转重建时尤其明显）
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
+        // 旋转重建：恢复筛选胶囊与关键词；savedInstanceState 为空才是首次进入
+        if (savedInstanceState != null) {
+            filter = savedInstanceState.getInt(STATE_FILTER, FILTER_ALL);
+            keywordText = savedInstanceState.getString(STATE_KEYWORD, "");
+        }
+
+        buildChips(findViewById(R.id.chip_row));
 
         // 标题栏：点击进入题库管理
         findViewById(R.id.tv_bank_title).setOnClickListener(v ->
                 startActivity(new Intent(this, SaveManageActivity.class))
         );
 
-        loadData();
-        refreshTitle();
-
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                filter(query);
-                return false;
+                scheduleSearch(query, 0);
+                return true;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                filter(newText);
+                scheduleSearch(newText, SEARCH_DEBOUNCE_MS);
                 return false;
             }
         });
+
+        if (!keywordText.isEmpty()) {
+            // 回填搜索框；onQueryTextChange 会照正常流程防抖重新过滤
+            searchView.setQuery(keywordText, false);
+            searchView.clearFocus();
+        }
+
+        reload();
+    }
+
+    // ==================== 顶部筛选胶囊 ====================
+
+    private void buildChips(LinearLayout row) {
+        for (int i = 0; i < FILTER_LABELS.length; i++) {
+            final int index = i;
+            TextView chip = new TextView(this);
+            chip.setText(FILTER_LABELS[i]);
+            chip.setTextSize(13);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(14), dp(7), dp(14), dp(7));
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMarginEnd(dp(8));
+            chip.setLayoutParams(lp);
+
+            chip.setOnClickListener(v -> {
+                if (filter == index) return;
+                filter = index;
+                styleChips();
+                applyFilter();
+            });
+
+            chips[i] = chip;
+            row.addView(chip);
+        }
+        styleChips();
+    }
+
+    private void styleChips() {
+        for (int i = 0; i < chips.length; i++) {
+            TextView chip = chips[i];
+            if (chip == null) continue;
+            boolean on = (i == filter);
+            chip.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
+            chip.setTextColor(on ? 0xffffffff : 0xff666666);
+        }
+    }
+
+    // ==================== 数据加载与筛选 ====================
+
+    private void reload() {
+        allQuestions.clear();
+        allQuestions.addAll(QuestionStorage.loadAll(this));
+        // 倒序：最新添加的在最上面（沿用原有排序，不改语义）
+        Collections.reverse(allQuestions);
+
+        refreshTitle();
+        applyFilter();
     }
 
     private void refreshTitle() {
@@ -62,52 +171,134 @@ public class QuestionBankActivity extends AppCompatActivity {
                 .setText("题库：" + QuestionStorage.getCurrentBankName(this) + " ▾");
     }
 
-    private void loadData() {
-        allQuestions.clear();
-        allQuestions.addAll(QuestionStorage.loadAll(this));
-
-        // 倒序：最新添加的在最上面
-        java.util.Collections.reverse(allQuestions);
-
-        adapter.updateList(allQuestions);
+    private void scheduleSearch(String text, long delay) {
+        if (pendingSearch != null) handler.removeCallbacks(pendingSearch);
+        final String query = text == null ? "" : text;
+        keywordText = query;
+        pendingSearch = () -> {
+            setTokens(query);
+            applyFilter();
+        };
+        handler.postDelayed(pendingSearch, delay);
     }
 
-    private void filter(String text) {
-        List<Question> filtered = new ArrayList<>();
-        for (Question q : allQuestions) {
-            boolean match =
-                    (q.content != null && q.content.contains(text)) ||
-                            (q.answer != null && q.answer.contains(text)) ||
-                            (q.id != null && q.id.contains(text));
-
-            if (match) {
-                filtered.add(q);
-            }
+    /** 关键词按空白拆成多个词，全部命中才算匹配（AND） */
+    private void setTokens(String keyword) {
+        tokens.clear();
+        if (keyword == null) return;
+        String cleaned = keyword.replace('\u3000', ' ').trim();
+        if (cleaned.isEmpty()) return;
+        for (String part : cleaned.split("\\s+")) {
+            String low = part.toLowerCase(Locale.getDefault());
+            if (!low.isEmpty()) tokens.add(low);
         }
-        adapter.updateList(filtered);
+    }
+
+    private void applyFilter() {
+        shown.clear();
+        for (Question q : allQuestions) {
+            if (passesFilter(q) && passesKeyword(q)) shown.add(q);
+        }
+        adapter.updateList(shown);
+        updateEmptyState();
+        updateStats();
+    }
+
+    private boolean passesFilter(Question q) {
+        switch (filter) {
+            case FILTER_TODAY:
+                return QuestionStorage.isDue(this, q);
+            case FILTER_IMAGE:
+                return q.contentImages != null && !q.contentImages.isEmpty();
+            case FILTER_TEXT:
+                return q.content != null && !q.content.trim().isEmpty();
+            default:
+                return true;
+        }
+    }
+
+    private boolean passesKeyword(Question q) {
+        if (tokens.isEmpty()) return true;
+        String haystack = (safe(q.content) + "\n" + safe(q.answer) + "\n" + safe(q.id))
+                .toLowerCase(Locale.getDefault());
+        for (String t : tokens) {
+            if (!haystack.contains(t)) return false;
+        }
+        return true;
+    }
+
+    private static String safe(String s) {
+        return s == null ? "" : s;
+    }
+
+    private void updateEmptyState() {
+        if (shown.isEmpty()) {
+            tvEmpty.setText(tokens.isEmpty()
+                    ? "这个筛选下没有题目"
+                    : "没有匹配的题目\n换个关键词，或点「全部」看看");
+            tvEmpty.setVisibility(View.VISIBLE);
+        } else {
+            tvEmpty.setVisibility(View.GONE);
+        }
+    }
+
+    /** 统计条：题库规模、到期数、图片/文本构成、等级分布；有筛选时带「显示 M / 共 N」 */
+    private void updateStats() {
+        int due = 0, withImg = 0, withText = 0;
+        int[] level = new int[5]; // A B C D E
+        for (Question q : allQuestions) {
+            if (QuestionStorage.isDue(this, q)) due++;
+            if (q.contentImages != null && !q.contentImages.isEmpty()) withImg++;
+            if (q.content != null && !q.content.trim().isEmpty()) withText++;
+            int idx = levelIndex(q.status);
+            if (idx >= 0) level[idx]++;
+        }
+
+        String head = "共 " + allQuestions.size() + " 题 · 今日到期 " + due
+                + " · 有图 " + withImg + " · 有文本 " + withText;
+        String levels = " · A" + level[0] + " B" + level[1] + " C" + level[2]
+                + " D" + level[3] + " E" + level[4];
+        String prefix = (filter != FILTER_ALL || !tokens.isEmpty())
+                ? "显示 " + shown.size() + " / " + allQuestions.size() + " · "
+                : "";
+
+        tvStats.setText(prefix + head + levels);
+    }
+
+    private static int levelIndex(String status) {
+        if (status == null) return -1;
+        switch (status) {
+            case "A": return 0;
+            case "B": return 1;
+            case "C": return 2;
+            case "D": return 3;
+            case "E": return 4;
+            default: return -1;
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_FILTER, filter);
+        outState.putString(STATE_KEYWORD, keywordText);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        allQuestions.clear();
-        allQuestions.addAll(QuestionStorage.loadAll(this));
-
-        // 倒序
-        java.util.Collections.reverse(allQuestions);
-
-        String keyword = searchView.getQuery().toString();
-        if (!keyword.isEmpty()) {
-            filter(keyword);
-        } else {
-            adapter.updateList(allQuestions);
-        }
-
-        // 可能刚从题库管理页切换了题库
-        refreshTitle();
+        // 可能刚从详情页改了题，或从题库管理页切了题库
+        reload();
     }
 
-    public static class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density);
+    }
+
+    // ==================== 列表 ====================
+
+    public class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
+
         private List<Question> mList;
 
         public Adapter(List<Question> list) {
@@ -129,7 +320,10 @@ public class QuestionBankActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             Question q = mList.get(position);
-            holder.text.setText("题目ID：" + q.id);
+            int imgCount = q.contentImages == null ? 0 : q.contentImages.size();
+            boolean hasText = q.content != null && !q.content.trim().isEmpty();
+
+            holder.bind(q, imgCount, hasText);
 
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(v.getContext(), QuestionDetailActivity.class);
@@ -139,17 +333,115 @@ public class QuestionBankActivity extends AppCompatActivity {
         }
 
         @Override
+        public void onViewRecycled(ViewHolder holder) {
+            super.onViewRecycled(holder);
+            // 清掉 tag，避免还在后台解图的旧任务贴到被复用的行上
+            ThumbLoader.release(holder.thumb);
+        }
+
+        @Override
         public int getItemCount() {
             return mList == null ? 0 : mList.size();
         }
 
-        public static class ViewHolder extends RecyclerView.ViewHolder {
-            android.widget.TextView text;
+        public class ViewHolder extends RecyclerView.ViewHolder {
+            final ImageView thumb;
+            final LinearLayout contentCol;
+            final TextView text;
+            final TextView badge;
+            final TextView meta;
 
             public ViewHolder(View itemView) {
                 super(itemView);
+                thumb = itemView.findViewById(R.id.thumb);
+                contentCol = itemView.findViewById(R.id.content_col);
                 text = itemView.findViewById(R.id.text);
+                badge = itemView.findViewById(R.id.tv_badge);
+                meta = itemView.findViewById(R.id.tv_meta);
             }
+
+            void bind(Question q, int imgCount, boolean hasText) {
+                // 标题：有文本用文本，纯图片题用「图片题 · N 张」
+                String title;
+                SpannableString titleSpan;
+                if (hasText) {
+                    title = q.content.trim().replace('\n', ' ');
+                    titleSpan = highlight(title);
+                } else if (imgCount > 0) {
+                    title = "图片题 · " + imgCount + " 张";
+                    titleSpan = new SpannableString(title);
+                } else {
+                    title = "（空题目）";
+                    titleSpan = new SpannableString(title);
+                }
+                text.setText(titleSpan);
+
+                // 首图缩略图
+                String firstImage = imgCount > 0 ? q.contentImages.get(0) : null;
+                if (firstImage != null) {
+                    thumb.setVisibility(View.VISIBLE);
+                    ThumbLoader.bind(itemView.getContext(), firstImage, thumb);
+                    setContentMargin(12);
+                } else {
+                    thumb.setVisibility(View.GONE);
+                    ThumbLoader.release(thumb);
+                    setContentMargin(0);
+                }
+
+                // 等级徽章
+                String status = q.status == null ? "E" : q.status;
+                badge.setText(status);
+                badge.setBackgroundTintList(ColorStateList.valueOf(statusColor(status)));
+
+                // 副信息：N 张图 · 到期情况 · 上次更新
+                StringBuilder sb = new StringBuilder();
+                if (imgCount > 0) sb.append(imgCount).append(" 张图");
+                if (sb.length() > 0) sb.append(" · ");
+                sb.append(QuestionStorage.dueText(itemView.getContext(), q));
+                long days = QuestionStorage.daysSince(itemView.getContext(), q);
+                sb.append(" · ").append(days <= 0 ? "今天更新" : days + " 天前更新");
+
+                meta.setText(sb.toString());
+            }
+
+            private void setContentMargin(int startDp) {
+                ViewGroup.LayoutParams raw = contentCol.getLayoutParams();
+                if (raw instanceof ViewGroup.MarginLayoutParams) {
+                    ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) raw;
+                    lp.setMarginStart(dp(startDp));
+                    contentCol.setLayoutParams(lp);
+                }
+            }
+        }
+
+        /** 命中词标橙色加粗 */
+        private SpannableString highlight(String title) {
+            SpannableString span = new SpannableString(title);
+            if (tokens.isEmpty()) return span;
+
+            String lower = title.toLowerCase(Locale.getDefault());
+            for (String t : tokens) {
+                int idx = lower.indexOf(t);
+                while (idx >= 0) {
+                    span.setSpan(new ForegroundColorSpan(0xfff56c00), idx, idx + t.length(),
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    span.setSpan(new StyleSpan(Typeface.BOLD), idx, idx + t.length(),
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    idx = lower.indexOf(t, idx + t.length());
+                }
+            }
+            return span;
+        }
+    }
+
+    /** 等级颜色：A 绿（熟）→ E 灰（生） */
+    private static int statusColor(String status) {
+        switch (status) {
+            case "A": return 0xff4caf50;
+            case "B": return 0xff2196f3;
+            case "C": return 0xffff9800;
+            case "D": return 0xfff44336;
+            default: return 0xff9e9e9e;
         }
     }
 }

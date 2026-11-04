@@ -32,17 +32,64 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginVertical="8dp"
-        android:queryHint="搜索..."
+        android:layout_marginTop="8dp"
+        android:queryHint="搜索题干 / 答案 / ID..."
         android:iconifiedByDefault="false"
         android:focusableInTouchMode="true"
         android:focusable="true"/>
 
-    <!-- 可滑动列表 -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <!-- 筛选胶囊：全部 / 今日到期 / 只有图片 / 有文本 -->
+    <HorizontalScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:paddingBottom="20dp"/>
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingHorizontal="12dp"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:id="@+id/chip_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingVertical="6dp"/>
+    </HorizontalScrollView>
+
+    <!-- 统计条 -->
+    <TextView
+        android:id="@+id/tv_stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="2dp"
+        android:textSize="12sp"
+        android:textColor="#666666"
+        android:maxLines="2"
+        android:ellipsize="end"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="20dp"/>
+
+        <!-- 空态：搜索/筛选没有结果时显示 -->
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="24dp"
+            android:lineSpacingExtra="6dp"
+            android:textSize="14sp"
+            android:textColor="#999999"
+            android:visibility="gone"
+            android:text="没有符合条件的题目"/>
+    </FrameLayout>
 
 </LinearLayout>

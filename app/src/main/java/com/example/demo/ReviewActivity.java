@@ -115,7 +115,9 @@ public class ReviewActivity extends AppCompatActivity {
         int dueAll = QuestionStorage.getTodayReview(this).size();
         int budget = QuestionStorage.getDailyBudget(this);
         String tip = "已开始新一轮复习：共 " + session.items.size() + " 题";
-        if (dueAll > session.items.size()) {
+        if (budget <= 0) {
+            tip += "（不限量）";
+        } else if (dueAll > session.items.size()) {
             tip += "（今日到期 " + dueAll + "，预算 " + budget + "，其余顺延）";
         }
         showBanner(tip);

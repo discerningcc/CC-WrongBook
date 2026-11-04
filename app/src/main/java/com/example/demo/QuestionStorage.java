@@ -152,11 +152,19 @@ public class QuestionStorage {
             }
         });
 
+        List<Question> queue = new ArrayList<>();
+
+        // budget <= 0 = 不限量：今天到期多少做多少（仍按 E优先/S殿后排序）
+        if (budget <= 0) {
+            queue.addAll(young);
+            queue.addAll(sList);
+            return queue;
+        }
+
         int sCap = Math.max(1, (int) (budget * 0.05f));
         int sTake = Math.min(sList.size(), sCap);
         int youngTake = Math.min(young.size(), budget - sTake);
 
-        List<Question> queue = new ArrayList<>();
         queue.addAll(young.subList(0, youngTake));
         queue.addAll(sList.subList(0, sTake));
         return queue;

@@ -62,7 +62,9 @@ public class MainActivity extends AppCompatActivity {
         int dueAll = QuestionStorage.getTodayReview(this).size();
         int budget = QuestionStorage.getDailyBudget(this);
         String text = "今日复习：已排 " + queued + " / 到期 " + dueAll;
-        if (dueAll > queued) {
+        if (budget <= 0) {
+            text += "（不限量）";
+        } else if (dueAll > queued) {
             text += "（预算 " + budget + "，其余顺延）";
         }
         ((TextView) findViewById(R.id.tv_today_review)).setText(text);

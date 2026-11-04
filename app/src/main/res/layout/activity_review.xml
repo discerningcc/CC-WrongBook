@@ -8,6 +8,52 @@
     android:background="#f5f5f5"
     android:padding="16dp">
 
+    <LinearLayout
+        android:id="@+id/session_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#fff7e6"
+        android:paddingLeft="12dp"
+        android:paddingRight="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_banner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:textColor="#ad6800" />
+
+        <TextView
+            android:id="@+id/btn_banner_new"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:text="开始新一轮"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#1f6aa5"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/btn_banner_close"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="×"
+            android:textSize="18sp"
+            android:textColor="#ad6800" />
+
+    </LinearLayout>
+
     <androidx.core.widget.NestedScrollView
         android:id="@+id/question_area"
         android:layout_width="match_parent"
@@ -147,21 +193,48 @@
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btn_back"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#8c8c8c">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="显示答案"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:gravity="center"/>
-        </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_back"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="#8c8c8c">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="显示答案"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:gravity="center"/>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_skip"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="#8c8c8c">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="跳过"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:gravity="center"/>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
 
     </LinearLayout>
 

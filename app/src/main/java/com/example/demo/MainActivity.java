@@ -49,6 +49,11 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.tv_current_bank).setOnClickListener(v -> {
             startActivity(new Intent(this, SaveManageActivity.class));
         });
+
+        // 复习记录：随时可查看已归档的复习足迹
+        findViewById(R.id.btn_history).setOnClickListener(v ->
+                startActivity(new Intent(this, ReviewHistoryActivity.class))
+        );
     }
 
     private void refreshTodayCount() {

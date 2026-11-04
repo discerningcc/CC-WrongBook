@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tv_dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#222222" />
+
+    <TextView
+        android:id="@+id/tv_dialog_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textSize="14sp"
+        android:textColor="#555555"
+        android:lineSpacingExtra="4dp" />
+
+    <TextView
+        android:id="@+id/btn_dialog_primary"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/bg_prompt_button"
+        android:backgroundTint="#5d9cec"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/btn_dialog_secondary"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_prompt_button"
+        android:backgroundTint="#e9eef6"
+        android:gravity="center"
+        android:textColor="#1f6aa5"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/btn_dialog_tertiary"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_prompt_button"
+        android:backgroundTint="#f5f5f5"
+        android:gravity="center"
+        android:textColor="#888888"
+        android:textSize="16sp" />
+
+</LinearLayout>

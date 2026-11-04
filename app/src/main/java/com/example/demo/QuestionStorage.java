@@ -140,7 +140,7 @@ public class QuestionStorage {
     public static List<BankInfo> listBanks(Context context) {
         ensureBankExists(context);
         List<BankInfo> list = new ArrayList<>();
-        String currentId = getCurrentBankId(context);
+        String currentId = readCurrentBankId(context);
         File[] files = savesDir(context).listFiles((d, n) -> n.endsWith(".json"));
         if (files != null) {
             Arrays.sort(files, new Comparator<File>() {
@@ -200,7 +200,7 @@ public class QuestionStorage {
         b.name = newName.trim();
         b.updatedAt = System.currentTimeMillis();
         writeBank(context, b);
-        if (b.id.equals(getCurrentBankId(context))) {
+        if (b.id.equals(readCurrentBankId(context))) {
             cacheBank = b;
         }
     }
@@ -213,7 +213,7 @@ public class QuestionStorage {
             for (Question q : b.questions) deleteQuestionImages(context, q);
         }
         bankFile(context, bankId).delete();
-        if (bankId.equals(getCurrentBankId(context))) {
+        if (bankId.equals(readCurrentBankId(context))) {
             setCurrentBankId(context, null);
             cacheBank = null;
             ensureBankExists(context);
@@ -348,7 +348,7 @@ public class QuestionStorage {
     private static void ensureBankExists(Context context) {
         if (cacheBank != null) return;
 
-        String currentId = getCurrentBankId(context);
+        String currentId = readCurrentBankId(context);
         if (currentId != null && bankFile(context, currentId).exists()) {
             cacheBank = readBankFile(bankFile(context, currentId));
             if (cacheBank != null) return;
@@ -513,14 +513,22 @@ public class QuestionStorage {
     }
 
     private static void writeBank(Context context, QuestionBank bank) {
+        File target = bankFile(context, bank.id);
+        File tmp = new File(target.getParentFile(), target.getName() + ".tmp");
         try {
-            FileOutputStream fos = new FileOutputStream(bankFile(context, bank.id));
+            FileOutputStream fos = new FileOutputStream(tmp);
             try {
                 fos.write(new Gson().toJson(bank).getBytes("UTF-8"));
             } finally {
                 fos.close();
             }
+            // 先写临时文件再改名：中途崩溃时原题库文件仍然完好
+            if (!tmp.renameTo(target)) {
+                if (target.exists()) target.delete();
+                if (!tmp.renameTo(target)) throw new IOException("rename failed: " + target);
+            }
         } catch (IOException e) {
+            tmp.delete();
             e.printStackTrace();
         }
     }
@@ -576,8 +584,15 @@ public class QuestionStorage {
         f.delete();
     }
 
-    private static String getCurrentBankId(Context context) {
+    /** 读当前题库 id（不触发初始化，供内部调用，避免递归） */
+    private static String readCurrentBankId(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_CURRENT_BANK, null);
+    }
+
+    /** 当前题库 id（对外接口，会确保题库已完成初始化） */
+    public static String getCurrentBankId(Context context) {
+        ensureBankExists(context);
+        return readCurrentBankId(context);
     }
 
     private static void setCurrentBankId(Context context, String bankId) {

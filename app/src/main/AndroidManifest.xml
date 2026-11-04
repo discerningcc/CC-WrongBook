@@ -29,6 +29,11 @@
             android:name=".ReviewActivity"
             android:exported="false" />
 
+        <!-- 复习记录 -->
+        <activity
+            android:name=".ReviewHistoryActivity"
+            android:exported="false" />
+
         <!-- 添加题目界面 -->
         <activity
             android:name=".AddQuestionActivity"

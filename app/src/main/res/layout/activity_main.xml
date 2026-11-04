@@ -46,7 +46,7 @@
         android:textStyle="bold"
         android:textColor="#1f6aa5"
         android:gravity="center"
-        android:layout_marginBottom="40dp"/>
+        android:layout_marginBottom="16dp"/>
 
     <!-- 按钮区域：垂直居中 -->
     <LinearLayout
@@ -56,24 +56,53 @@
         android:paddingLeft="50dp"
         android:paddingRight="50dp">
 
-        <androidx.cardview.widget.CardView
-            android:clickable="true"
-            android:focusable="true"
-            android:id="@+id/btn_review"
+        <!-- 开始复习 + 复习记录：并排两个按钮 -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_margin="10dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="#5d9cec">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="开始复习"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:gravity="center"/>
-        </androidx.cardview.widget.CardView>
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <androidx.cardview.widget.CardView
+                android:clickable="true"
+                android:focusable="true"
+                android:id="@+id/btn_review"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="60dp"
+                android:layout_margin="10dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#5d9cec">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="开始复习"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:clickable="true"
+                android:focusable="true"
+                android:id="@+id/btn_history"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="60dp"
+                android:layout_margin="10dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#5d9cec">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="复习记录"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:gravity="center"/>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
 
         <androidx.cardview.widget.CardView
             android:id="@+id/btn_add"

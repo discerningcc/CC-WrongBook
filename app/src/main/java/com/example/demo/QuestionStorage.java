@@ -46,6 +46,7 @@ public class QuestionStorage {
     private static final String KEY_MIGRATED = "data_migrated_v2";
     private static final String KEY_MIGRATED_V3 = "data_migrated_v3";
     private static final String KEY_MIGRATED_V4 = "data_migrated_v4";
+    private static final String KEY_MIGRATED_V5 = "data_migrated_v5";
     public static final String KEY_DAILY_BUDGET = "daily_review_budget";
     public static final int DEFAULT_DAILY_BUDGET = 50;
     /** S 级长期抽查间隔（天） */
@@ -475,6 +476,7 @@ public class QuestionStorage {
 
         migrateV3AllBanks(context);   // 老 A（永久毕业）→ S 长期抽查，只跑一次
         migrateV4AllBanks(context);   // 把 v3 批量升 S 的题到期时间错峰打散，只跑一次
+        migrateV5AllBanks(context);   // 修正 v4 错峰方向（updateTime=上次复习时间），只跑一次
 
         String currentId = readCurrentBankId(context);
         if (currentId != null && bankFile(context, currentId).exists()) {
@@ -589,6 +591,39 @@ public class QuestionStorage {
             }
         }
         sp.edit().putBoolean(KEY_MIGRATED_V4, true).apply();
+    }
+
+    /**
+     * v5 迁移：修正 v4 的错峰方向。updateTime 的语义是「上次复习时间」，
+     * isDue 判据是 daysSince(updateTime) >= 30，所以要让 S 题在未来 0~30 天内
+     * 滚动到期，应把 updateTime 设为「30 天前 + waitDays」，而不是 v4 误设的「未来时间」。
+     * waitDays=0 → 今天到期；waitDays=30 → 30 天后到期。只跑一次。
+     */
+    private static void migrateV5AllBanks(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (sp.getBoolean(KEY_MIGRATED_V5, false)) return;
+
+        long now = System.currentTimeMillis();
+        long dayMs = 24L * 3600 * 1000;
+        java.util.Random rnd = new java.util.Random();
+        File[] files = savesDir(context).listFiles((d, n) -> n.endsWith(".json"));
+        if (files != null) {
+            for (File f : files) {
+                QuestionBank b = readBankFile(f);
+                if (b == null || b.questions == null) continue;
+                boolean changed = false;
+                for (Question q : b.questions) {
+                    if ("S".equals(q.status)) {
+                        int waitDays = rnd.nextInt(S_INTERVAL_DAYS + 1); // 0..30，还有几天到期
+                        long jitter = (long) (rnd.nextDouble() * dayMs);
+                        q.updateTime = now - S_INTERVAL_DAYS * dayMs + waitDays * dayMs + jitter;
+                        changed = true;
+                    }
+                }
+                if (changed) writeBankNow(context, b);
+            }
+        }
+        sp.edit().putBoolean(KEY_MIGRATED_V5, true).apply();
     }
 
     private static QuestionBank createBankInternal(Context context, String name) {

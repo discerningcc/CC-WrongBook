@@ -119,6 +119,12 @@ public class AddQuestionActivity extends AppCompatActivity {
         layout.addView(iv);
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        QuestionStorage.flush(this);   // 退出页面前把新增/修改的题目写完
+    }
+
     private void save() {
         String content = etContent.getText().toString().trim();
         String answer = etAnswer.getText().toString().trim();

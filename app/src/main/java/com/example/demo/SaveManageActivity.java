@@ -59,6 +59,12 @@ public class SaveManageActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        QuestionStorage.flush(this);   // 改名/新建的改动在离开页面前落盘
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         loadBanks();

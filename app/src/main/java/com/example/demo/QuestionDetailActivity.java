@@ -74,6 +74,12 @@ public class QuestionDetailActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        QuestionStorage.flush(this);   // 「重学/删除」之后的改动在离开页面前落盘
+    }
+
     // 页面重新显示时 → 自动刷新
     @Override
     protected void onResume() {

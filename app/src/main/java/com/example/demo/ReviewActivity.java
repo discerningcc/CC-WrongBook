@@ -272,6 +272,12 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        QuestionStorage.flush(this);   // 离开页面时把还没落盘的题目状态写完
+    }
+
+    @Override
     protected void onDestroy() {
         if (bannerTimer != null) bannerTimer.cancel();
         bannerTimer = null;

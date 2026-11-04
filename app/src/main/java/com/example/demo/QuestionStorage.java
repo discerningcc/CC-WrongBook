@@ -23,6 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -47,6 +51,21 @@ public class QuestionStorage {
     /** 当前题库缓存（含题目列表） */
     private static QuestionBank cacheBank = null;
 
+    // ==================== 后台写盘 ====================
+    // 答题时只改内存里的题目对象，真正的 JSON 序列化和文件写入交给这个单线程执行器，
+    // 主线程不再为 78 KB 的整份题库买单；连续多次改动会用「最新快照」覆盖前一份，不会堆积。
+
+    private static final Object WRITE_LOCK = new Object();
+    /** 待写快照：bankId → 最新一份拷贝 */
+    private static final Map<String, QuestionBank> pendingWrites = new HashMap<>();
+    private static boolean writeRunning = false;
+
+    private static final ExecutorService WRITER = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "bank-writer");
+        t.setPriority(Thread.MIN_PRIORITY + 1);   // 别和界面抢 CPU
+        return t;
+    });
+
     // ==================== 对外兼容的旧接口（自动走当前题库） ====================
 
     public static List<Question> loadAll(Context context) {
@@ -69,7 +88,7 @@ public class QuestionStorage {
         write(context);
     }
 
-    /** 保存当前题库的改动（状态更新等） */
+    /** 保存当前题库的改动（状态更新等）：只写内存，落盘在后台线程完成 */
     public static void update(Context context) {
         ensureBankExists(context);
         write(context);
@@ -139,6 +158,7 @@ public class QuestionStorage {
     /** 列出全部题库（新的在前） */
     public static List<BankInfo> listBanks(Context context) {
         ensureBankExists(context);
+        flush(context);   // 保证列表里的名称/时间是最新的
         List<BankInfo> list = new ArrayList<>();
         String currentId = readCurrentBankId(context);
         File[] files = savesDir(context).listFiles((d, n) -> n.endsWith(".json"));
@@ -176,6 +196,7 @@ public class QuestionStorage {
     /** 切换到指定题库 */
     public static void switchBank(Context context, String bankId) {
         ensureBankExists(context);
+        flush(context);   // 先把当前题库没落盘的改动写完，再读新题库
         if (bankFile(context, bankId).exists()) {
             setCurrentBankId(context, bankId);
             cacheBank = readBankFile(bankFile(context, bankId));
@@ -199,18 +220,22 @@ public class QuestionStorage {
         if (b == null) return;
         b.name = newName.trim();
         b.updatedAt = System.currentTimeMillis();
-        writeBank(context, b);
         if (b.id.equals(readCurrentBankId(context))) {
             cacheBank = b;
         }
+        requestWrite(context, b);   // 改名不常用，但也交给后台线程写
     }
 
     /** 删除题库（连同其题目图片；若删的是当前题库则自动切到下一个或新建） */
     public static void deleteBank(Context context, String bankId) {
         ensureBankExists(context);
+        flush(context);   // 先写完再删，避免写完最后一份又把它写回来
         QuestionBank b = readBankFile(bankFile(context, bankId));
         if (b != null && b.questions != null) {
             for (Question q : b.questions) deleteQuestionImages(context, q);
+        }
+        synchronized (WRITE_LOCK) {
+            pendingWrites.remove(bankId);
         }
         bankFile(context, bankId).delete();
         if (bankId.equals(readCurrentBankId(context))) {
@@ -335,7 +360,7 @@ public class QuestionStorage {
                 q.contentImages = rewriteImagePaths(imagesDir, bank.id, q.contentImages, tmpDir, pathMap);
                 q.answerImages = rewriteImagePaths(imagesDir, bank.id, q.answerImages, tmpDir, pathMap);
             }
-            writeBank(context, bank);
+            writeBankNow(context, bank);
             return bank;
         } finally {
             deleteRecursive(tmpDir);
@@ -392,7 +417,7 @@ public class QuestionStorage {
             bank.createdAt = now;
             bank.updatedAt = now;
             bank.questions = questions;
-            writeBank(context, bank);
+            writeBankNow(context, bank);   // 一次性迁移，留在当前线程写完再继续
             setCurrentBankId(context, bank.id);
             cacheBank = bank;
             sp.edit().putBoolean(KEY_MIGRATED, true).apply();
@@ -409,7 +434,7 @@ public class QuestionStorage {
         b.createdAt = now;
         b.updatedAt = now;
         b.questions = new ArrayList<>();
-        writeBank(context, b);
+        writeBankNow(context, b);   // 新题库是个空文件，写完再返回，保证文件确实存在
         return b;
     }
 
@@ -512,7 +537,7 @@ public class QuestionStorage {
         return new File(savesDir(context), bankId + ".json");
     }
 
-    private static void writeBank(Context context, QuestionBank bank) {
+    private static void writeBankNow(Context context, QuestionBank bank) {
         File target = bankFile(context, bank.id);
         File tmp = new File(target.getParentFile(), target.getName() + ".tmp");
         try {
@@ -599,10 +624,88 @@ public class QuestionStorage {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_CURRENT_BANK, bankId).apply();
     }
 
-    /** 写当前题库文件并刷新修改时间 */
+    /** 写当前题库：主线程只刷新修改时间，序列化与落盘交给后台线程 */
     private static void write(Context context) {
         ensureBankExists(context);
         cacheBank.updatedAt = System.currentTimeMillis();
-        writeBank(context, cacheBank);
+        requestWrite(context, cacheBank);
+    }
+
+    /**
+     * 请求把某个题库写盘（异步）。
+     * 调用方立刻返回，主线程只花"复制一份快照"的微秒级开销；
+     * 写线程取最新快照落盘，之前的旧快照被覆盖，所以连点也不会堆积成很多次整份写。
+     */
+    private static void requestWrite(Context context, QuestionBank bank) {
+        if (context == null || bank == null || bank.id == null) return;
+        final Context app = context.getApplicationContext() != null
+                ? context.getApplicationContext() : context;
+        synchronized (WRITE_LOCK) {
+            pendingWrites.put(bank.id, snapshotOf(bank));
+            if (writeRunning) return;
+            writeRunning = true;
+        }
+        WRITER.execute(new Runnable() {
+            @Override
+            public void run() {
+                drainWrites(app);
+            }
+        });
+    }
+
+    /** 写线程主循环：把待写快照一个接一个写掉，直到没有新改动 */
+    private static void drainWrites(Context app) {
+        while (true) {
+            QuestionBank snap;
+            synchronized (WRITE_LOCK) {
+                if (pendingWrites.isEmpty()) {
+                    writeRunning = false;
+                    return;
+                }
+                snap = pendingWrites.values().iterator().next();
+                pendingWrites.remove(snap.id);
+            }
+            writeBankNow(app, snap);
+        }
+    }
+
+    /**
+     * 立即把还没落盘的改动写完（切题库、暂停、退出前调用）。
+     * 靠单线程写队列的先后顺序：这里排一个空任务，它执行完就说明前面排队的写都已完成。
+     */
+    public static void flush(Context context) {
+        if (context == null) return;
+        synchronized (WRITE_LOCK) {
+            boolean idle = !writeRunning && pendingWrites.isEmpty();
+            if (idle) return;
+        }
+        final CountDownLatch done = new CountDownLatch(1);
+        WRITER.execute(new Runnable() {
+            @Override
+            public void run() {
+                done.countDown();
+            }
+        });
+        try {
+            done.await(3, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /** 复制当前题库，供后台线程安全地序列化（界面线程还在继续改原对象） */
+    private static QuestionBank snapshotOf(QuestionBank src) {
+        QuestionBank copy = new QuestionBank();
+        copy.id = src.id;
+        copy.name = src.name;
+        copy.createdAt = src.createdAt;
+        copy.updatedAt = src.updatedAt;
+        copy.questions = new ArrayList<>();
+        if (src.questions != null) {
+            for (Question q : src.questions) {
+                if (q != null) copy.questions.add(q.copy());
+            }
+        }
+        return copy;
     }
 }

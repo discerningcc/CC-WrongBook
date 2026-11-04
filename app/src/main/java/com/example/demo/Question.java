@@ -33,4 +33,21 @@ public class Question implements Serializable {
         this.status = newStatus;
         this.updateTime = System.currentTimeMillis();
     }
+
+    /** 给后台写盘用的空壳构造：绕过上面构造方法里生成 id 的格式化开销 */
+    private Question() {
+    }
+
+    /** 复制一份内容一致的副本，供后台线程写盘时使用，避免和界面上的改动抢同一个对象 */
+    public Question copy() {
+        Question c = new Question();
+        c.id = id;
+        c.content = content;
+        c.answer = answer;
+        c.status = status;
+        c.updateTime = updateTime;
+        c.contentImages = contentImages == null ? null : new ArrayList<>(contentImages);
+        c.answerImages = answerImages == null ? null : new ArrayList<>(answerImages);
+        return c;
+    }
 }

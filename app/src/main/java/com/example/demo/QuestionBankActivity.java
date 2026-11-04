@@ -21,8 +21,8 @@ import android.widget.SearchView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,6 +62,11 @@ public class QuestionBankActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Runnable pendingSearch;
 
+    /** 网格列数：宽屏（横屏平板）3 列，窄屏 2 列 */
+    private int spanCount = 2;
+    /** 网格内图片应加载的目标宽度（px），传给 ThumbLoader */
+    private int colImgPx = 600;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,7 +77,14 @@ public class QuestionBankActivity extends AppCompatActivity {
         tvStats = findViewById(R.id.tv_stats);
         tvEmpty = findViewById(R.id.tv_empty);
 
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        // 网格：宽屏 3 列、窄屏 2 列；卡片高度随图（瀑布流），不再留白条
+        float density = getResources().getDisplayMetrics().density;
+        int screenW = getResources().getDisplayMetrics().widthPixels;
+        int screenDp = (int) (screenW / density);
+        spanCount = screenDp >= 1000 ? 3 : 2;
+        colImgPx = Math.max(300, screenW / spanCount - dp(16)); // item 左右各 8dp margin
+        recyclerView.setLayoutManager(new StaggeredGridLayoutManager(spanCount,
+                StaggeredGridLayoutManager.VERTICAL));
         adapter = new Adapter(shown);
         recyclerView.setAdapter(adapter);
 
@@ -313,7 +325,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_id, parent, false);
+                    .inflate(R.layout.item_grid, parent, false);
             return new ViewHolder(view);
         }
 
@@ -346,7 +358,6 @@ public class QuestionBankActivity extends AppCompatActivity {
 
         public class ViewHolder extends RecyclerView.ViewHolder {
             final ImageView thumb;
-            final LinearLayout contentCol;
             final TextView text;
             final TextView badge;
             final TextView meta;
@@ -354,7 +365,6 @@ public class QuestionBankActivity extends AppCompatActivity {
             public ViewHolder(View itemView) {
                 super(itemView);
                 thumb = itemView.findViewById(R.id.thumb);
-                contentCol = itemView.findViewById(R.id.content_col);
                 text = itemView.findViewById(R.id.text);
                 badge = itemView.findViewById(R.id.tv_badge);
                 meta = itemView.findViewById(R.id.tv_meta);
@@ -376,16 +386,14 @@ public class QuestionBankActivity extends AppCompatActivity {
                 }
                 text.setText(titleSpan);
 
-                // 首图缩略图
+                // 首图：宽度撑满卡片、高度随图比例；没有图则整块 GONE
                 String firstImage = imgCount > 0 ? q.contentImages.get(0) : null;
                 if (firstImage != null) {
                     thumb.setVisibility(View.VISIBLE);
-                    ThumbLoader.bind(itemView.getContext(), firstImage, thumb);
-                    setContentMargin(12);
+                    ThumbLoader.bind(itemView.getContext(), firstImage, thumb, colImgPx);
                 } else {
                     thumb.setVisibility(View.GONE);
                     ThumbLoader.release(thumb);
-                    setContentMargin(0);
                 }
 
                 // 等级徽章
@@ -402,15 +410,6 @@ public class QuestionBankActivity extends AppCompatActivity {
                 sb.append(" · ").append(days <= 0 ? "今天更新" : days + " 天前更新");
 
                 meta.setText(sb.toString());
-            }
-
-            private void setContentMargin(int startDp) {
-                ViewGroup.LayoutParams raw = contentCol.getLayoutParams();
-                if (raw instanceof ViewGroup.MarginLayoutParams) {
-                    ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) raw;
-                    lp.setMarginStart(dp(startDp));
-                    contentCol.setLayoutParams(lp);
-                }
             }
         }
 

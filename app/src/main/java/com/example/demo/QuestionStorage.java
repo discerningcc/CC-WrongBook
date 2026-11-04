@@ -45,6 +45,7 @@ public class QuestionStorage {
     private static final String KEY_CURRENT_BANK = "current_save_id";
     private static final String KEY_MIGRATED = "data_migrated_v2";
     private static final String KEY_MIGRATED_V3 = "data_migrated_v3";
+    private static final String KEY_MIGRATED_V4 = "data_migrated_v4";
     public static final String KEY_DAILY_BUDGET = "daily_review_budget";
     public static final int DEFAULT_DAILY_BUDGET = 50;
     /** S 级长期抽查间隔（天） */
@@ -473,6 +474,7 @@ public class QuestionStorage {
         if (cacheBank != null) return;
 
         migrateV3AllBanks(context);   // 老 A（永久毕业）→ S 长期抽查，只跑一次
+        migrateV4AllBanks(context);   // 把 v3 批量升 S 的题到期时间错峰打散，只跑一次
 
         String currentId = readCurrentBankId(context);
         if (currentId != null && bankFile(context, currentId).exists()) {
@@ -554,6 +556,39 @@ public class QuestionStorage {
             }
         }
         sp.edit().putBoolean(KEY_MIGRATED_V3, true).apply();
+    }
+
+    /**
+     * v4 迁移：v3 把 64 道 A→S 的题 updateTime 全设成了同一个「30 天后」值，
+     * 导致 S 补位机制空转 30 天、到期日又集体撞车。这里把所有 S 题的到期时间
+     * 在「昨天 ~ 今天+30 天」内随机打散：少量已逾期的今天就进队列，之后每天自然
+     * 到期 2~3 道，由 S 补位（≥1、≤预算 5%）平滑接住。只跑一次。
+     */
+    private static void migrateV4AllBanks(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (sp.getBoolean(KEY_MIGRATED_V4, false)) return;
+
+        long now = System.currentTimeMillis();
+        long dayMs = 24L * 3600 * 1000;
+        java.util.Random rnd = new java.util.Random();
+        File[] files = savesDir(context).listFiles((d, n) -> n.endsWith(".json"));
+        if (files != null) {
+            for (File f : files) {
+                QuestionBank b = readBankFile(f);
+                if (b == null || b.questions == null) continue;
+                boolean changed = false;
+                for (Question q : b.questions) {
+                    if ("S".equals(q.status)) {
+                        int offsetDays = rnd.nextInt(S_INTERVAL_DAYS + 2) - 1; // -1..30
+                        long jitter = (long) (rnd.nextDouble() * dayMs);      // 当天内随机时刻
+                        q.updateTime = now + offsetDays * dayMs + jitter;
+                        changed = true;
+                    }
+                }
+                if (changed) writeBankNow(context, b);
+            }
+        }
+        sp.edit().putBoolean(KEY_MIGRATED_V4, true).apply();
     }
 
     private static QuestionBank createBankInternal(Context context, String name) {

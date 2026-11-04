@@ -104,7 +104,7 @@ public class ReviewActivity extends AppCompatActivity {
             ReviewSession old = SessionStorage.getActive(this, bankId);
             if (old != null) SessionStorage.archive(this, old, ReviewSession.STATUS_ABANDONED);
         }
-        List<Question> today = QuestionStorage.getTodayReview(this);
+        List<Question> today = QuestionStorage.buildTodayQueue(this);
         if (today == null || today.isEmpty()) {
             showEmptyState();
             return;
@@ -112,7 +112,13 @@ public class ReviewActivity extends AppCompatActivity {
         Collections.shuffle(today);
         session = SessionStorage.create(this, bankId, bankName, today);
         finished = false;
-        showBanner("已开始新一轮复习：共 " + session.items.size() + " 题");
+        int dueAll = QuestionStorage.getTodayReview(this).size();
+        int budget = QuestionStorage.getDailyBudget(this);
+        String tip = "已开始新一轮复习：共 " + session.items.size() + " 题";
+        if (dueAll > session.items.size()) {
+            tip += "（今日到期 " + dueAll + "，预算 " + budget + "，其余顺延）";
+        }
+        showBanner(tip);
         showCurrentQuestion();
     }
 
@@ -339,11 +345,13 @@ public class ReviewActivity extends AppCompatActivity {
     private void onKnow() {
         Question q = currentQuestion();
         if (q == null) return;
-        switch (q.status) {
+        switch (q.status == null ? "E" : q.status) {
             case "E": q.updateStatus("D"); break;
             case "D": q.updateStatus("C"); break;
             case "C": q.updateStatus("B"); break;
             case "B": q.updateStatus("A"); break;
+            case "A": q.updateStatus("S"); break;
+            case "S": q.updateStatus("S"); break;   // 长期题记得：保持 S，重算 30 天
             default: break;
         }
         QuestionStorage.update(this);
@@ -353,7 +361,15 @@ public class ReviewActivity extends AppCompatActivity {
     private void onUnknown() {
         Question q = currentQuestion();
         if (q == null) return;
-        q.updateStatus(q.status);
+        // 模糊：等级不动，但间隔按低一级算（把更新时间往回拨 own-low 天，到期自然提前）
+        String lower = QuestionStorage.lowerLevelOf(q.status);
+        int own = QuestionStorage.intervalDaysOf(q.status);
+        int low = QuestionStorage.intervalDaysOf(lower);
+        if (own > low) {
+            q.updateTime = System.currentTimeMillis() - (long) (own - low) * 24L * 3600 * 1000;
+        } else {
+            q.updateStatus(q.status);
+        }
         QuestionStorage.update(this);
         recordResult(ReviewSession.RESULT_VAGUE);
     }
@@ -361,7 +377,11 @@ public class ReviewActivity extends AppCompatActivity {
     private void onForget() {
         Question q = currentQuestion();
         if (q == null) return;
-        q.updateStatus("E");
+        if ("S".equals(q.status)) {
+            q.updateStatus("A");   // 长期题答错：降回 A（15 天），不直接打回 E
+        } else {
+            q.updateStatus("E");
+        }
         QuestionStorage.update(this);
         recordResult(ReviewSession.RESULT_FORGET);
     }
@@ -384,6 +404,22 @@ public class ReviewActivity extends AppCompatActivity {
         ReviewSession.Item item = session.items.get(session.currentIndex);
         item.result = result;
         item.answeredAt = System.currentTimeMillis();
+
+        // 答错（不会）：本题插到本次队列末尾趁热再看一次，最多重做 1 次
+        if (ReviewSession.RESULT_FORGET.equals(result)) {
+            int copies = 0;
+            for (ReviewSession.Item it : session.items) {
+                if (item.questionId.equals(it.questionId)) copies++;
+            }
+            if (copies < 2) {
+                ReviewSession.Item again = new ReviewSession.Item();
+                again.questionId = item.questionId;
+                again.contentSnapshot = item.contentSnapshot;
+                again.hadImages = item.hadImages;
+                session.items.add(again);
+            }
+        }
+
         session.currentIndex++;
         session.answerShown = false;
         hideBanner();

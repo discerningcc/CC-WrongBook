@@ -257,7 +257,7 @@ public class QuestionBankActivity extends AppCompatActivity {
     /** 统计条：题库规模、到期数、图片/文本构成、等级分布；有筛选时带「显示 M / 共 N」 */
     private void updateStats() {
         int due = 0, withImg = 0, withText = 0;
-        int[] level = new int[5]; // A B C D E
+        int[] level = new int[6]; // S A B C D E
         for (Question q : allQuestions) {
             if (QuestionStorage.isDue(this, q)) due++;
             if (q.contentImages != null && !q.contentImages.isEmpty()) withImg++;
@@ -268,8 +268,8 @@ public class QuestionBankActivity extends AppCompatActivity {
 
         String head = "共 " + allQuestions.size() + " 题 · 今日到期 " + due
                 + " · 有图 " + withImg + " · 有文本 " + withText;
-        String levels = " · A" + level[0] + " B" + level[1] + " C" + level[2]
-                + " D" + level[3] + " E" + level[4];
+        String levels = " · S" + level[0] + " A" + level[1] + " B" + level[2]
+                + " C" + level[3] + " D" + level[4] + " E" + level[5];
         String prefix = (filter != FILTER_ALL || !tokens.isEmpty())
                 ? "显示 " + shown.size() + " / " + allQuestions.size() + " · "
                 : "";
@@ -280,11 +280,12 @@ public class QuestionBankActivity extends AppCompatActivity {
     private static int levelIndex(String status) {
         if (status == null) return -1;
         switch (status) {
-            case "A": return 0;
-            case "B": return 1;
-            case "C": return 2;
-            case "D": return 3;
-            case "E": return 4;
+            case "S": return 0;
+            case "A": return 1;
+            case "B": return 2;
+            case "C": return 3;
+            case "D": return 4;
+            case "E": return 5;
             default: return -1;
         }
     }
@@ -433,9 +434,10 @@ public class QuestionBankActivity extends AppCompatActivity {
         }
     }
 
-    /** 等级颜色：A 绿（熟）→ E 灰（生） */
+    /** 等级颜色：S 金（长期掌握）→ E 灰（生） */
     private static int statusColor(String status) {
         switch (status) {
+            case "S": return 0xffffc107;
             case "A": return 0xff4caf50;
             case "B": return 0xff2196f3;
             case "C": return 0xffff9800;

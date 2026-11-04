@@ -17,4 +17,13 @@
         android:thumbTint="@color/switch_thumb"
         android:trackTint="@color/switch_track"/>
 
+    <TextView
+        android:id="@+id/tv_budget_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="每日复习量：50 题/天"
+        android:textSize="18sp"
+        android:layout_marginTop="30dp"
+        android:padding="8dp"/>
+
 </LinearLayout>

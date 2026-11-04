@@ -16,6 +16,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +44,11 @@ public class QuestionStorage {
     private static final String PREFS = "settings";
     private static final String KEY_CURRENT_BANK = "current_save_id";
     private static final String KEY_MIGRATED = "data_migrated_v2";
+    private static final String KEY_MIGRATED_V3 = "data_migrated_v3";
+    public static final String KEY_DAILY_BUDGET = "daily_review_budget";
+    public static final int DEFAULT_DAILY_BUDGET = 50;
+    /** S 级长期抽查间隔（天） */
+    public static final int S_INTERVAL_DAYS = 30;
     private static final String OLD_FILE = "questions_data.txt";
     private static final String SAVES_DIR = "saves";
     private static final String IMAGES_DIR = "images";
@@ -94,7 +100,7 @@ public class QuestionStorage {
         write(context);
     }
 
-    /** 今日待复习（自动根据设置选择模式） */
+    /** 今日全部到期的题（不截断；用于统计、筛选）。开 session 用 buildTodayQueue */
     public static List<Question> getTodayReview(Context context) {
         List<Question> result = new ArrayList<>();
         for (Question q : loadAll(context)) {
@@ -103,24 +109,90 @@ public class QuestionStorage {
         return result;
     }
 
-    /** 该题今天是否该复习：与 getTodayReview 同一口径，题目列表的“今日到期”筛选也用它 */
+    /** 每日复习预算（设置页可调，默认 50） */
+    public static int getDailyBudget(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt(KEY_DAILY_BUDGET, DEFAULT_DAILY_BUDGET);
+    }
+
+    public static void setDailyBudget(Context context, int n) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putInt(KEY_DAILY_BUDGET, n).apply();
+    }
+
+    /**
+     * 今日实际进 session 的队列：
+     * 1) E / 逾期 D、C、B、A 优先（E 先排，其余按最久没更新）；
+     * 2) S 级长期抽查补位：至少 1 道、至多预算的 5%；
+     * 3) 总量不超过日预算，多出来的年轻题和 S 题顺延到后面几天（不丢）。
+     */
+    public static List<Question> buildTodayQueue(Context context) {
+        int budget = getDailyBudget(context);
+        List<Question> young = new ArrayList<>();
+        List<Question> sList = new ArrayList<>();
+        for (Question q : loadAll(context)) {
+            if (!isDue(context, q)) continue;
+            if ("S".equals(q.status)) sList.add(q);
+            else young.add(q);
+        }
+        // 年轻题：E 优先，其余按 updateTime 升序（最久没碰的先）
+        Collections.sort(young, new Comparator<Question>() {
+            @Override
+            public int compare(Question a, Question b) {
+                int ra = "E".equals(a.status) ? 0 : 1;
+                int rb = "E".equals(b.status) ? 0 : 1;
+                if (ra != rb) return Integer.compare(ra, rb);
+                return Long.compare(a.updateTime, b.updateTime);
+            }
+        });
+        Collections.sort(sList, new Comparator<Question>() {
+            @Override
+            public int compare(Question a, Question b) {
+                return Long.compare(a.updateTime, b.updateTime);
+            }
+        });
+
+        int sCap = Math.max(1, (int) (budget * 0.05f));
+        int sTake = Math.min(sList.size(), sCap);
+        int youngTake = Math.min(young.size(), budget - sTake);
+
+        List<Question> queue = new ArrayList<>();
+        queue.addAll(young.subList(0, youngTake));
+        queue.addAll(sList.subList(0, sTake));
+        return queue;
+    }
+
+    /** 该题今天是否该复习：E 每天到期；其余按等级间隔 */
     public static boolean isDue(Context context, Question q) {
         if (q == null) return false;
         int interval = intervalDaysOf(q.status);
-        if (interval < 0) return false;   // A：不再安排
         if (interval == 0) return true;   // E：随时都该复习
         return daysSince(context, q) >= interval;
     }
 
-    /** 等级对应的复习间隔（天）：E=0（随时），D=3，C=7，B=15，A=-1（不再安排） */
+    /** 等级对应的复习间隔（天）：E=0，D=1，C=3，B=7，A=15，S=30（艾宾浩斯节奏） */
     public static int intervalDaysOf(String status) {
         if (status == null) return 0;
         switch (status) {
-            case "D": return 3;
-            case "C": return 7;
-            case "B": return 15;
-            case "A": return -1;
-            default: return 0;
+            case "D": return 1;
+            case "C": return 3;
+            case "B": return 7;
+            case "A": return 15;
+            case "S": return S_INTERVAL_DAYS;
+            default: return 0;   // E
+        }
+    }
+
+    /** 低一级的等级（模糊档按低一级间隔算） */
+    public static String lowerLevelOf(String status) {
+        if (status == null) return "E";
+        switch (status) {
+            case "D": return "E";
+            case "C": return "D";
+            case "B": return "C";
+            case "A": return "B";
+            case "S": return "A";
+            default: return "E";
         }
     }
 
@@ -138,10 +210,10 @@ public class QuestionStorage {
     /** 题目列表里展示的到期文案 */
     public static String dueText(Context context, Question q) {
         int interval = intervalDaysOf(q.status);
-        if (interval < 0) return "已掌握";
         if (interval == 0) return "待复习";
         long left = interval - daysSince(context, q);
-        return left <= 0 ? "今天到期" : left + " 天后到期";
+        if (left <= 0) return "今天到期";
+        return left + " 天后到期";
     }
 
     public static Question findById(Context context, String qid) {
@@ -392,6 +464,8 @@ public class QuestionStorage {
     private static void ensureBankExists(Context context) {
         if (cacheBank != null) return;
 
+        migrateV3AllBanks(context);   // 老 A（永久毕业）→ S 长期抽查，只跑一次
+
         String currentId = readCurrentBankId(context);
         if (currentId != null && bankFile(context, currentId).exists()) {
             cacheBank = readBankFile(bankFile(context, currentId));
@@ -443,6 +517,35 @@ public class QuestionStorage {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * v3 迁移：旧版「A = 永久毕业、不再安排」的题，升级为 S（30 天长期抽查）。
+     * 时间戳统一重置为「30 天后到期」——升级当天不涌题，之后按 S=30 天节奏走。
+     * 对磁盘上每一个题库文件执行一次，完成后打标记，只跑这一次。
+     */
+    private static void migrateV3AllBanks(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (sp.getBoolean(KEY_MIGRATED_V3, false)) return;
+
+        long future = System.currentTimeMillis() + S_INTERVAL_DAYS * 24L * 3600 * 1000;
+        File[] files = savesDir(context).listFiles((d, n) -> n.endsWith(".json"));
+        if (files != null) {
+            for (File f : files) {
+                QuestionBank b = readBankFile(f);
+                if (b == null || b.questions == null) continue;
+                boolean changed = false;
+                for (Question q : b.questions) {
+                    if ("A".equals(q.status)) {
+                        q.status = "S";
+                        q.updateTime = future;
+                        changed = true;
+                    }
+                }
+                if (changed) writeBankNow(context, b);
+            }
+        }
+        sp.edit().putBoolean(KEY_MIGRATED_V3, true).apply();
     }
 
     private static QuestionBank createBankInternal(Context context, String name) {

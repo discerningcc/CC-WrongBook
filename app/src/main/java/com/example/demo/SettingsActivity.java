@@ -3,10 +3,15 @@ package com.example.demo;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Switch;
+import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_NATURAL_DAY = "natural_day_enabled";
+
+    /** 可选的每日复习量档位 */
+    private static final int[] BUDGET_OPTIONS = {20, 30, 50, 80};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +30,34 @@ public class SettingsActivity extends AppCompatActivity {
             sp.edit().putBoolean(KEY_NATURAL_DAY, isChecked).apply();
             updateSwitchColor(switchNaturalDay, isChecked);
         });
+
+        // 每日复习量：点一下弹四档选择
+        TextView budgetRow = findViewById(R.id.tv_budget_row);
+        refreshBudgetRow(budgetRow);
+        budgetRow.setOnClickListener(v -> showBudgetDialog(budgetRow));
+    }
+
+    private void refreshBudgetRow(TextView row) {
+        row.setText("每日复习量：" + QuestionStorage.getDailyBudget(this) + " 题/天（点此修改）");
+    }
+
+    private void showBudgetDialog(TextView row) {
+        int current = QuestionStorage.getDailyBudget(this);
+        String[] items = new String[BUDGET_OPTIONS.length];
+        int checked = 0;
+        for (int i = 0; i < BUDGET_OPTIONS.length; i++) {
+            items[i] = BUDGET_OPTIONS[i] + " 题/天";
+            if (BUDGET_OPTIONS[i] == current) checked = i;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("每日复习量")
+                .setSingleChoiceItems(items, checked, (dialog, which) -> {
+                    QuestionStorage.setDailyBudget(this, BUDGET_OPTIONS[which]);
+                    refreshBudgetRow(row);
+                    dialog.dismiss();
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void updateSwitchColor(Switch switchView, boolean isChecked) {

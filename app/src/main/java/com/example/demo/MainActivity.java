@@ -17,8 +17,9 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.btn_help).setOnClickListener(v -> {
             String helpContent =
-                    "复习等级：E(未掌握)→D(3天)→C(7天)→B(15天)→A(完成)\n" +
-                    "记得：升级；模糊：不变；不会：重置回E。\n\n" +
+                    "复习节奏（艾宾浩斯）：E(每天)→D(1天)→C(3天)→B(7天)→A(15天)→S(30天抽查)\n" +
+                    "记得：升级；模糊：等级不变但下次提前；不会：E~A打回E、S降回A；答错的题本次会再出现一次。\n" +
+                    "每日复习量可在设置里调；到期超过预算时，多出来的顺延到后面几天，S 长期题每天抽 1~2 道。\n\n" +
                     "支持多题库管理，题库可导出zip备份（含图片）。\n" +
                     "两种计时模式：自然日 / 24小时间隔。\n\n" +
                     "⚠️ 全部数据本地存储，卸载会丢失，请记得备份！\n" +
@@ -57,8 +58,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshTodayCount() {
-        int count = QuestionStorage.getTodayReview(this).size();
-        ((TextView) findViewById(R.id.tv_today_review)).setText("今日待复习：" + count + " 题");
+        int queued = QuestionStorage.buildTodayQueue(this).size();
+        int dueAll = QuestionStorage.getTodayReview(this).size();
+        int budget = QuestionStorage.getDailyBudget(this);
+        String text = "今日复习：已排 " + queued + " / 到期 " + dueAll;
+        if (dueAll > queued) {
+            text += "（预算 " + budget + "，其余顺延）";
+        }
+        ((TextView) findViewById(R.id.tv_today_review)).setText(text);
     }
 
     private void refreshCurrentBank() {

@@ -434,15 +434,15 @@ public class QuestionBankActivity extends AppCompatActivity {
         }
     }
 
-    /** 等级颜色：S 金（长期掌握）→ E 灰（生） */
+    /** 等级徽章颜色：E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红 */
     private static int statusColor(String status) {
         switch (status) {
-            case "S": return 0xffffc107;
-            case "A": return 0xff4caf50;
-            case "B": return 0xff2196f3;
-            case "C": return 0xffff9800;
-            case "D": return 0xfff44336;
-            default: return 0xff9e9e9e;
+            case "S": return 0xfff44336;   // 红
+            case "A": return 0xffff9800;   // 橙
+            case "B": return 0xff9c27b0;   // 紫
+            case "C": return 0xff2196f3;   // 蓝
+            case "D": return 0xff4caf50;   // 绿
+            default: return 0xff9e9e9e;    // E 灰
         }
     }
 }

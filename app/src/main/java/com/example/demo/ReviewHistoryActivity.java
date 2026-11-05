@@ -145,7 +145,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         TextView bank = card.findViewById(R.id.tv_session_bank);
         LinearLayout questions = card.findViewById(R.id.session_questions);
 
-        int total = s.items.size();
+        int total = s.originalTotal();
         String statusText;
         if (ReviewSession.STATUS_FINISHED.equals(s.status)) {
             statusText = "已完成";

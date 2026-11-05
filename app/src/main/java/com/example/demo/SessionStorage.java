@@ -125,6 +125,7 @@ public class SessionStorage {
                 s.items.add(it);
             }
         }
+        s.originalCount = s.items.size();
         save(context, s);   // 新会话只写它自己的文件
         return s;
     }

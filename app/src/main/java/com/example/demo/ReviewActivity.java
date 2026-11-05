@@ -130,10 +130,10 @@ public class ReviewActivity extends AppCompatActivity {
         session = SessionStorage.create(this, bankId, bankName, today);
         finished = false;
         int done = QuestionStorage.getTodayDone(this);
-        String tip = "已开始新一轮复习：共 " + session.items.size() + " 题";
+        String tip = "已开始新一轮复习：共 " + session.originalTotal() + " 题";
         if (budget <= 0) {
             tip += "（不限量）";
-        } else if (dueAll > session.items.size()) {
+        } else if (dueAll > session.originalTotal()) {
             tip += "（今日目标 " + budget + " · 已完成 " + done + " · 还剩 "
                     + (budget - done) + "，其余顺延）";
         }
@@ -159,9 +159,9 @@ public class ReviewActivity extends AppCompatActivity {
             finishSession();
             return;
         }
-        if (showHint && session.answeredCount() > 0) {
-            showBanner("已恢复上次进度：已答 " + session.answeredCount()
-                    + " / " + session.items.size() + " 题", true);
+        if (showHint && session.closedOriginalCount() > 0) {
+            showBanner("已恢复上次进度：已完成 " + session.closedOriginalCount()
+                    + " / " + session.originalTotal() + " 题", true);
         } else {
             hideBanner();
         }
@@ -169,14 +169,14 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     private void showCrossDayPrompt(ReviewSession active) {
-        int remaining = active.items.size() - active.currentIndex;
+        int remaining = Math.max(0, active.originalTotal() - active.closedOriginalCount());
         int fresh = countFreshToday(active);
 
         StringBuilder msg = new StringBuilder();
         msg.append(SessionStorage.formatDateHeader(active.startTime)).append(" ")
                 .append(SessionStorage.formatTime(active.startTime))
                 .append(" · 题库「").append(active.bankName).append("」\n");
-        msg.append("已答 ").append(active.answeredCount()).append(" 题，还剩 ")
+        msg.append("已完成 ").append(active.closedOriginalCount()).append(" 题，还剩 ")
                 .append(remaining).append(" 题\n");
         msg.append("本次会话已跨日，将按 ")
                 .append(SessionStorage.formatDateHeader(active.startTime))
@@ -224,9 +224,9 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     private void renderQuestion(Question q) {
-        int pos = session.currentIndex + 1;
-        int total = session.items.size();
-        tvQuestion.setText("【等级：" + q.status + "】 【第 " + pos + " / " + total
+        int done = session.closedOriginalCount();
+        int total = session.originalTotal();
+        tvQuestion.setText("【等级：" + q.status + "】 【已完成 " + done + " / " + total
                 + " 题】 【ID：" + q.id + "】\n题目：\n" + q.content);
         tvAnswer.setText(q.answer);
         answerLayout.setVisibility(session.answerShown ? View.VISIBLE : View.GONE);
@@ -484,17 +484,18 @@ public class ReviewActivity extends AppCompatActivity {
         item.result = result;
         item.answeredAt = System.currentTimeMillis();
 
-        // 答错（不会）：本题插到本次队列末尾趁热再看一次，最多重做 1 次
+        // 答错（不会）：本题插到本次队列末尾趁热再看，最多重做 REDO_CAP 次
         if (ReviewSession.RESULT_FORGET.equals(result)) {
             int copies = 0;
             for (ReviewSession.Item it : session.items) {
                 if (item.questionId.equals(it.questionId)) copies++;
             }
-            if (copies < 2) {
+            if (copies <= ReviewSession.REDO_CAP) {
                 ReviewSession.Item again = new ReviewSession.Item();
                 again.questionId = item.questionId;
                 again.contentSnapshot = item.contentSnapshot;
                 again.hadImages = item.hadImages;
+                again.redo = true;
                 session.items.add(again);
             }
         }
@@ -550,12 +551,13 @@ public class ReviewActivity extends AppCompatActivity {
             session.answerShown = false;
             SessionStorage.save(this, session);
 
-            total = session.items.size();
-            know = session.countOfResult(ReviewSession.RESULT_KNOW);
-            vague = session.countOfResult(ReviewSession.RESULT_VAGUE);
-            forget = session.countOfResult(ReviewSession.RESULT_FORGET);
-            skip = session.skippedCount();
-            excluded = session.countOfResult(ReviewSession.RESULT_EXCLUDED);
+            total = session.originalTotal();
+            int[] u = session.uniqueStats();
+            know = u[0];
+            vague = u[1];
+            forget = u[2];
+            skip = u[3];
+            excluded = u[4];
         }
 
         String stats = "共 " + total + " 题\n记得 " + know + " · 模糊 " + vague + " · 不会 " + forget
@@ -622,7 +624,7 @@ public class ReviewActivity extends AppCompatActivity {
             return;
         }
         showPrompt("退出复习？",
-                "已答 " + answered + " / " + session.items.size() + " 题，进度已保存\n下次进入可继续",
+                "已完成 " + session.closedOriginalCount() + " / " + session.originalTotal() + " 题，进度已保存\n下次进入可继续",
                 "继续复习", () -> {},
                 "退出", this::finish,
                 null, null,

@@ -466,9 +466,14 @@ public class ReviewActivity extends AppCompatActivity {
         session.currentIndex++;
         session.answerShown = false;
         hideBanner();
+        boolean finishing = session.currentIndex >= session.items.size();
+        if (finishing) {
+            // 末题随即收尾：这份副本本轮已无机会作答，不再追加，避免归档记录留下空结果的悬空副本
+            p.redoCopy = false;
+        }
         SessionStorage.save(this, session);
 
-        if (session.currentIndex >= session.items.size()) {
+        if (finishing) {
             finishSession();
         } else {
             showCurrentQuestion();

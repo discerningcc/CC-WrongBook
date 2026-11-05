@@ -70,7 +70,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- 跳过：低频操作，收到题干右上角小文字按钮 -->
+            <!-- 右上角溢出菜单：跳过等低频操作收进这里 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -79,12 +79,12 @@
                 android:layout_marginBottom="4dp">
 
                 <TextView
-                    android:id="@+id/btn_skip"
+                    android:id="@+id/btn_menu"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:padding="8dp"
-                    android:text="跳过"
-                    android:textSize="14sp"
+                    android:text="⋮"
+                    android:textSize="22sp"
                     android:textColor="#1f6aa5" />
             </LinearLayout>
 

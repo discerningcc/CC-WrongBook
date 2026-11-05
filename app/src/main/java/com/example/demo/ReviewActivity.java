@@ -4,11 +4,13 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
@@ -83,7 +85,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_know).setOnClickListener(v -> onKnow());
         findViewById(R.id.btn_unknown).setOnClickListener(v -> onUnknown());
         findViewById(R.id.btn_forget).setOnClickListener(v -> onForget());
-        findViewById(R.id.btn_skip).setOnClickListener(v -> onSkip());
+        findViewById(R.id.btn_menu).setOnClickListener(v -> openReviewMenu(v));
         findViewById(R.id.btn_answer).setOnClickListener(v -> toggleAnswer());
         findViewById(R.id.btn_banner_close).setOnClickListener(v -> hideBanner());
         findViewById(R.id.btn_banner_new).setOnClickListener(v -> confirmRestart());
@@ -325,7 +327,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_unknown).setEnabled(enabled);
         findViewById(R.id.btn_forget).setEnabled(enabled);
         findViewById(R.id.btn_answer).setEnabled(enabled);
-        findViewById(R.id.btn_skip).setEnabled(enabled);
+        findViewById(R.id.btn_menu).setEnabled(enabled);
     }
 
     private void addImage(LinearLayout parent, String path) {
@@ -412,6 +414,21 @@ public class ReviewActivity extends AppCompatActivity {
         }
         QuestionStorage.update(this);
         recordResult(ReviewSession.RESULT_FORGET);
+    }
+
+    /** 右上角溢出菜单：跳过等低频操作集中在此 */
+    private void openReviewMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.getMenuInflater().inflate(R.menu.review_menu, popup.getMenu());
+        popup.setOnMenuItemClickListener((MenuItem item) -> {
+            int id = item.getItemId();
+            if (id == R.id.menu_skip) {
+                onSkip();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
     }
 
     /** 跳过：不动等级、不刷新 updateTime，只把这道题记成跳过 */

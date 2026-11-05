@@ -26,8 +26,8 @@ import java.util.Set;
 
 /**
  * 复习页：一次复习 = 一个 ReviewSession。
- * 题目顺序在创建时固定，每题作答立即落盘，退出后可原位置续做；
- * 完成或被放弃后归档成「复习记录」。
+ * 题目顺序在创建时固定；作答先入延迟提交缓冲，下一道作答 / 收尾 / 退出 / 切后台时落盘，
+ * 未提交前可经菜单「上一题」退回重答（最多一步）；退出后可原位置续做，完成或放弃后归档。
  */
 public class ReviewActivity extends AppCompatActivity {
 
@@ -44,6 +44,23 @@ public class ReviewActivity extends AppCompatActivity {
     private static final int BANNER_SECONDS = 8;
     private CountDownTimer bannerTimer;
     private String bannerBaseText = "";
+
+    /**
+     * 待提交的上一道作答（延迟提交缓冲）：作答先只入内存，
+     * 在下一道作答 / 收尾 / 退出 / 切后台时才真正落盘；
+     * 未提交前可经菜单「上一题」丢弃缓冲退回重答，最多退一步。
+     */
+    private PendingAnswer pending;
+
+    private static class PendingAnswer {
+        int index;                  // 对应 items 下标
+        String result;             // KNOW / VAGUE / FORGET / SKIP / EXCLUDED
+        String afterStatus;         // 提交时写入的等级；null 表示不动等级
+        long afterUpdateTime;       // 提交时写入的更新时间
+        boolean excludeApplied;      // 提交时置为已斩
+        boolean redoCopy;           // 不会题：提交时追加队尾重做副本
+        boolean counted;            // 提交时是否计入今日完成
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +121,7 @@ public class ReviewActivity extends AppCompatActivity {
     // ==================== 会话的三种入口 ====================
 
     private void startNewSession(boolean archivePrevious) {
+        commitPending();
         if (archivePrevious) {
             ReviewSession old = SessionStorage.getActive(this, bankId);
             if (old != null) SessionStorage.archive(this, old, ReviewSession.STATUS_ABANDONED);
@@ -143,6 +161,7 @@ public class ReviewActivity extends AppCompatActivity {
 
     /** 今日目标已答满后，用户选择「继续多做」：把全部到期题塞进来 */
     private void launchExtraSession() {
+        commitPending();
         List<Question> all = QuestionStorage.getTodayReview(this);
         Collections.shuffle(all);
         session = SessionStorage.create(this, bankId, bankName, all);
@@ -313,6 +332,7 @@ public class ReviewActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        commitPending();               // 切后台先把未提交的作答落盘，避免进程回收丢答案
         QuestionStorage.flush(this);   // 离开页面时把还没落盘的题目状态写完
     }
 
@@ -373,56 +393,165 @@ public class ReviewActivity extends AppCompatActivity {
         return QuestionStorage.findById(this, session.items.get(session.currentIndex).questionId);
     }
 
-    private void onKnow() {
-        Question q = currentQuestion();
-        if (q == null) return;
-        switch (q.status == null ? "E" : q.status) {
-            case "E": q.updateStatus("D"); break;
-            case "D": q.updateStatus("C"); break;
-            case "C": q.updateStatus("B"); break;
-            case "B": q.updateStatus("A"); break;
-            case "A": q.updateStatus("S"); break;
-            case "S": q.updateStatus("S"); break;   // 长期题记得：保持 S，重算 30 天
-            default: break;
+    private void onKnow() { answerQuestion(ReviewSession.RESULT_KNOW); }
+
+    private void onUnknown() { answerQuestion(ReviewSession.RESULT_VAGUE); }
+
+    private void onForget() { answerQuestion(ReviewSession.RESULT_FORGET); }
+
+    /** 记得后的升档表：E→D→C→B→A→S，S 保持 S 并重算 30 天 */
+    private String upgradeLevel(String status) {
+        switch (status == null ? "E" : status) {
+            case "E": return "D";
+            case "D": return "C";
+            case "C": return "B";
+            case "B": return "A";
+            case "A": return "S";
+            case "S": return "S";
+            default: return "E";
         }
-        QuestionStorage.update(this);
-        recordResult(ReviewSession.RESULT_KNOW);
     }
 
-    private void onUnknown() {
+    /**
+     * 统一作答入口：先提交上一道缓冲，再把当前这道的结果与题目改动暂存进 pending，
+     * 界面前进；题目等级/时间/斩题标记/重做副本/今日计数都延迟到提交时落地。
+     */
+    private void answerQuestion(String result) {
+        if (session == null || session.currentIndex >= session.items.size()) return;
+        commitPending();
+
         Question q = currentQuestion();
         if (q == null) return;
-        // 模糊：等级不动，但间隔按低一级算（把更新时间往回拨 own-low 天，到期自然提前）
-        String lower = QuestionStorage.lowerLevelOf(q.status);
-        int own = QuestionStorage.intervalDaysOf(q.status);
-        int low = QuestionStorage.intervalDaysOf(lower);
-        if (own > low) {
-            q.updateTime = System.currentTimeMillis() - (long) (own - low) * 24L * 3600 * 1000;
+        ReviewSession.Item item = session.items.get(session.currentIndex);
+        long now = System.currentTimeMillis();
+
+        PendingAnswer p = new PendingAnswer();
+        p.index = session.currentIndex;
+        p.result = result;
+        p.afterStatus = null;
+        p.afterUpdateTime = q.updateTime;
+        p.excludeApplied = false;
+        p.redoCopy = false;
+
+        switch (result) {
+            case ReviewSession.RESULT_KNOW:
+                p.afterStatus = upgradeLevel(q.status);
+                p.afterUpdateTime = now;
+                break;
+            case ReviewSession.RESULT_VAGUE: {
+                // 模糊：等级不动，间隔按低一级算（时间往回拨 own-low 天，到期自然提前）
+                String lower = QuestionStorage.lowerLevelOf(q.status);
+                int own = QuestionStorage.intervalDaysOf(q.status);
+                int low = QuestionStorage.intervalDaysOf(lower);
+                p.afterStatus = q.status;
+                p.afterUpdateTime = own > low
+                        ? now - (long) (own - low) * 24L * 3600 * 1000
+                        : now;
+                break;
+            }
+            case ReviewSession.RESULT_FORGET:
+                p.afterStatus = "S".equals(q.status) ? "A" : "E";  // 长期题答错降回 A，其余打回 E
+                p.afterUpdateTime = now;
+                p.redoCopy = true;
+                break;
+            case ReviewSession.RESULT_EXCLUDED:
+                p.excludeApplied = true;
+                break;
+            case ReviewSession.RESULT_SKIP:
+                break;
+        }
+        p.counted = shouldCount(result, item);
+
+        pending = p;
+        session.currentIndex++;
+        session.answerShown = false;
+        hideBanner();
+        SessionStorage.save(this, session);
+
+        if (session.currentIndex >= session.items.size()) {
+            finishSession();
         } else {
-            q.updateStatus(q.status);
+            showCurrentQuestion();
         }
-        QuestionStorage.update(this);
-        recordResult(ReviewSession.RESULT_VAGUE);
     }
 
-    private void onForget() {
-        Question q = currentQuestion();
-        if (q == null) return;
-        if ("S".equals(q.status)) {
-            q.updateStatus("A");   // 长期题答错：降回 A（15 天），不直接打回 E
-        } else {
-            q.updateStatus("E");
+    /**
+     * 今日完成计数口径（在已提交历史上判断是否重做）：
+     * 记得首遍/重做都 +1；模糊仅首遍 +1；不会永不计；跳过、斩题不计。
+     */
+    private boolean shouldCount(String result, ReviewSession.Item self) {
+        if (ReviewSession.RESULT_SKIP.equals(result)
+                || ReviewSession.RESULT_EXCLUDED.equals(result)) return false;
+        if (ReviewSession.RESULT_KNOW.equals(result)) return true;
+        if (ReviewSession.RESULT_VAGUE.equals(result)) {
+            for (ReviewSession.Item it : session.items) {
+                if (it != self && self.questionId.equals(it.questionId) && it.answeredAt > 0) {
+                    return false;
+                }
+            }
+            return true;
         }
-        QuestionStorage.update(this);
-        recordResult(ReviewSession.RESULT_FORGET);
+        return false;
     }
 
-    /** 右上角溢出菜单：跳过等低频操作集中在此 */
+    /** 提交当前缓冲：把暂存的题目改动、副本、计数、会话结果真正落盘 */
+    private void commitPending() {
+        if (pending == null || session == null) return;
+        ReviewSession.Item item = session.items.get(pending.index);
+        Question q = QuestionStorage.findById(this, item.questionId);
+        if (q != null) {
+            if (pending.afterStatus != null) q.status = pending.afterStatus;
+            if (pending.afterUpdateTime != q.updateTime) q.updateTime = pending.afterUpdateTime;
+            if (pending.excludeApplied) q.excluded = true;
+            QuestionStorage.update(this);
+        }
+
+        // 不会题：提交时把重做副本插到队尾，最多 REDO_CAP 次
+        if (pending.redoCopy) {
+            int copies = 0;
+            for (ReviewSession.Item it : session.items) {
+                if (item.questionId.equals(it.questionId)) copies++;
+            }
+            if (copies <= ReviewSession.REDO_CAP) {
+                ReviewSession.Item again = new ReviewSession.Item();
+                again.questionId = item.questionId;
+                again.contentSnapshot = item.contentSnapshot;
+                again.hadImages = item.hadImages;
+                again.redo = true;
+                session.items.add(again);
+            }
+        }
+
+        if (pending.counted) QuestionStorage.incTodayDone(this);
+        item.result = pending.result;
+        item.answeredAt = System.currentTimeMillis();
+        pending = null;
+        SessionStorage.save(this, session);
+    }
+
+    /** 上一题：丢弃未提交缓冲，退回那道题重答；最多一步，已提交的不能再退 */
+    private void onPrevious() {
+        if (session == null || finished || pending == null) return;
+        session.currentIndex = pending.index;
+        pending = null;
+        session.answerShown = false;
+        SessionStorage.save(this, session);
+        showCurrentQuestion();
+    }
+
+    /** 右上角溢出菜单：上一题 / 跳过 / 斩题等低频操作集中在此 */
     private void openReviewMenu(View anchor) {
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.getMenuInflater().inflate(R.menu.review_menu, popup.getMenu());
+        // 无待提交缓冲时「上一题」不可用
+        popup.getMenu().findItem(R.id.menu_previous)
+                .setEnabled(pending != null && !finished);
         popup.setOnMenuItemClickListener((MenuItem item) -> {
             int id = item.getItemId();
+            if (id == R.id.menu_previous) {
+                onPrevious();
+                return true;
+            }
             if (id == R.id.menu_exclude) {
                 onExclude();
                 return true;
@@ -443,10 +572,7 @@ public class ReviewActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("斩题")
                 .setMessage("这道题将退出复习队列和长期抽查，不再占用今日任务；题目本体保留，可在题目列表恢复。\n确定斩题吗？")
-                .setPositiveButton("斩题", (dialog, which) -> {
-                    QuestionStorage.excludeQuestion(this, q);
-                    recordResult(ReviewSession.RESULT_EXCLUDED);
-                })
+                .setPositiveButton("斩题", (dialog, which) -> answerQuestion(ReviewSession.RESULT_EXCLUDED))
                 .setNegativeButton("取消", null)
                 .show();
     }
@@ -454,7 +580,7 @@ public class ReviewActivity extends AppCompatActivity {
     /** 跳过：不动等级、不刷新 updateTime，只把这道题记成跳过 */
     private void onSkip() {
         if (currentQuestion() == null) return;
-        recordResult(ReviewSession.RESULT_SKIP);
+        answerQuestion(ReviewSession.RESULT_SKIP);
     }
 
     private void toggleAnswer() {
@@ -462,7 +588,6 @@ public class ReviewActivity extends AppCompatActivity {
         boolean shown = answerLayout.getVisibility() == View.VISIBLE;
         if (shown) {
             answerLayout.setVisibility(View.GONE);
-        syncAnswerButton();
             session.answerShown = false;
         } else {
             answerLayout.setVisibility(View.VISIBLE);
@@ -478,69 +603,11 @@ public class ReviewActivity extends AppCompatActivity {
         }
     }
 
-    private void recordResult(String result) {
-        if (session == null || session.currentIndex >= session.items.size()) return;
-        ReviewSession.Item item = session.items.get(session.currentIndex);
-        item.result = result;
-        item.answeredAt = System.currentTimeMillis();
-
-        // 答错（不会）：本题插到本次队列末尾趁热再看，最多重做 REDO_CAP 次
-        if (ReviewSession.RESULT_FORGET.equals(result)) {
-            int copies = 0;
-            for (ReviewSession.Item it : session.items) {
-                if (item.questionId.equals(it.questionId)) copies++;
-            }
-            if (copies <= ReviewSession.REDO_CAP) {
-                ReviewSession.Item again = new ReviewSession.Item();
-                again.questionId = item.questionId;
-                again.contentSnapshot = item.contentSnapshot;
-                again.hadImages = item.hadImages;
-                again.redo = true;
-                session.items.add(again);
-            }
-        }
-
-        // 今日目标计数口径：
-        // · 记得：首遍 / 重做成功都 +1；
-        // · 模糊：首遍 +1，重做副本不计；
-        // · 不会：首遍不计，重做副本也不计（只有重做点「记得」才算补计）；
-        // · 跳过、斩题：不计。
-        if (!ReviewSession.RESULT_SKIP.equals(result)
-                && !ReviewSession.RESULT_EXCLUDED.equals(result)) {
-            boolean isRedo = false;
-            for (ReviewSession.Item it : session.items) {
-                if (it != item && item.questionId.equals(it.questionId) && it.answeredAt > 0) {
-                    isRedo = true;
-                    break;
-                }
-            }
-            boolean count;
-            if (ReviewSession.RESULT_KNOW.equals(result)) {
-                count = true;
-            } else if (ReviewSession.RESULT_VAGUE.equals(result)) {
-                count = !isRedo;
-            } else {
-                count = false;   // 不会：不计完成
-            }
-            if (count) QuestionStorage.incTodayDone(this);
-        }
-
-        session.currentIndex++;
-        session.answerShown = false;
-        hideBanner();
-        SessionStorage.save(this, session);
-
-        if (session.currentIndex >= session.items.size()) {
-            finishSession();
-        } else {
-            showCurrentQuestion();
-        }
-    }
-
     // ==================== 收尾 ====================
 
     private void finishSession() {
         if (finished) return;
+        commitPending();
         finished = true;
 
         int total = 0, know = 0, vague = 0, forget = 0, skip = 0, excluded = 0;
@@ -616,6 +683,7 @@ public class ReviewActivity extends AppCompatActivity {
             finish();
             return;
         }
+        commitPending();
         int answered = session.answeredCount();
         if (answered == 0) {
             // 一题都没答，不留空记录

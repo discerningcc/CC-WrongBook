@@ -499,8 +499,11 @@ public class ReviewActivity extends AppCompatActivity {
             }
         }
 
-        // 今日目标计数：记得/模糊/不会算 1 道；跳过、斩题不算；
-        // 答错重做的第二遍不重复扣（同一题已答过一次）
+        // 今日目标计数口径：
+        // · 记得：首遍 / 重做成功都 +1；
+        // · 模糊：首遍 +1，重做副本不计；
+        // · 不会：首遍不计，重做副本也不计（只有重做点「记得」才算补计）；
+        // · 跳过、斩题：不计。
         if (!ReviewSession.RESULT_SKIP.equals(result)
                 && !ReviewSession.RESULT_EXCLUDED.equals(result)) {
             boolean isRedo = false;
@@ -510,7 +513,15 @@ public class ReviewActivity extends AppCompatActivity {
                     break;
                 }
             }
-            if (!isRedo) QuestionStorage.incTodayDone(this);
+            boolean count;
+            if (ReviewSession.RESULT_KNOW.equals(result)) {
+                count = true;
+            } else if (ReviewSession.RESULT_VAGUE.equals(result)) {
+                count = !isRedo;
+            } else {
+                count = false;   // 不会：不计完成
+            }
+            if (count) QuestionStorage.incTodayDone(this);
         }
 
         session.currentIndex++;

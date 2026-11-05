@@ -243,7 +243,7 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     private void renderQuestion(Question q) {
-        int done = session.closedOriginalCount();
+        int done = displayClosedCount();
         int total = session.originalTotal();
         tvQuestion.setText("【等级：" + q.status + "】 【已完成 " + done + " / " + total
                 + " 题】 【ID：" + q.id + "】\n题目：\n" + q.content);
@@ -537,6 +537,34 @@ public class ReviewActivity extends AppCompatActivity {
         session.answerShown = false;
         SessionStorage.save(this, session);
         showCurrentQuestion();
+    }
+
+    /**
+     * 页面展示用已完成数：在已提交口径上，再把未提交缓冲里「完成类」作答临时计入；
+     * 仅影响页头显示，不落盘——缓冲被退回丢弃后计数自然回退。
+     */
+    private int displayClosedCount() {
+        int n = session.closedOriginalCount();
+        if (pending == null || session == null) return n;
+        ReviewSession.Item self = session.items.get(pending.index);
+        String id = self.questionId;
+        if (id == null) return n;
+        boolean closedPending = ReviewSession.RESULT_KNOW.equals(pending.result)
+                || ReviewSession.RESULT_VAGUE.equals(pending.result)
+                || ReviewSession.RESULT_SKIP.equals(pending.result)
+                || ReviewSession.RESULT_EXCLUDED.equals(pending.result);
+        if (!closedPending) return n;
+        // 同一题在已提交部分已算过完成，避免重复 +1
+        for (ReviewSession.Item it : session.items) {
+            if (id.equals(it.questionId) && it.answeredAt > 0
+                    && (ReviewSession.RESULT_KNOW.equals(it.result)
+                    || ReviewSession.RESULT_VAGUE.equals(it.result)
+                    || ReviewSession.RESULT_SKIP.equals(it.result)
+                    || ReviewSession.RESULT_EXCLUDED.equals(it.result))) {
+                return n;
+            }
+        }
+        return n + 1;
     }
 
     /** 右上角溢出菜单：上一题 / 跳过 / 斩题等低频操作集中在此 */

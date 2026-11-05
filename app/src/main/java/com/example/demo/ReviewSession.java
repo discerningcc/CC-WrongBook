@@ -26,8 +26,8 @@ public class ReviewSession implements Serializable {
     public static final String RESULT_SKIP = "SKIP";
     public static final String RESULT_EXCLUDED = "EXCLUDED"; // 斩题：不计完成数、不回炉重做
 
-    /** 每题在同一次会话内最多重做几次（首遍之外的副本数） */
-    public static final int REDO_CAP = 2;
+    /** 每题在同一次会话内最多重做几次（首遍之外的副本数）；1 = 首遍不会只追加 1 份队尾副本，副本再不会不再追加 */
+    public static final int REDO_CAP = 1;
 
     public String id;
     public String bankId;

@@ -506,7 +506,7 @@ public class ReviewActivity extends AppCompatActivity {
             QuestionStorage.update(this);
         }
 
-        // 不会题：提交时把重做副本插到队尾，最多 REDO_CAP 次
+        // 不会题：提交时把重做副本插到队尾；同题已出现 copies 次，≤REDO_CAP 才再追加一份，超出上限不再回炉
         if (pending.redoCopy) {
             int copies = 0;
             for (ReviewSession.Item it : session.items) {

@@ -20,6 +20,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private Question currentQuestion;
     private String currentQid; // 保存ID，用于刷新
     private com.google.android.material.card.MaterialCardView btnExclude;
+    private com.google.android.material.card.MaterialCardView btnRestudy;
     private TextView btnExcludeText;
 
     @Override
@@ -34,6 +35,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         answerImageLayout = findViewById(R.id.answer_image_layout);
         btnExclude = findViewById(R.id.btn_exclude);
         btnExcludeText = findViewById(R.id.btn_exclude_text);
+        btnRestudy = findViewById(R.id.btn_restudy);
 
         // 拿到ID并保存
         currentQid = getIntent().getStringExtra("qid");
@@ -134,11 +136,13 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvAnswer.setText(currentQuestion.answer);
         answerLayout.setVisibility(View.VISIBLE);
 
-        // 斩题 / 恢复按钮状态
+        // 斩题 / 恢复按钮状态：已斩题只留「恢复此题」，隐藏「重学」；普通题保留「重学 + 斩题」
         if (currentQuestion.excluded) {
+            btnRestudy.setVisibility(View.GONE);
             btnExcludeText.setText("恢复此题");
             btnExclude.setCardBackgroundColor(0xff4caf50);
         } else {
+            btnRestudy.setVisibility(View.VISIBLE);
             btnExcludeText.setText("斩题");
             btnExclude.setCardBackgroundColor(0xff616161);
         }

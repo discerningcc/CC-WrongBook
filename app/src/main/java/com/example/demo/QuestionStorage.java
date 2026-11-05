@@ -105,6 +105,23 @@ public class QuestionStorage {
         write(context);
     }
 
+    /** 斩题：软标记退出复习队列与长期抽查，题目本体保留，可恢复 */
+    public static void excludeQuestion(Context context, Question q) {
+        ensureBankExists(context);
+        if (q == null) return;
+        q.excluded = true;
+        write(context);
+    }
+
+    /** 恢复斩题：取消标记并打回 E，重新走遗忘曲线 */
+    public static void restoreQuestion(Context context, Question q) {
+        ensureBankExists(context);
+        if (q == null) return;
+        q.excluded = false;
+        q.updateStatus("E");
+        write(context);
+    }
+
     /** 今日全部到期的题（不截断；用于统计、筛选）。开 session 用 buildTodayQueue */
     public static List<Question> getTodayReview(Context context) {
         List<Question> result = new ArrayList<>();
@@ -205,9 +222,10 @@ public class QuestionStorage {
         return queue;
     }
 
-    /** 该题今天是否该复习：E 每天到期；其余按等级间隔 */
+    /** 该题今天是否该复习：已斩题永不进队列；E 每天到期；其余按等级间隔 */
     public static boolean isDue(Context context, Question q) {
         if (q == null) return false;
+        if (q.excluded) return false;
         int interval = intervalDaysOf(q.status);
         if (interval == 0) return true;   // E：随时都该复习
         return daysSince(context, q) >= interval;
@@ -252,6 +270,7 @@ public class QuestionStorage {
 
     /** 题目列表里展示的到期文案 */
     public static String dueText(Context context, Question q) {
+        if (q != null && q.excluded) return "已斩";
         int interval = intervalDaysOf(q.status);
         if (interval == 0) return "待复习";
         long left = interval - daysSince(context, q);
@@ -686,6 +705,7 @@ public class QuestionStorage {
         nq.id = q.id;
         nq.status = q.status;
         nq.updateTime = q.updateTime;
+        nq.excluded = q.excluded;
         nq.contentImages = new ArrayList<>();
         if (q.contentImages != null) {
             for (String p : q.contentImages) nq.contentImages.add(toRelativePath(p, imageMap));

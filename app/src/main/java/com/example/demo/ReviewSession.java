@@ -19,6 +19,7 @@ public class ReviewSession implements Serializable {
     public static final String RESULT_VAGUE = "VAGUE";
     public static final String RESULT_FORGET = "FORGET";
     public static final String RESULT_SKIP = "SKIP";
+    public static final String RESULT_EXCLUDED = "EXCLUDED"; // 斩题：不计完成数、不回炉重做
 
     public String id;
     public String bankId;

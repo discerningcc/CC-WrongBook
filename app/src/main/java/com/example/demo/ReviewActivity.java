@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -422,6 +423,10 @@ public class ReviewActivity extends AppCompatActivity {
         popup.getMenuInflater().inflate(R.menu.review_menu, popup.getMenu());
         popup.setOnMenuItemClickListener((MenuItem item) -> {
             int id = item.getItemId();
+            if (id == R.id.menu_exclude) {
+                onExclude();
+                return true;
+            }
             if (id == R.id.menu_skip) {
                 onSkip();
                 return true;
@@ -429,6 +434,21 @@ public class ReviewActivity extends AppCompatActivity {
             return false;
         });
         popup.show();
+    }
+
+    /** 斩题：软标记退出复习，不计完成数、不回炉；题目本体保留可恢复 */
+    private void onExclude() {
+        Question q = currentQuestion();
+        if (q == null) return;
+        new AlertDialog.Builder(this)
+                .setTitle("斩题")
+                .setMessage("这道题将退出复习队列和长期抽查，不再占用今日任务；题目本体保留，可在题目列表恢复。\n确定斩题吗？")
+                .setPositiveButton("斩题", (dialog, which) -> {
+                    QuestionStorage.excludeQuestion(this, q);
+                    recordResult(ReviewSession.RESULT_EXCLUDED);
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     /** 跳过：不动等级、不刷新 updateTime，只把这道题记成跳过 */
@@ -479,9 +499,10 @@ public class ReviewActivity extends AppCompatActivity {
             }
         }
 
-        // 今日目标计数：记得/模糊/不会算 1 道；跳过不算；
+        // 今日目标计数：记得/模糊/不会算 1 道；跳过、斩题不算；
         // 答错重做的第二遍不重复扣（同一题已答过一次）
-        if (!ReviewSession.RESULT_SKIP.equals(result)) {
+        if (!ReviewSession.RESULT_SKIP.equals(result)
+                && !ReviewSession.RESULT_EXCLUDED.equals(result)) {
             boolean isRedo = false;
             for (ReviewSession.Item it : session.items) {
                 if (it != item && item.questionId.equals(it.questionId) && it.answeredAt > 0) {
@@ -510,7 +531,7 @@ public class ReviewActivity extends AppCompatActivity {
         if (finished) return;
         finished = true;
 
-        int total = 0, know = 0, vague = 0, forget = 0, skip = 0;
+        int total = 0, know = 0, vague = 0, forget = 0, skip = 0, excluded = 0;
         if (session != null) {
             session.status = ReviewSession.STATUS_FINISHED;
             session.endTime = System.currentTimeMillis();
@@ -523,10 +544,12 @@ public class ReviewActivity extends AppCompatActivity {
             vague = session.countOfResult(ReviewSession.RESULT_VAGUE);
             forget = session.countOfResult(ReviewSession.RESULT_FORGET);
             skip = session.skippedCount();
+            excluded = session.countOfResult(ReviewSession.RESULT_EXCLUDED);
         }
 
         String stats = "共 " + total + " 题\n记得 " + know + " · 模糊 " + vague + " · 不会 " + forget
-                + (skip > 0 ? " · 跳过 " + skip : "");
+                + (skip > 0 ? " · 跳过 " + skip : "")
+                + (excluded > 0 ? " · 斩题 " + excluded : "");
 
         tvQuestion.setText("本次复习已完成\n\n" + stats);
         tvAnswer.setText("");

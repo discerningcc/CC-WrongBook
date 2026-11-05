@@ -126,6 +126,25 @@
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 斩题 / 恢复 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btn_exclude"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            app:cardCornerRadius="16dp"
+            app:cardBackgroundColor="#616161"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/btn_exclude_text"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="斩题"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:gravity="center"/>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- 删除本题 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btn_delete"

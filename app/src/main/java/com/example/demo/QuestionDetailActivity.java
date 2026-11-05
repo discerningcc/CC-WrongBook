@@ -19,6 +19,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
     private Question currentQuestion;
     private String currentQid; // 保存ID，用于刷新
+    private com.google.android.material.card.MaterialCardView btnExclude;
+    private TextView btnExcludeText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +32,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
         reviewImageLayout = findViewById(R.id.review_image_layout);
         answerLayout = findViewById(R.id.answer_layout);
         answerImageLayout = findViewById(R.id.answer_image_layout);
+        btnExclude = findViewById(R.id.btn_exclude);
+        btnExcludeText = findViewById(R.id.btn_exclude_text);
 
         // 拿到ID并保存
         currentQid = getIntent().getStringExtra("qid");
@@ -57,6 +61,34 @@ public class QuestionDetailActivity extends AppCompatActivity {
                     })
                     .setNegativeButton("取消", null)
                     .show();
+        });
+
+        // 斩题 / 恢复本题
+        btnExclude.setOnClickListener(v -> {
+            if (currentQuestion == null) return;
+            if (currentQuestion.excluded) {
+                new AlertDialog.Builder(this)
+                        .setTitle("恢复此题")
+                        .setMessage("确定恢复这道题吗？\n将重置为 E 级，重新进入复习计划。")
+                        .setPositiveButton("恢复", (dialog, which) -> {
+                            QuestionStorage.restoreQuestion(this, currentQuestion);
+                            Toast.makeText(this, "已恢复，重新开始复习", Toast.LENGTH_SHORT).show();
+                            loadQuestionData();
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+            } else {
+                new AlertDialog.Builder(this)
+                        .setTitle("斩题")
+                        .setMessage("这道题将退出复习队列和长期抽查，题目本体保留，可在列表恢复。\n确定斩题吗？")
+                        .setPositiveButton("斩题", (dialog, which) -> {
+                            QuestionStorage.excludeQuestion(this, currentQuestion);
+                            Toast.makeText(this, "已斩题，不再进入复习", Toast.LENGTH_SHORT).show();
+                            loadQuestionData();
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+            }
         });
 
         // 删除本题
@@ -96,9 +128,20 @@ public class QuestionDetailActivity extends AppCompatActivity {
             return;
         }
 
-        tvQuestion.setText("【等级：" + currentQuestion.status + "】\n题目：\n" + currentQuestion.content);
+        tvQuestion.setText("【等级：" + currentQuestion.status + "】"
+                + (currentQuestion.excluded ? "【已斩】" : "")
+                + "\n题目：\n" + currentQuestion.content);
         tvAnswer.setText(currentQuestion.answer);
         answerLayout.setVisibility(View.VISIBLE);
+
+        // 斩题 / 恢复按钮状态
+        if (currentQuestion.excluded) {
+            btnExcludeText.setText("恢复此题");
+            btnExclude.setCardBackgroundColor(0xff4caf50);
+        } else {
+            btnExcludeText.setText("斩题");
+            btnExclude.setCardBackgroundColor(0xff616161);
+        }
 
         // 刷新图片
         reviewImageLayout.removeAllViews();

@@ -35,8 +35,9 @@ public class QuestionBankActivity extends AppCompatActivity {
     private static final int FILTER_TODAY = 1;
     private static final int FILTER_IMAGE = 2;
     private static final int FILTER_TEXT = 3;
+    private static final int FILTER_EXCLUDED = 4;
 
-    private static final String[] FILTER_LABELS = {"全部", "今日到期", "只有图片", "有文本"};
+    private static final String[] FILTER_LABELS = {"全部", "今日到期", "只有图片", "有文本", "已斩"};
     private static final long SEARCH_DEBOUNCE_MS = 250;
     private static final String STATE_FILTER = "list_filter";
     private static final String STATE_KEYWORD = "list_keyword";
@@ -218,14 +219,16 @@ public class QuestionBankActivity extends AppCompatActivity {
 
     private boolean passesFilter(Question q) {
         switch (filter) {
+            case FILTER_EXCLUDED:
+                return q.excluded;
             case FILTER_TODAY:
-                return QuestionStorage.isDue(this, q);
+                return !q.excluded && QuestionStorage.isDue(this, q);
             case FILTER_IMAGE:
-                return q.contentImages != null && !q.contentImages.isEmpty();
+                return !q.excluded && q.contentImages != null && !q.contentImages.isEmpty();
             case FILTER_TEXT:
-                return q.content != null && !q.content.trim().isEmpty();
+                return !q.excluded && q.content != null && !q.content.trim().isEmpty();
             default:
-                return true;
+                return !q.excluded;
         }
     }
 
@@ -256,9 +259,10 @@ public class QuestionBankActivity extends AppCompatActivity {
 
     /** 统计条：题库规模、到期数、图片/文本构成、等级分布；有筛选时带「显示 M / 共 N」 */
     private void updateStats() {
-        int due = 0, withImg = 0, withText = 0;
+        int due = 0, withImg = 0, withText = 0, excluded = 0;
         int[] level = new int[6]; // S A B C D E
         for (Question q : allQuestions) {
+            if (q.excluded) excluded++;
             if (QuestionStorage.isDue(this, q)) due++;
             if (q.contentImages != null && !q.contentImages.isEmpty()) withImg++;
             if (q.content != null && !q.content.trim().isEmpty()) withText++;
@@ -267,7 +271,8 @@ public class QuestionBankActivity extends AppCompatActivity {
         }
 
         String head = "共 " + allQuestions.size() + " 题 · 今日到期 " + due
-                + " · 有图 " + withImg + " · 有文本 " + withText;
+                + " · 有图 " + withImg + " · 有文本 " + withText
+                + " · 已斩 " + excluded;
         String levels = " · S" + level[0] + " A" + level[1] + " B" + level[2]
                 + " C" + level[3] + " D" + level[4] + " E" + level[5];
         String prefix = (filter != FILTER_ALL || !tokens.isEmpty())
@@ -397,18 +402,25 @@ public class QuestionBankActivity extends AppCompatActivity {
                     ThumbLoader.release(thumb);
                 }
 
-                // 等级徽章
+                // 等级徽章：已斩题显示「斩」
                 String status = q.status == null ? "E" : q.status;
-                badge.setText(status);
-                badge.setBackgroundTintList(ColorStateList.valueOf(statusColor(status)));
+                if (q.excluded) {
+                    badge.setText("斩");
+                    badge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
+                } else {
+                    badge.setText(status);
+                    badge.setBackgroundTintList(ColorStateList.valueOf(statusColor(status)));
+                }
 
                 // 副信息：N 张图 · 到期情况 · 上次更新
                 StringBuilder sb = new StringBuilder();
                 if (imgCount > 0) sb.append(imgCount).append(" 张图");
                 if (sb.length() > 0) sb.append(" · ");
                 sb.append(QuestionStorage.dueText(itemView.getContext(), q));
-                long days = QuestionStorage.daysSince(itemView.getContext(), q);
-                sb.append(" · ").append(days <= 0 ? "今天更新" : days + " 天前更新");
+                if (!q.excluded) {
+                    long days = QuestionStorage.daysSince(itemView.getContext(), q);
+                    sb.append(" · ").append(days <= 0 ? "今天更新" : days + " 天前更新");
+                }
 
                 meta.setText(sb.toString());
             }

@@ -61,8 +61,7 @@
         android:layout_weight="1"
         android:background="@android:color/white"
         android:padding="20dp"
-        android:layout_marginBottom="16dp">
-
+        android:layout_marginBottom="12dp">
 
         <!-- 🔥 给整个题目容器加id，用来绑定点击事件 -->
         <LinearLayout
@@ -70,6 +69,24 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
+
+            <!-- 跳过：低频操作，收到题干右上角小文字按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/btn_skip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    android:text="跳过"
+                    android:textSize="14sp"
+                    android:textColor="#1f6aa5" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tv_question"
@@ -140,101 +157,79 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="horizontal">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btn_know"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#52c41a"
-            android:layout_marginBottom="8dp">
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#52c41a">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:text="记得（升一级）"
+                android:text="记得"
                 android:textColor="@android:color/white"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btn_unknown"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#faad14"
-            android:layout_marginBottom="8dp">
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#faad14">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:text="模糊（保持）"
+                android:text="模糊"
                 android:textColor="@android:color/white"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btn_forget"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#ff4d4f"
-            android:layout_marginBottom="8dp">
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#ff4d4f">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:text="不会（重置E）"
+                android:text="不会"
                 android:textColor="@android:color/white"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btn_answer"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            app:cardCornerRadius="14dp"
+            app:cardBackgroundColor="#1f6aa5">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/btn_back"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                app:cardCornerRadius="16dp"
-                app:cardBackgroundColor="#8c8c8c">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="显示答案"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
-                    android:gravity="center"/>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/btn_skip"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                app:cardCornerRadius="16dp"
-                app:cardBackgroundColor="#8c8c8c">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="跳过"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
-                    android:gravity="center"/>
-            </com.google.android.material.card.MaterialCardView>
-
-        </LinearLayout>
+            <TextView
+                android:id="@+id/btn_answer_text"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="答案"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"
+                android:gravity="center"/>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 

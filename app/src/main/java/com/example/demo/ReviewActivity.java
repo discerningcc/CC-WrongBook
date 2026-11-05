@@ -28,7 +28,7 @@ import java.util.Set;
  */
 public class ReviewActivity extends AppCompatActivity {
 
-    private TextView tvQuestion, tvAnswer, tvBanner, btnBannerNew;
+    private TextView tvQuestion, tvAnswer, tvBanner, btnBannerNew, btnAnswerText;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
     private LinearLayout bannerContainer;
 
@@ -76,6 +76,7 @@ public class ReviewActivity extends AppCompatActivity {
         bannerContainer = findViewById(R.id.session_banner);
         tvBanner = findViewById(R.id.tv_banner);
         btnBannerNew = findViewById(R.id.btn_banner_new);
+        btnAnswerText = findViewById(R.id.btn_answer_text);
     }
 
     private void bindActions() {
@@ -83,7 +84,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_unknown).setOnClickListener(v -> onUnknown());
         findViewById(R.id.btn_forget).setOnClickListener(v -> onForget());
         findViewById(R.id.btn_skip).setOnClickListener(v -> onSkip());
-        findViewById(R.id.btn_back).setOnClickListener(v -> showAnswer());
+        findViewById(R.id.btn_answer).setOnClickListener(v -> toggleAnswer());
         findViewById(R.id.btn_banner_close).setOnClickListener(v -> hideBanner());
         findViewById(R.id.btn_banner_new).setOnClickListener(v -> confirmRestart());
     }
@@ -226,6 +227,7 @@ public class ReviewActivity extends AppCompatActivity {
                 + " 题】 【ID：" + q.id + "】\n题目：\n" + q.content);
         tvAnswer.setText(q.answer);
         answerLayout.setVisibility(session.answerShown ? View.VISIBLE : View.GONE);
+        syncAnswerButton();
 
         reviewImageLayout.removeAllViews();
         if (q.contentImages != null) {
@@ -244,6 +246,7 @@ public class ReviewActivity extends AppCompatActivity {
         tvQuestion.setText("🎉 今天没有需要复习的题目！");
         tvAnswer.setText("");
         answerLayout.setVisibility(View.GONE);
+        syncAnswerButton();
         reviewImageLayout.removeAllViews();
         answerImageLayout.removeAllViews();
         hideBanner();
@@ -321,7 +324,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_know).setEnabled(enabled);
         findViewById(R.id.btn_unknown).setEnabled(enabled);
         findViewById(R.id.btn_forget).setEnabled(enabled);
-        findViewById(R.id.btn_back).setEnabled(enabled);
+        findViewById(R.id.btn_answer).setEnabled(enabled);
         findViewById(R.id.btn_skip).setEnabled(enabled);
     }
 
@@ -417,11 +420,25 @@ public class ReviewActivity extends AppCompatActivity {
         recordResult(ReviewSession.RESULT_SKIP);
     }
 
-    private void showAnswer() {
+    private void toggleAnswer() {
         if (session == null) return;
-        answerLayout.setVisibility(View.VISIBLE);
-        session.answerShown = true;
+        boolean shown = answerLayout.getVisibility() == View.VISIBLE;
+        if (shown) {
+            answerLayout.setVisibility(View.GONE);
+        syncAnswerButton();
+            session.answerShown = false;
+        } else {
+            answerLayout.setVisibility(View.VISIBLE);
+            session.answerShown = true;
+        }
         SessionStorage.save(this, session);
+        syncAnswerButton();
+    }
+
+    private void syncAnswerButton() {
+        if (btnAnswerText != null) {
+            btnAnswerText.setText(answerLayout.getVisibility() == View.VISIBLE ? "收起" : "答案");
+        }
     }
 
     private void recordResult(String result) {
@@ -497,6 +514,7 @@ public class ReviewActivity extends AppCompatActivity {
         tvQuestion.setText("本次复习已完成\n\n" + stats);
         tvAnswer.setText("");
         answerLayout.setVisibility(View.GONE);
+        syncAnswerButton();
         reviewImageLayout.removeAllViews();
         answerImageLayout.removeAllViews();
         hideBanner();

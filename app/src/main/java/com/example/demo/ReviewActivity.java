@@ -78,9 +78,10 @@ public class ReviewActivity extends AppCompatActivity {
      */
     private PendingAnswer pending;
 
-    /** 旋转重建后需要重显的弹窗：exit=退出确认，exclude=斩题确认；null=无 */
+    /** 旋转重建后需要重显的弹窗：exit=退出确认，exclude=斩题确认，crossday=跨日提示；null=无 */
     private static final String DIALOG_EXIT = "exit";
     private static final String DIALOG_EXCLUDE = "exclude";
+    private static final String DIALOG_CROSSDAY = "crossday";
     private static final String KEY_RESTORE_DIALOG = "restore_dialog";
     private static final String KEY_BANNER_TEXT = "banner_text";
     private static final String KEY_BANNER_RESTART = "banner_restart";
@@ -119,8 +120,10 @@ public class ReviewActivity extends AppCompatActivity {
         if (active == null) {
             startNewSession(false);
         } else if (!SessionStorage.isSameDay(active.startTime, System.currentTimeMillis())) {
-            // 跨自然日：交给用户决定继续还是重新开始
-            showCrossDayPrompt(active);
+            // 跨自然日：交给用户决定继续还是重新开始；重建后由 restoreSavedDialog 重显，不重复弹
+            if (!DIALOG_CROSSDAY.equals(restoreDialog)) {
+                showCrossDayPrompt(active);
+            }
         } else {
             // savedInstanceState 不为空 = 这次 onCreate 是系统重建（横竖屏切换、分屏切换等），
             // 用户并没有"重新进来"，不该再弹一次「已恢复上次进度」的提示条
@@ -165,6 +168,13 @@ public class ReviewActivity extends AppCompatActivity {
             confirmExit();
         } else if (DIALOG_EXCLUDE.equals(restoreDialog)) {
             onExclude();
+        } else if (DIALOG_CROSSDAY.equals(restoreDialog)) {
+            ReviewSession active = SessionStorage.getActive(this, bankId);
+            if (active != null) {
+                showCrossDayPrompt(active);
+            } else {
+                restoreDialog = null;
+            }
         }
     }
 
@@ -291,9 +301,16 @@ public class ReviewActivity extends AppCompatActivity {
             msg.append("\n\n今日另有 ").append(fresh).append(" 题新到期，不在本次会话内");
         }
 
+        restoreDialog = DIALOG_CROSSDAY;
         showPrompt("上次复习未完成", msg.toString(),
-                "继续上次（剩 " + remaining + " 题）", () -> resumeSession(active, false),
-                "开始今天的新一轮", () -> startNewSession(true),
+                "继续上次（剩 " + remaining + " 题）", () -> {
+                    restoreDialog = null;
+                    resumeSession(active, false);
+                },
+                "开始今天的新一轮", () -> {
+                    restoreDialog = null;
+                    startNewSession(true);
+                },
                 "取消（退出复习）", this::finish,
                 this::finish);
     }

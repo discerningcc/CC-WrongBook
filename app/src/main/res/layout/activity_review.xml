@@ -91,6 +91,13 @@
                     android:gravity="center_vertical"
                     android:clickable="true">
 
+                    <ImageView
+                        android:id="@+id/iv_timer_state"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_marginEnd="4dp"
+                        android:contentDescription="@null" />
+
                     <TextView
                         android:id="@+id/tv_timer"
                         android:layout_width="wrap_content"

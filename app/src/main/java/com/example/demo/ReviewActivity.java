@@ -74,6 +74,7 @@ public class ReviewActivity extends AppCompatActivity {
     private final Handler timerHandler = new Handler(Looper.getMainLooper());
     private Runnable timerRefresh;
     private TextView tvTimer;
+    private ImageView ivTimerState;
     private LinearLayout timerRow;
     /** 旋转重建后需要恢复的本题已累计停留（毫秒） */
     private long retainedDwellBase;
@@ -212,6 +213,7 @@ public class ReviewActivity extends AppCompatActivity {
         btnAnswerText = findViewById(R.id.btn_answer_text);
         timerRow = findViewById(R.id.timer_row);
         tvTimer = findViewById(R.id.tv_timer);
+        ivTimerState = findViewById(R.id.iv_timer_state);
         tvLevelBadge = findViewById(R.id.tv_level_badge);
         tvProgress = findViewById(R.id.tv_progress);
         metaRow = findViewById(R.id.meta_row);
@@ -426,6 +428,7 @@ public class ReviewActivity extends AppCompatActivity {
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);
             tvTimer.setVisibility(View.GONE);
+            if (ivTimerState != null) ivTimerState.setVisibility(View.GONE);
         }
     }
 
@@ -579,6 +582,7 @@ public class ReviewActivity extends AppCompatActivity {
         if (!timerOn || session == null || finished) {
             timerRow.setClickable(false);
             tvTimer.setVisibility(View.GONE);
+            if (ivTimerState != null) ivTimerState.setVisibility(View.GONE);
             totalBaseMs = 0;
             dwellBaseMs = 0;
             dwellIndex = -1;
@@ -655,12 +659,18 @@ public class ReviewActivity extends AppCompatActivity {
     private void refreshTimerText() {
         if (tvTimer == null) return;
         boolean paused = session != null && session.timerPaused;
-        String prefix = paused ? "⏸ " : "▶️ ";
-        String text = prefix
-                + "总 " + formatDuration(totalNow())
-                + " · 本题 " + formatDuration(dwellNow());
+        String status = paused ? "已暂停" : "计时中";
+        String text = "总 " + formatDuration(totalNow())
+                + " · 本题 " + formatDuration(dwellNow())
+                + " · " + status;
         tvTimer.setText(text);
-        tvTimer.setTextColor(paused ? 0xFF999999 : 0xFF666666);
+        int color = paused ? 0xFF9E9E9E : 0xFF2E7D32;
+        tvTimer.setTextColor(color);
+        if (ivTimerState != null) {
+            ivTimerState.setImageResource(paused ? R.drawable.ic_timer_pause : R.drawable.ic_timer_play);
+            ivTimerState.setVisibility(View.VISIBLE);
+        }
+        if (timerRow != null) timerRow.setAlpha(paused ? 0.6f : 1f);
     }
 
     private void startTicker() {
@@ -1073,6 +1083,7 @@ public class ReviewActivity extends AppCompatActivity {
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);
             tvTimer.setVisibility(View.GONE);
+            if (ivTimerState != null) ivTimerState.setVisibility(View.GONE);
         }
 
         if (skip > 0) {

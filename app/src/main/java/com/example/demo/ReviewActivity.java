@@ -122,6 +122,10 @@ public class ReviewActivity extends AppCompatActivity {
                 ? savedInstanceState.getLong(KEY_DWELL_BASE, 0) : 0;
         crossdayResumed = savedInstanceState != null
                 && savedInstanceState.getBoolean(KEY_CROSSDAY_RESUMED, false);
+        // 重新进入复习时自动恢复计时：暂停态只在本次停留（含旋转重建）内保留，退出后重进不再保持暂停
+        if (savedInstanceState == null && active != null) {
+            active.timerPaused = false;
+        }
         if (active == null) {
             startNewSession(false);
         } else if (!SessionStorage.isSameDay(active.startTime, System.currentTimeMillis())) {

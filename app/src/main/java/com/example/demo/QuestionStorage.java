@@ -2,7 +2,9 @@ package com.example.demo;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.OpenableColumns;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -21,6 +23,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -499,8 +502,7 @@ public class QuestionStorage {
             QuestionBank bank = new Gson().fromJson(readFile(jsonFile), QuestionBank.class);
             if (bank == null || bank.questions == null) throw new Exception("题库文件解析失败");
 
-            bank.name = uniqueBankName(context,
-                    (bank.name == null || bank.name.trim().isEmpty()) ? "导入题库" : bank.name.trim());
+            bank.name = uniqueBankName(context, resolveImportBaseName(context, uri, bank.name));
             bank.id = UUID.randomUUID().toString();
             long now = System.currentTimeMillis();
             bank.createdAt = now;
@@ -688,6 +690,33 @@ public class QuestionStorage {
         b.questions = new ArrayList<>();
         writeBankNow(context, b);   // 新题库是个空文件，写完再返回，保证文件确实存在
         return b;
+    }
+
+    /** 导入命名：优先取压缩包文件名（去掉 .zip 后缀），取不到再用包内 JSON 名，最后兜底「导入题库」 */
+    private static String resolveImportBaseName(Context context, Uri uri, String jsonName) {
+        Cursor cursor = null;
+        try {
+            cursor = context.getContentResolver().query(uri,
+                    new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) {
+                    String display = cursor.getString(idx);
+                    if (display != null) {
+                        display = display.trim();
+                        int dot = display.toLowerCase(Locale.ROOT).lastIndexOf(".zip");
+                        if (dot > 0) display = display.substring(0, dot).trim();
+                        if (!display.isEmpty()) return display;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // 查询失败时回退到包内 JSON 名
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        if (jsonName != null && !jsonName.trim().isEmpty()) return jsonName.trim();
+        return "导入题库";
     }
 
     /** 重名自动加「（2）」「（3）」… */

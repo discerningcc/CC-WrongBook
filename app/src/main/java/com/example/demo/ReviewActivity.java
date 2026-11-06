@@ -68,6 +68,8 @@ public class ReviewActivity extends AppCompatActivity {
     private LinearLayout timerRow;
     /** 旋转重建后需要恢复的本题已累计停留（毫秒） */
     private long retainedDwellBase;
+    /** 当前本题对应的 items 下标；换题才重置本题累计，同题重绘保留 */
+    private int dwellIndex = -1;
 
     /**
      * 待提交的上一道作答（延迟提交缓冲）：作答先只入内存，
@@ -348,7 +350,7 @@ public class ReviewActivity extends AppCompatActivity {
         }
 
         enableButtons(true);
-        beginQuestionDwell();
+        beginQuestionDwell(session.currentIndex);
     }
 
     private void showEmptyState() {
@@ -499,12 +501,14 @@ public class ReviewActivity extends AppCompatActivity {
             timerRow.setVisibility(View.GONE);
             totalBaseMs = 0;
             dwellBaseMs = 0;
+            dwellIndex = -1;
             totalStampMs = -1;
             dwellStampMs = -1;
             return;
         }
         totalBaseMs = session.totalElapsedMs;
         dwellBaseMs = 0;
+        dwellIndex = -1;
         if (session.timerPaused) {
             totalStampMs = -1;
             dwellStampMs = -1;
@@ -517,11 +521,17 @@ public class ReviewActivity extends AppCompatActivity {
         startTicker();
     }
 
-    /** 渲染新题时重置本题停留段（暂停态保持冻结；重建后先恢复已累计部分） */
-    private void beginQuestionDwell() {
+    /**
+     * 本题停留计时起点：仅当下标变化（换题）才重置累计；同题重绘（旋转重建、从详情返回）
+     * 保留已累计部分。暂停态保持冻结；重建后先恢复 retainedDwellBase。
+     */
+    private void beginQuestionDwell(int index) {
         if (!timerOn || session == null) return;
-        dwellBaseMs = retainedDwellBase;
-        retainedDwellBase = 0;
+        if (index != dwellIndex) {
+            dwellBaseMs = retainedDwellBase;
+            retainedDwellBase = 0;
+            dwellIndex = index;
+        }
         dwellStampMs = session.timerPaused ? -1 : elapsedNow();
     }
 

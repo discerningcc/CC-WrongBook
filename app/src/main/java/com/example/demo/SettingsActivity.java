@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_NATURAL_DAY = "natural_day_enabled";
+    public static final String KEY_TIMER_ENABLED = "timer_enabled";
 
     /** 快捷档位；自定义输入会夹紧到 [MIN_CUSTOM, MAX_CUSTOM] */
     private static final int[] BUDGET_OPTIONS = {20, 30, 50, 80, 120, 200};
@@ -34,6 +35,15 @@ public class SettingsActivity extends AppCompatActivity {
         switchNaturalDay.setOnCheckedChangeListener((buttonView, isChecked) -> {
             sp.edit().putBoolean(KEY_NATURAL_DAY, isChecked).apply();
             updateSwitchColor(switchNaturalDay, isChecked);
+        });
+
+        Switch switchTimer = findViewById(R.id.switch_timer);
+        boolean timerEnabled = sp.getBoolean(KEY_TIMER_ENABLED, true);
+        switchTimer.setChecked(timerEnabled);
+        updateSwitchColor(switchTimer, timerEnabled);
+        switchTimer.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            sp.edit().putBoolean(KEY_TIMER_ENABLED, isChecked).apply();
+            updateSwitchColor(switchTimer, isChecked);
         });
 
         // 每日复习量：点一下弹「快捷档 + 自定义 + 不限量」

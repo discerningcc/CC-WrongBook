@@ -17,6 +17,16 @@
         android:thumbTint="@color/switch_thumb"
         android:trackTint="@color/switch_track"/>
 
+    <Switch
+        android:id="@+id/switch_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="复习计时（页头显示总时长与本题用时）"
+        android:textSize="18sp"
+        android:layout_marginTop="30dp"
+        android:thumbTint="@color/switch_thumb"
+        android:trackTint="@color/switch_track"/>
+
     <TextView
         android:id="@+id/tv_budget_row"
         android:layout_width="wrap_content"

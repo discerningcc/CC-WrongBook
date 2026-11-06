@@ -41,6 +41,11 @@ public class ReviewSession implements Serializable {
     /** 会话创建时的原题数量：重做副本不计入进度分母 */
     public int originalCount;
 
+    /** 本次复习累计总时长（毫秒）；旧记录缺字段默认 0 */
+    public long totalElapsedMs;
+    /** 用户手动暂停计时中（点时间行切换） */
+    public boolean timerPaused;
+
     /** 会话中的一道题 */
     public static class Item implements Serializable {
         public String questionId;
@@ -49,6 +54,7 @@ public class ReviewSession implements Serializable {
         public String contentSnapshot; // 题目内容快照：原题被删后仍能辨认
         public boolean hadImages;
         public boolean redo;           // true = 答错后追加的重做副本
+        public long dwellMs;           // 本题停留时长（毫秒）；旧记录缺字段默认 0
     }
 
     /** 已处理过的题数（含跳过） */

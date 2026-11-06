@@ -3,8 +3,12 @@ package com.example.demo;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
@@ -48,6 +52,23 @@ public class ReviewActivity extends AppCompatActivity {
     private long bannerRemainingMs;
     private boolean menuOpen;
 
+    // ==================== 计时 ====================
+
+    /** 离开超过该时长（含隔夜续做）的空档不计入总时长 */
+    private static final long IDLE_GAP_LIMIT_MS = 30L * 60 * 1000;
+    private boolean timerOn;
+    private long totalBaseMs;       // 总时长已累计部分（毫秒）
+    private long totalStampMs = -1;  // 当前总时长段起始戳（elapsedRealtime），-1=冻结
+    private long dwellBaseMs;        // 本题已累计停留
+    private long dwellStampMs = -1;  // 本题当前段起始戳，-1=冻结
+    private long leaveWallAt;        // 离开时墙钟戳，0=在页面上
+    private final Handler timerHandler = new Handler(Looper.getMainLooper());
+    private Runnable timerRefresh;
+    private TextView tvTimer;
+    private LinearLayout timerRow;
+    /** 旋转重建后需要恢复的本题已累计停留（毫秒） */
+    private long retainedDwellBase;
+
     /**
      * 待提交的上一道作答（延迟提交缓冲）：作答先只入内存，
      * 在下一道作答 / 收尾 / 退出 / 切后台时才真正落盘；
@@ -63,6 +84,7 @@ public class ReviewActivity extends AppCompatActivity {
     private static final String KEY_BANNER_RESTART = "banner_restart";
     private static final String KEY_BANNER_REMAINING = "banner_remaining_ms";
     private static final String KEY_MENU_OPEN = "menu_open";
+    private static final String KEY_DWELL_BASE = "dwell_base_ms";
     private String restoreDialog;
 
     private static class PendingAnswer {
@@ -73,6 +95,7 @@ public class ReviewActivity extends AppCompatActivity {
         boolean excludeApplied;      // 提交时置为已斩
         boolean redoCopy;           // 不会题：提交时追加队尾重做副本
         boolean counted;            // 提交时是否计入今日完成
+        long dwellMs;               // 提交时写入本题的停留时长
     }
 
     @Override
@@ -89,6 +112,8 @@ public class ReviewActivity extends AppCompatActivity {
 
         ReviewSession active = SessionStorage.getActive(this, bankId);
         restoreDialog = savedInstanceState != null ? savedInstanceState.getString(KEY_RESTORE_DIALOG) : null;
+        retainedDwellBase = savedInstanceState != null
+                ? savedInstanceState.getLong(KEY_DWELL_BASE, 0) : 0;
         if (active == null) {
             startNewSession(false);
         } else if (!SessionStorage.isSameDay(active.startTime, System.currentTimeMillis())) {
@@ -113,6 +138,7 @@ public class ReviewActivity extends AppCompatActivity {
             outState.putLong(KEY_BANNER_REMAINING, bannerRemainingMs);
         }
         outState.putBoolean(KEY_MENU_OPEN, menuOpen);
+        outState.putLong(KEY_DWELL_BASE, dwellBaseMs);
     }
 
     /** 重建后恢复顶部提示条（文案/重启按钮/剩余秒数）与右上角菜单展开态 */
@@ -150,6 +176,8 @@ public class ReviewActivity extends AppCompatActivity {
         tvBanner = findViewById(R.id.tv_banner);
         btnBannerNew = findViewById(R.id.btn_banner_new);
         btnAnswerText = findViewById(R.id.btn_answer_text);
+        timerRow = findViewById(R.id.timer_row);
+        tvTimer = findViewById(R.id.tv_timer);
     }
 
     private void bindActions() {
@@ -160,6 +188,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_answer).setOnClickListener(v -> toggleAnswer());
         findViewById(R.id.btn_banner_close).setOnClickListener(v -> hideBanner());
         findViewById(R.id.btn_banner_new).setOnClickListener(v -> confirmRestart());
+        timerRow.setOnClickListener(v -> onTimerRowClick());
     }
 
     private void bindBackPressed() {
@@ -200,6 +229,7 @@ public class ReviewActivity extends AppCompatActivity {
         Collections.shuffle(today);
         session = SessionStorage.create(this, bankId, bankName, today);
         finished = false;
+        startTimerSession();
         int done = QuestionStorage.getTodayDone(this);
         String tip = "已开始新一轮复习：共 " + session.originalTotal() + " 题";
         if (budget <= 0) {
@@ -219,6 +249,7 @@ public class ReviewActivity extends AppCompatActivity {
         Collections.shuffle(all);
         session = SessionStorage.create(this, bankId, bankName, all);
         finished = false;
+        startTimerSession();
         showBanner("今日目标已超额，复习全部剩余到期题：共 " + all.size() + " 题");
         showCurrentQuestion();
     }
@@ -226,6 +257,7 @@ public class ReviewActivity extends AppCompatActivity {
     private void resumeSession(ReviewSession active, boolean showHint) {
         session = active;
         finished = false;
+        startTimerSession();
         if (session.currentIndex >= session.items.size()) {
             // 上次其实已经答完但没归档，直接收尾
             finishSession();
@@ -289,6 +321,7 @@ public class ReviewActivity extends AppCompatActivity {
             // 原题已被删除：标记跳过并前进，不让复习卡住
             item.result = ReviewSession.RESULT_SKIP;
             item.answeredAt = System.currentTimeMillis();
+            item.dwellMs = dwellNow();
             session.currentIndex++;
             SessionStorage.save(this, session);
         }
@@ -315,6 +348,7 @@ public class ReviewActivity extends AppCompatActivity {
         }
 
         enableButtons(true);
+        beginQuestionDwell();
     }
 
     private void showEmptyState() {
@@ -326,6 +360,7 @@ public class ReviewActivity extends AppCompatActivity {
         answerImageLayout.removeAllViews();
         hideBanner();
         enableButtons(false);
+        if (timerRow != null) timerRow.setVisibility(View.GONE);
     }
 
     /** 显示顶部提示条，带倒计时，到点自动消失 */
@@ -401,6 +436,17 @@ public class ReviewActivity extends AppCompatActivity {
         super.onPause();
         commitPending();               // 切后台先把未提交的作答落盘，避免进程回收丢答案
         QuestionStorage.flush(this);   // 离开页面时把还没落盘的题目状态写完
+        // 计时：冻结两段并落盘已累计部分，记录离开时刻供回前台判断空档是否剔除
+        long nowWall = System.currentTimeMillis();
+        long nowElapsed = elapsedNow();
+        if (totalStampMs >= 0) { totalBaseMs += nowElapsed - totalStampMs; totalStampMs = -1; }
+        if (dwellStampMs >= 0) { dwellBaseMs += nowElapsed - dwellStampMs; dwellStampMs = -1; }
+        leaveWallAt = nowWall;
+        if (session != null) {
+            session.totalElapsedMs = totalBaseMs;
+            SessionStorage.save(this, session);
+        }
+        stopTicker();
     }
 
     @Override
@@ -411,12 +457,14 @@ public class ReviewActivity extends AppCompatActivity {
         if (session != null && !finished) {
             showCurrentQuestion();
         }
+        resumeTimer();
     }
 
     @Override
     protected void onDestroy() {
         if (bannerTimer != null) bannerTimer.cancel();
         bannerTimer = null;
+        stopTicker();
         super.onDestroy();
     }
 
@@ -426,6 +474,129 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_forget).setEnabled(enabled);
         findViewById(R.id.btn_answer).setEnabled(enabled);
         findViewById(R.id.btn_menu).setEnabled(enabled);
+    }
+
+    // ==================== 计时实现 ====================
+
+    private long elapsedNow() {
+        return SystemClock.elapsedRealtime();
+    }
+
+    private long totalNow() {
+        return totalBaseMs + (totalStampMs >= 0 ? elapsedNow() - totalStampMs : 0);
+    }
+
+    private long dwellNow() {
+        return dwellBaseMs + (dwellStampMs >= 0 ? elapsedNow() - dwellStampMs : 0);
+    }
+
+    /** 会话就绪后初始化计时：读开关、恢复累计与暂停态；开关关时隐藏时间行 */
+    private void startTimerSession() {
+        SharedPreferences sp = getSharedPreferences("settings", MODE_PRIVATE);
+        timerOn = sp.getBoolean(SettingsActivity.KEY_TIMER_ENABLED, true);
+        stopTicker();
+        if (!timerOn || session == null || finished) {
+            timerRow.setVisibility(View.GONE);
+            totalBaseMs = 0;
+            dwellBaseMs = 0;
+            totalStampMs = -1;
+            dwellStampMs = -1;
+            return;
+        }
+        totalBaseMs = session.totalElapsedMs;
+        dwellBaseMs = 0;
+        if (session.timerPaused) {
+            totalStampMs = -1;
+            dwellStampMs = -1;
+        } else {
+            totalStampMs = elapsedNow();
+            dwellStampMs = elapsedNow();
+        }
+        timerRow.setVisibility(View.VISIBLE);
+        refreshTimerText();
+        startTicker();
+    }
+
+    /** 渲染新题时重置本题停留段（暂停态保持冻结；重建后先恢复已累计部分） */
+    private void beginQuestionDwell() {
+        if (!timerOn || session == null) return;
+        dwellBaseMs = retainedDwellBase;
+        retainedDwellBase = 0;
+        dwellStampMs = session.timerPaused ? -1 : elapsedNow();
+    }
+
+    /** 回前台：短于 30 分钟的空档计入总时长，超长空档剔除后另起一段 */
+    private void resumeTimer() {
+        if (!timerOn || session == null || finished) return;
+        long nowWall = System.currentTimeMillis();
+        if (leaveWallAt > 0) {
+            long gap = nowWall - leaveWallAt;
+            if (gap <= IDLE_GAP_LIMIT_MS) totalBaseMs += gap;
+            leaveWallAt = 0;
+        }
+        if (!session.timerPaused) {
+            totalStampMs = elapsedNow();
+            dwellStampMs = elapsedNow();
+        }
+        refreshTimerText();
+        startTicker();
+    }
+
+    /** 点击时间行：暂停 / 继续，不清零；暂停态总时长与本题同时冻结 */
+    private void onTimerRowClick() {
+        if (session == null || !timerOn || finished) return;
+        long now = elapsedNow();
+        if (!session.timerPaused) {
+            if (totalStampMs >= 0) { totalBaseMs += now - totalStampMs; totalStampMs = -1; }
+            if (dwellStampMs >= 0) { dwellBaseMs += now - dwellStampMs; dwellStampMs = -1; }
+            session.timerPaused = true;
+            session.totalElapsedMs = totalBaseMs;
+            SessionStorage.save(this, session);
+        } else {
+            session.timerPaused = false;
+            totalStampMs = elapsedNow();
+            dwellStampMs = elapsedNow();
+        }
+        refreshTimerText();
+    }
+
+    private void refreshTimerText() {
+        if (tvTimer == null) return;
+        boolean paused = session != null && session.timerPaused;
+        String text = (paused ? "⏸ 已暂停 · " : "")
+                + "总 " + formatDuration(totalNow())
+                + " · 本题 " + formatDuration(dwellNow());
+        tvTimer.setText(text);
+        tvTimer.setTextColor(paused ? 0xFF999999 : 0xFF666666);
+    }
+
+    private void startTicker() {
+        stopTicker();
+        timerRefresh = new Runnable() {
+            @Override
+            public void run() {
+                refreshTimerText();
+                timerHandler.postDelayed(this, 1000);
+            }
+        };
+        timerHandler.postDelayed(timerRefresh, 1000);
+    }
+
+    private void stopTicker() {
+        if (timerRefresh != null) {
+            timerHandler.removeCallbacks(timerRefresh);
+            timerRefresh = null;
+        }
+    }
+
+    /** 毫秒格式：超 1 小时 h:mm:ss，否则 mm:ss */
+    private String formatDuration(long ms) {
+        long sec = Math.max(0, ms / 1000);
+        long h = sec / 3600;
+        long m = (sec % 3600) / 60;
+        long s = sec % 60;
+        if (h > 0) return h + ":" + String.format("%02d:%02d", m, s);
+        return String.format("%02d:%02d", m, s);
     }
 
     private void addImage(LinearLayout parent, String path) {
@@ -538,6 +709,12 @@ public class ReviewActivity extends AppCompatActivity {
                 break;
         }
         p.counted = shouldCount(result, item);
+        p.dwellMs = dwellNow();
+        // 作答后自动继续计时：解暂停，总时长开新段；本题段在下一题渲染时重置
+        if (session.timerPaused) {
+            session.timerPaused = false;
+            totalStampMs = elapsedNow();
+        }
 
         pending = p;
         session.currentIndex++;
@@ -607,6 +784,7 @@ public class ReviewActivity extends AppCompatActivity {
         if (pending.counted) QuestionStorage.incTodayDone(this);
         item.result = pending.result;
         item.answeredAt = System.currentTimeMillis();
+        item.dwellMs = pending.dwellMs;
         pending = null;
         SessionStorage.save(this, session);
     }
@@ -744,6 +922,7 @@ public class ReviewActivity extends AppCompatActivity {
             session.endTime = System.currentTimeMillis();
             session.currentIndex = session.items.size();
             session.answerShown = false;
+            session.totalElapsedMs = totalNow();
             SessionStorage.save(this, session);
 
             total = session.originalTotal();
@@ -767,6 +946,8 @@ public class ReviewActivity extends AppCompatActivity {
         answerImageLayout.removeAllViews();
         hideBanner();
         enableButtons(false);
+        stopTicker();
+        if (timerRow != null) timerRow.setVisibility(View.GONE);
 
         if (skip > 0) {
             showPrompt("复习完成", stats,
@@ -803,6 +984,7 @@ public class ReviewActivity extends AppCompatActivity {
         session.answerShown = false;
         SessionStorage.save(this, session);
         finished = false;
+        startTimerSession();
         showCurrentQuestion();
     }
 

@@ -404,6 +404,16 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // 从题目管理页（修改/重学/斩题/删除）返回时，按题库本体重载当前题；
+        // 题目已被删除则走 showCurrentQuestion 的删除兜底，标记跳过并前进。
+        if (session != null && !finished) {
+            showCurrentQuestion();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         if (bannerTimer != null) bannerTimer.cancel();
         bannerTimer = null;
@@ -647,6 +657,9 @@ public class ReviewActivity extends AppCompatActivity {
         // 无待提交缓冲时「上一题」不可用
         popup.getMenu().findItem(R.id.menu_previous)
                 .setEnabled(pending != null && !finished);
+        // 当前题已被删/已收尾时「管理本题」不可用
+        popup.getMenu().findItem(R.id.menu_manage)
+                .setEnabled(currentQuestion() != null && !finished);
         popup.setOnDismissListener(p -> menuOpen = false);
         popup.setOnMenuItemClickListener((MenuItem item) -> {
             int id = item.getItemId();
@@ -660,6 +673,14 @@ public class ReviewActivity extends AppCompatActivity {
             }
             if (id == R.id.menu_skip) {
                 onSkip();
+                return true;
+            }
+            if (id == R.id.menu_manage) {
+                Question q = currentQuestion();
+                if (q == null) return true;
+                Intent detail = new Intent(this, QuestionDetailActivity.class);
+                detail.putExtra("qid", q.id);
+                startActivity(detail);
                 return true;
             }
             return false;

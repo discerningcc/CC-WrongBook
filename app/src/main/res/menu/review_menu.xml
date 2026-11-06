@@ -9,4 +9,7 @@
     <item
         android:id="@+id/menu_exclude"
         android:title="斩题" />
+    <item
+        android:id="@+id/menu_manage"
+        android:title="管理本题" />
 </menu>

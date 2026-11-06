@@ -2,8 +2,11 @@ package com.example.demo;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -17,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,10 +40,13 @@ import java.util.Set;
 public class ReviewActivity extends AppCompatActivity {
 
     private TextView tvQuestion, tvAnswer, tvBanner, btnBannerNew, btnAnswerText;
+    private TextView tvLevelBadge, tvProgress;
+    private LinearLayout metaRow;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
     private LinearLayout bannerContainer;
 
     private ReviewSession session;
+    private Question currentQ;
     private String bankId;
     private String bankName;
     private boolean finished;
@@ -203,6 +210,9 @@ public class ReviewActivity extends AppCompatActivity {
         btnAnswerText = findViewById(R.id.btn_answer_text);
         timerRow = findViewById(R.id.timer_row);
         tvTimer = findViewById(R.id.tv_timer);
+        tvLevelBadge = findViewById(R.id.tv_level_badge);
+        tvProgress = findViewById(R.id.tv_progress);
+        metaRow = findViewById(R.id.meta_row);
     }
 
     private void bindActions() {
@@ -362,10 +372,15 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     private void renderQuestion(Question q) {
+        currentQ = q;
         int done = displayClosedCount();
         int total = session.originalTotal();
-        tvQuestion.setText("【等级：" + q.status + "】 【已完成 " + done + " / " + total
-                + " 题】 【ID：" + q.id + "】\n题目：\n" + q.content);
+        metaRow.setVisibility(View.VISIBLE);
+        String level = q.status == null ? "E" : q.status;
+        tvLevelBadge.setText(level);
+        tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(levelColor(level)));
+        tvProgress.setText("已完成 " + done + " / " + total + " 题");
+        tvQuestion.setText(q.content);
         tvAnswer.setText(q.answer);
         answerLayout.setVisibility(session.answerShown ? View.VISIBLE : View.GONE);
         syncAnswerButton();
@@ -385,6 +400,7 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     private void showEmptyState() {
+        currentQ = null;
         tvQuestion.setText("🎉 今天没有需要复习的题目！");
         tvAnswer.setText("");
         answerLayout.setVisibility(View.GONE);
@@ -393,7 +409,11 @@ public class ReviewActivity extends AppCompatActivity {
         answerImageLayout.removeAllViews();
         hideBanner();
         enableButtons(false);
-        if (timerRow != null) timerRow.setVisibility(View.GONE);
+        if (metaRow != null) metaRow.setVisibility(View.GONE);
+        if (timerRow != null && tvTimer != null) {
+            timerRow.setClickable(false);
+            tvTimer.setVisibility(View.GONE);
+        }
     }
 
     /** 显示顶部提示条，带倒计时，到点自动消失 */
@@ -529,7 +549,8 @@ public class ReviewActivity extends AppCompatActivity {
         timerOn = sp.getBoolean(SettingsActivity.KEY_TIMER_ENABLED, true);
         stopTicker();
         if (!timerOn || session == null || finished) {
-            timerRow.setVisibility(View.GONE);
+            timerRow.setClickable(false);
+            tvTimer.setVisibility(View.GONE);
             totalBaseMs = 0;
             dwellBaseMs = 0;
             dwellIndex = -1;
@@ -547,6 +568,8 @@ public class ReviewActivity extends AppCompatActivity {
             totalStampMs = elapsedNow();
             dwellStampMs = elapsedNow();
         }
+        timerRow.setClickable(true);
+        tvTimer.setVisibility(View.VISIBLE);
         timerRow.setVisibility(View.VISIBLE);
         refreshTimerText();
         startTicker();
@@ -699,6 +722,18 @@ public class ReviewActivity extends AppCompatActivity {
             case "A": return "S";
             case "S": return "S";
             default: return "E";
+        }
+    }
+
+    /** 等级徽章颜色：与题库列表页保持一致 E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红 */
+    private static int levelColor(String status) {
+        switch (status) {
+            case "S": return 0xfff44336;
+            case "A": return 0xffff9800;
+            case "B": return 0xff9c27b0;
+            case "C": return 0xff2196f3;
+            case "D": return 0xff4caf50;
+            default: return 0xff9e9e9e;
         }
     }
 
@@ -877,9 +912,10 @@ public class ReviewActivity extends AppCompatActivity {
         // 无待提交缓冲时「上一题」不可用
         popup.getMenu().findItem(R.id.menu_previous)
                 .setEnabled(pending != null && !finished);
-        // 当前题已被删/已收尾时「管理本题」不可用
-        popup.getMenu().findItem(R.id.menu_manage)
-                .setEnabled(currentQuestion() != null && !finished);
+        // 当前题已被删/已收尾时「管理本题」「本题 ID」不可用
+        boolean questionAvailable = currentQuestion() != null && !finished;
+        popup.getMenu().findItem(R.id.menu_manage).setEnabled(questionAvailable);
+        popup.getMenu().findItem(R.id.menu_id).setEnabled(questionAvailable);
         popup.setOnDismissListener(p -> menuOpen = false);
         popup.setOnMenuItemClickListener((MenuItem item) -> {
             int id = item.getItemId();
@@ -901,6 +937,14 @@ public class ReviewActivity extends AppCompatActivity {
                 Intent detail = new Intent(this, QuestionDetailActivity.class);
                 detail.putExtra("qid", q.id);
                 startActivity(detail);
+                return true;
+            }
+            if (id == R.id.menu_id) {
+                Question q = currentQuestion();
+                if (q == null) return true;
+                ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("题目ID", q.id));
+                Toast.makeText(this, "本题 ID：" + q.id, Toast.LENGTH_LONG).show();
                 return true;
             }
             return false;
@@ -989,7 +1033,12 @@ public class ReviewActivity extends AppCompatActivity {
         hideBanner();
         enableButtons(false);
         stopTicker();
-        if (timerRow != null) timerRow.setVisibility(View.GONE);
+        currentQ = null;
+        if (metaRow != null) metaRow.setVisibility(View.GONE);
+        if (timerRow != null && tvTimer != null) {
+            timerRow.setClickable(false);
+            tvTimer.setVisibility(View.GONE);
+        }
 
         if (skip > 0) {
             showPrompt("复习完成", stats,

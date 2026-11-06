@@ -54,26 +54,6 @@
 
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/timer_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="8dp"
-        android:padding="8dp"
-        android:clickable="true"
-        android:background="@android:color/white"
-        android:visibility="gone">
-
-        <TextView
-            android:id="@+id/tv_timer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="13sp"
-            android:textColor="#666666" />
-    </LinearLayout>
-
     <androidx.core.widget.NestedScrollView
         android:id="@+id/question_area"
         android:layout_width="match_parent"
@@ -90,22 +70,78 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- 右上角溢出菜单：跳过等低频操作收进这里 -->
+            <!-- 工具栏：左侧计时段（计时开关关闭时隐藏），右侧溢出菜单 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="end"
-                android:layout_marginBottom="4dp">
+                android:gravity="center_vertical"
+                android:paddingBottom="12dp">
+
+                <LinearLayout
+                    android:id="@+id/timer_row"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:clickable="true">
+
+                    <TextView
+                        android:id="@+id/tv_timer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="#888888" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/btn_menu"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_gravity="end"
                     android:padding="8dp"
                     android:text="⋮"
                     android:textSize="22sp"
                     android:textColor="#1f6aa5" />
+            </LinearLayout>
+
+            <!-- 工具栏与正文分隔线 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#eeeeee"
+                android:layout_marginBottom="12dp" />
+
+            <!-- 元信息行：等级药丸 + 完成进度；ID 收进溢出菜单 -->
+            <LinearLayout
+                android:id="@+id/meta_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:id="@+id/tv_level_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_level_badge"
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="#ffffff" />
+
+                <TextView
+                    android:id="@+id/tv_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:textSize="12sp"
+                    android:textColor="#999999" />
             </LinearLayout>
 
             <TextView
@@ -113,8 +149,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
-                android:textColor="#333333"
-                android:lineSpacingExtra="8dp"/>
+                android:textColor="#222222"
+                android:lineSpacingExtra="8dp" />
 
             <HorizontalScrollView
                 android:layout_width="match_parent"

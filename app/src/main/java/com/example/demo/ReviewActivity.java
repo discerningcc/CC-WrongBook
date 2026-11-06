@@ -44,6 +44,9 @@ public class ReviewActivity extends AppCompatActivity {
     private static final int BANNER_SECONDS = 8;
     private CountDownTimer bannerTimer;
     private String bannerBaseText = "";
+    private boolean bannerShowRestart;
+    private long bannerRemainingMs;
+    private boolean menuOpen;
 
     /**
      * 待提交的上一道作答（延迟提交缓冲）：作答先只入内存，
@@ -56,6 +59,10 @@ public class ReviewActivity extends AppCompatActivity {
     private static final String DIALOG_EXIT = "exit";
     private static final String DIALOG_EXCLUDE = "exclude";
     private static final String KEY_RESTORE_DIALOG = "restore_dialog";
+    private static final String KEY_BANNER_TEXT = "banner_text";
+    private static final String KEY_BANNER_RESTART = "banner_restart";
+    private static final String KEY_BANNER_REMAINING = "banner_remaining_ms";
+    private static final String KEY_MENU_OPEN = "menu_open";
     private String restoreDialog;
 
     private static class PendingAnswer {
@@ -93,12 +100,34 @@ public class ReviewActivity extends AppCompatActivity {
             resumeSession(active, savedInstanceState == null);
         }
         restoreSavedDialog();
+        restoreBannerAndMenu(savedInstanceState);
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(KEY_RESTORE_DIALOG, restoreDialog);
+        if (bannerTimer != null) {
+            outState.putString(KEY_BANNER_TEXT, bannerBaseText);
+            outState.putBoolean(KEY_BANNER_RESTART, bannerShowRestart);
+            outState.putLong(KEY_BANNER_REMAINING, bannerRemainingMs);
+        }
+        outState.putBoolean(KEY_MENU_OPEN, menuOpen);
+    }
+
+    /** 重建后恢复顶部提示条（文案/重启按钮/剩余秒数）与右上角菜单展开态 */
+    private void restoreBannerAndMenu(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        String bannerText = savedInstanceState.getString(KEY_BANNER_TEXT);
+        if (bannerText != null) {
+            showBanner(bannerText,
+                    savedInstanceState.getBoolean(KEY_BANNER_RESTART, false),
+                    savedInstanceState.getLong(KEY_BANNER_REMAINING, BANNER_SECONDS * 1000L));
+        }
+        if (savedInstanceState.getBoolean(KEY_MENU_OPEN, false)) {
+            View menuAnchor = findViewById(R.id.btn_menu);
+            if (menuAnchor != null) menuAnchor.post(() -> openReviewMenu(menuAnchor));
+        }
     }
 
     /** 重建后按留存标识重显之前打开的确认弹窗 */
@@ -309,17 +338,27 @@ public class ReviewActivity extends AppCompatActivity {
      *                    新开一轮的时候没必要再放这个按钮）
      */
     private void showBanner(String text, boolean showRestart) {
+        showBanner(text, showRestart, BANNER_SECONDS * 1000L);
+    }
+
+    /**
+     * @param remainingMs 倒计时剩余毫秒；旋转重建后按上次剩余时间续跑
+     */
+    private void showBanner(String text, boolean showRestart, long remainingMs) {
         if (bannerContainer == null) return;
         bannerBaseText = text;
+        bannerShowRestart = showRestart;
+        bannerRemainingMs = Math.max(remainingMs, 0);
         bannerContainer.setVisibility(View.VISIBLE);
         if (btnBannerNew != null) {
             btnBannerNew.setVisibility(showRestart ? View.VISIBLE : View.GONE);
         }
 
         if (bannerTimer != null) bannerTimer.cancel();
-        bannerTimer = new CountDownTimer(BANNER_SECONDS * 1000L, 1000L) {
+        bannerTimer = new CountDownTimer(bannerRemainingMs, 1000L) {
             @Override
             public void onTick(long millisUntilFinished) {
+                bannerRemainingMs = millisUntilFinished;
                 int sec = (int) Math.ceil(millisUntilFinished / 1000.0);
                 tvBanner.setText(bannerBaseText + "（" + sec + " 秒后自动消失）");
             }
@@ -329,7 +368,8 @@ public class ReviewActivity extends AppCompatActivity {
                 hideBanner();
             }
         };
-        tvBanner.setText(bannerBaseText + "（" + BANNER_SECONDS + " 秒后自动消失）");
+        int sec = Math.max(1, (int) Math.ceil(bannerRemainingMs / 1000.0));
+        tvBanner.setText(bannerBaseText + "（" + sec + " 秒后自动消失）");
         bannerTimer.start();
     }
 
@@ -338,6 +378,9 @@ public class ReviewActivity extends AppCompatActivity {
             bannerTimer.cancel();
             bannerTimer = null;
         }
+        bannerBaseText = "";
+        bannerShowRestart = false;
+        bannerRemainingMs = 0;
         if (btnBannerNew != null) btnBannerNew.setVisibility(View.GONE);
         if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
     }
@@ -598,11 +641,13 @@ public class ReviewActivity extends AppCompatActivity {
 
     /** 右上角溢出菜单：上一题 / 跳过 / 斩题等低频操作集中在此 */
     private void openReviewMenu(View anchor) {
+        menuOpen = true;
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.getMenuInflater().inflate(R.menu.review_menu, popup.getMenu());
         // 无待提交缓冲时「上一题」不可用
         popup.getMenu().findItem(R.id.menu_previous)
                 .setEnabled(pending != null && !finished);
+        popup.setOnDismissListener(p -> menuOpen = false);
         popup.setOnMenuItemClickListener((MenuItem item) -> {
             int id = item.getItemId();
             if (id == R.id.menu_previous) {

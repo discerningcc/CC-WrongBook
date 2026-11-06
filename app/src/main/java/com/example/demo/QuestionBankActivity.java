@@ -38,9 +38,11 @@ public class QuestionBankActivity extends AppCompatActivity {
     private static final int FILTER_EXCLUDED = 4;
 
     private static final String[] FILTER_LABELS = {"全部", "今日到期", "只有图片", "有文本", "已斩"};
+    private static final String[] LEVEL_LABELS = {"S", "A", "B", "C", "D", "E"};
     private static final long SEARCH_DEBOUNCE_MS = 250;
     private static final String STATE_FILTER = "list_filter";
     private static final String STATE_KEYWORD = "list_keyword";
+    private static final String STATE_LEVEL = "list_level";
 
     private SearchView searchView;
     private TextView tvStats;
@@ -54,6 +56,10 @@ public class QuestionBankActivity extends AppCompatActivity {
 
     private final TextView[] chips = new TextView[FILTER_LABELS.length];
     private int filter = FILTER_ALL;
+
+    /** 等级筛选：-1 表示全部等级，否则对应 levelIndex 0..5 */
+    private final TextView[] levelChips = new TextView[LEVEL_LABELS.length + 1];
+    private int levelFilter = -1;
 
     /** 搜索关键词的拆分结果（小写），空表示没有搜索 */
     private final List<String> tokens = new ArrayList<>();
@@ -96,9 +102,11 @@ public class QuestionBankActivity extends AppCompatActivity {
         if (savedInstanceState != null) {
             filter = savedInstanceState.getInt(STATE_FILTER, FILTER_ALL);
             keywordText = savedInstanceState.getString(STATE_KEYWORD, "");
+            levelFilter = savedInstanceState.getInt(STATE_LEVEL, -1);
         }
 
         buildChips(findViewById(R.id.chip_row));
+        buildLevelChips(findViewById(R.id.chip_row_level));
 
         // 标题栏：点击进入题库管理
         findViewById(R.id.tv_bank_title).setOnClickListener(v ->
@@ -167,6 +175,69 @@ public class QuestionBankActivity extends AppCompatActivity {
         }
     }
 
+    private void buildLevelChips(LinearLayout row) {
+        // 第 0 个胶囊为「全部」，其后依次对应 S A B C D E
+        TextView allChip = new TextView(this);
+        allChip.setText("全部");
+        allChip.setTextSize(13);
+        allChip.setGravity(Gravity.CENTER);
+        allChip.setPadding(dp(14), dp(7), dp(14), dp(7));
+        LinearLayout.LayoutParams allLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        allLp.setMarginEnd(dp(8));
+        allChip.setLayoutParams(allLp);
+        allChip.setOnClickListener(v -> selectLevel(-1));
+        levelChips[0] = allChip;
+        row.addView(allChip);
+
+        for (int i = 0; i < LEVEL_LABELS.length; i++) {
+            final int level = i;
+            TextView chip = new TextView(this);
+            chip.setTextSize(13);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(14), dp(7), dp(14), dp(7));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMarginEnd(dp(8));
+            chip.setLayoutParams(lp);
+            chip.setOnClickListener(v -> selectLevel(level));
+            levelChips[i + 1] = chip;
+            row.addView(chip);
+        }
+        styleLevelChips();
+    }
+
+    private void selectLevel(int level) {
+        if (levelFilter == level) return;
+        levelFilter = level;
+        styleLevelChips();
+        applyFilter();
+    }
+
+    private void styleLevelChips() {
+        for (int i = 0; i < levelChips.length; i++) {
+            TextView chip = levelChips[i];
+            if (chip == null) continue;
+            int chipLevel = i - 1; // 0 号胶囊对应全部等级
+            boolean on = (chipLevel == levelFilter);
+            chip.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
+            chip.setTextColor(on ? 0xffffffff : 0xff666666);
+        }
+    }
+
+    /** 按全量题库刷新各等级胶囊上的数量（与统计条等级分布口径一致） */
+    private void refreshLevelCounts() {
+        int[] level = new int[LEVEL_LABELS.length];
+        for (Question q : allQuestions) {
+            int idx = levelIndex(q.status);
+            if (idx >= 0) level[idx]++;
+        }
+        for (int i = 0; i < LEVEL_LABELS.length; i++) {
+            TextView chip = levelChips[i + 1];
+            if (chip != null) chip.setText(LEVEL_LABELS[i] + " " + level[i]);
+        }
+    }
+
     // ==================== 数据加载与筛选 ====================
 
     private void reload() {
@@ -175,6 +246,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         // 倒序：最新添加的在最上面（沿用原有排序，不改语义）
         Collections.reverse(allQuestions);
 
+        refreshLevelCounts();
         refreshTitle();
         applyFilter();
     }
@@ -218,18 +290,26 @@ public class QuestionBankActivity extends AppCompatActivity {
     }
 
     private boolean passesFilter(Question q) {
+        boolean categoryPass;
         switch (filter) {
             case FILTER_EXCLUDED:
-                return q.excluded;
+                categoryPass = q.excluded;
+                break;
             case FILTER_TODAY:
-                return !q.excluded && QuestionStorage.isDue(this, q);
+                categoryPass = !q.excluded && QuestionStorage.isDue(this, q);
+                break;
             case FILTER_IMAGE:
-                return !q.excluded && q.contentImages != null && !q.contentImages.isEmpty();
+                categoryPass = !q.excluded && q.contentImages != null && !q.contentImages.isEmpty();
+                break;
             case FILTER_TEXT:
-                return !q.excluded && q.content != null && !q.content.trim().isEmpty();
+                categoryPass = !q.excluded && q.content != null && !q.content.trim().isEmpty();
+                break;
             default:
-                return !q.excluded;
+                categoryPass = !q.excluded;
         }
+        if (!categoryPass) return false;
+        if (levelFilter >= 0 && levelIndex(q.status) != levelFilter) return false;
+        return true;
     }
 
     private boolean passesKeyword(Question q) {
@@ -275,7 +355,7 @@ public class QuestionBankActivity extends AppCompatActivity {
                 + " · 已斩 " + excluded;
         String levels = " · S" + level[0] + " A" + level[1] + " B" + level[2]
                 + " C" + level[3] + " D" + level[4] + " E" + level[5];
-        String prefix = (filter != FILTER_ALL || !tokens.isEmpty())
+        String prefix = (filter != FILTER_ALL || levelFilter >= 0 || !tokens.isEmpty())
                 ? "显示 " + shown.size() + " / " + allQuestions.size() + " · "
                 : "";
 
@@ -300,6 +380,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         outState.putInt(STATE_FILTER, filter);
         outState.putString(STATE_KEYWORD, keywordText);
+        outState.putInt(STATE_LEVEL, levelFilter);
     }
 
     @Override

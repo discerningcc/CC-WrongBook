@@ -54,6 +54,22 @@
             android:paddingVertical="6dp"/>
     </HorizontalScrollView>
 
+    <!-- 等级筛选胶囊：全部 / S A B C D E（带各等级数量） -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingHorizontal="12dp"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:id="@+id/chip_row_level"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingVertical="2dp"/>
+    </HorizontalScrollView>
+
     <!-- 统计条 -->
     <TextView
         android:id="@+id/tv_stats"

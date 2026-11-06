@@ -83,12 +83,15 @@ public class ReviewActivity extends AppCompatActivity {
     private static final String DIALOG_EXCLUDE = "exclude";
     private static final String DIALOG_CROSSDAY = "crossday";
     private static final String KEY_RESTORE_DIALOG = "restore_dialog";
+    private static final String KEY_CROSSDAY_RESUMED = "crossday_resumed";
     private static final String KEY_BANNER_TEXT = "banner_text";
     private static final String KEY_BANNER_RESTART = "banner_restart";
     private static final String KEY_BANNER_REMAINING = "banner_remaining_ms";
     private static final String KEY_MENU_OPEN = "menu_open";
     private static final String KEY_DWELL_BASE = "dwell_base_ms";
     private String restoreDialog;
+    /** 跨日弹窗已选择「继续上次」；重建后静默恢复，不再重复询问 */
+    private boolean crossdayResumed;
 
     private static class PendingAnswer {
         int index;                  // 对应 items 下标
@@ -117,19 +120,24 @@ public class ReviewActivity extends AppCompatActivity {
         restoreDialog = savedInstanceState != null ? savedInstanceState.getString(KEY_RESTORE_DIALOG) : null;
         retainedDwellBase = savedInstanceState != null
                 ? savedInstanceState.getLong(KEY_DWELL_BASE, 0) : 0;
+        crossdayResumed = savedInstanceState != null
+                && savedInstanceState.getBoolean(KEY_CROSSDAY_RESUMED, false);
         if (active == null) {
             startNewSession(false);
         } else if (!SessionStorage.isSameDay(active.startTime, System.currentTimeMillis())) {
-            // 跨自然日：交给用户决定继续还是重新开始；重建后由 restoreSavedDialog 重显，不重复弹
-            if (!DIALOG_CROSSDAY.equals(restoreDialog)) {
+            // 跨自然日：交给用户决定继续还是重新开始；重建后弹窗仍打开则由 restoreSavedDialog 重显，
+            // 已选「继续上次」则静默恢复，都不重复弹
+            if (!DIALOG_CROSSDAY.equals(restoreDialog) && !crossdayResumed) {
                 showCrossDayPrompt(active);
+            } else if (crossdayResumed) {
+                resumeSession(active, false);
             }
         } else {
             // savedInstanceState 不为空 = 这次 onCreate 是系统重建（横竖屏切换、分屏切换等），
             // 用户并没有"重新进来"，不该再弹一次「已恢复上次进度」的提示条
             resumeSession(active, savedInstanceState == null);
         }
-        restoreSavedDialog();
+        restoreSavedDialog(savedInstanceState);
         restoreBannerAndMenu(savedInstanceState);
     }
 
@@ -144,6 +152,7 @@ public class ReviewActivity extends AppCompatActivity {
         }
         outState.putBoolean(KEY_MENU_OPEN, menuOpen);
         outState.putLong(KEY_DWELL_BASE, dwellBaseMs);
+        outState.putBoolean(KEY_CROSSDAY_RESUMED, crossdayResumed);
     }
 
     /** 重建后恢复顶部提示条（文案/重启按钮/剩余秒数）与右上角菜单展开态 */
@@ -161,9 +170,9 @@ public class ReviewActivity extends AppCompatActivity {
         }
     }
 
-    /** 重建后按留存标识重显之前打开的确认弹窗 */
-    private void restoreSavedDialog() {
-        if (restoreDialog == null) return;
+    /** 重建后按留存标识重显之前打开的确认弹窗；仅系统重建（savedInstanceState 非空）时执行，避免同一次 onCreate 重复弹 */
+    private void restoreSavedDialog(Bundle savedInstanceState) {
+        if (savedInstanceState == null || restoreDialog == null) return;
         if (DIALOG_EXIT.equals(restoreDialog)) {
             confirmExit();
         } else if (DIALOG_EXCLUDE.equals(restoreDialog)) {
@@ -305,6 +314,7 @@ public class ReviewActivity extends AppCompatActivity {
         showPrompt("上次复习未完成", msg.toString(),
                 "继续上次（剩 " + remaining + " 题）", () -> {
                     restoreDialog = null;
+                    crossdayResumed = true;
                     resumeSession(active, false);
                 },
                 "开始今天的新一轮", () -> {

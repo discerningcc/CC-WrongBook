@@ -659,10 +659,8 @@ public class ReviewActivity extends AppCompatActivity {
     private void refreshTimerText() {
         if (tvTimer == null) return;
         boolean paused = session != null && session.timerPaused;
-        String status = paused ? "已暂停" : "计时中";
         String text = "总 " + formatDuration(totalNow())
-                + " · 本题 " + formatDuration(dwellNow())
-                + " · " + status;
+                + " · 本题 " + formatDuration(dwellNow());
         tvTimer.setText(text);
         int color = paused ? 0xFF9E9E9E : 0xFF2E7D32;
         tvTimer.setTextColor(color);

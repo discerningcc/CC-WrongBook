@@ -77,6 +77,12 @@ public class SessionStorage {
         }
     }
 
+    /** 记录文件是否仍在磁盘上：用于发现外部删除后，避免把内存里的会话副本又写回复活 */
+    public static boolean exists(Context context, String sessionId) {
+        if (sessionId == null) return false;
+        return fileOf(context, sessionId).exists();
+    }
+
     // ==================== 查询 ====================
 
     /** 指定题库下未完成的会话（最近一次） */

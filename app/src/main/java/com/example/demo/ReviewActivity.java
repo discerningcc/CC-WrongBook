@@ -379,7 +379,7 @@ public class ReviewActivity extends AppCompatActivity {
             item.answeredAt = System.currentTimeMillis();
             item.dwellMs = dwellNow();
             session.currentIndex++;
-            SessionStorage.save(this, session);
+            persistSession();
         }
         finishSession();
     }
@@ -508,9 +508,10 @@ public class ReviewActivity extends AppCompatActivity {
         if (totalStampMs >= 0) { totalBaseMs += nowElapsed - totalStampMs; totalStampMs = -1; }
         if (dwellStampMs >= 0) { dwellBaseMs += nowElapsed - dwellStampMs; dwellStampMs = -1; }
         leaveWallAt = nowWall;
-        if (session != null) {
+        // 记录若已在历史页被外部删除，磁盘文件不存在就不再写回，避免把内存会话复活
+        if (session != null && SessionStorage.exists(this, session.id)) {
             session.totalElapsedMs = totalBaseMs;
-            SessionStorage.save(this, session);
+            persistSession();
         }
         stopTicker();
     }
@@ -518,12 +519,26 @@ public class ReviewActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // 复习记录在历史页被删掉后，本页面可能仍持有那次会话的内存副本；
+        // 磁盘上已不存在就丢弃内存会话与缓冲，按全新一轮开始，避免后续切后台/退出又写回复活
+        if (session != null && !SessionStorage.exists(this, session.id)) {
+            abandonDeletedSession();
+        }
         // 从题目管理页（修改/重学/斩题/删除）返回时，按题库本体重载当前题；
         // 题目已被删除则走 showCurrentQuestion 的删除兜底，标记跳过并前进。
         if (session != null && !finished) {
             showCurrentQuestion();
         }
         resumeTimer();
+    }
+
+    /** 磁盘记录已被外部删除：丢弃内存会话与未提交缓冲，重新拉起一轮复习 */
+    private void abandonDeletedSession() {
+        pending = null;
+        session = null;
+        finished = false;
+        stopTicker();
+        startNewSession(false);
     }
 
     @Override
@@ -628,7 +643,7 @@ public class ReviewActivity extends AppCompatActivity {
             if (dwellStampMs >= 0) { dwellBaseMs += now - dwellStampMs; dwellStampMs = -1; }
             session.timerPaused = true;
             session.totalElapsedMs = totalBaseMs;
-            SessionStorage.save(this, session);
+            persistSession();
         } else {
             session.timerPaused = false;
             totalStampMs = elapsedNow();
@@ -815,7 +830,7 @@ public class ReviewActivity extends AppCompatActivity {
             // 末题随即收尾：这份副本本轮已无机会作答，不再追加，避免归档记录留下空结果的悬空副本
             p.redoCopy = false;
         }
-        SessionStorage.save(this, session);
+        persistSession();
 
         if (finishing) {
             finishSession();
@@ -876,7 +891,14 @@ public class ReviewActivity extends AppCompatActivity {
         item.answeredAt = System.currentTimeMillis();
         item.dwellMs = pending.dwellMs;
         pending = null;
-        SessionStorage.save(this, session);
+        persistSession();
+    }
+
+    /** 落盘当前会话：记录若已被历史页外部删除（磁盘文件不存在），就不再写回，避免复活已删记录 */
+    private void persistSession() {
+        if (session != null && SessionStorage.exists(this, session.id)) {
+            SessionStorage.save(this, session);
+        }
     }
 
     /** 上一题：丢弃未提交缓冲，退回那道题重答；最多一步，已提交的不能再退 */
@@ -885,7 +907,7 @@ public class ReviewActivity extends AppCompatActivity {
         session.currentIndex = pending.index;
         pending = null;
         session.answerShown = false;
-        SessionStorage.save(this, session);
+        persistSession();
         showCurrentQuestion();
     }
 
@@ -998,7 +1020,7 @@ public class ReviewActivity extends AppCompatActivity {
             answerLayout.setVisibility(View.VISIBLE);
             session.answerShown = true;
         }
-        SessionStorage.save(this, session);
+        persistSession();
         syncAnswerButton();
     }
 
@@ -1022,7 +1044,7 @@ public class ReviewActivity extends AppCompatActivity {
             session.currentIndex = session.items.size();
             session.answerShown = false;
             session.totalElapsedMs = totalNow();
-            SessionStorage.save(this, session);
+            persistSession();
 
             total = session.originalTotal();
             int[] u = session.uniqueStats();
@@ -1086,7 +1108,7 @@ public class ReviewActivity extends AppCompatActivity {
         session.status = ReviewSession.STATUS_ACTIVE;
         session.endTime = 0;
         session.answerShown = false;
-        SessionStorage.save(this, session);
+        persistSession();
         finished = false;
         startTimerSession();
         showCurrentQuestion();

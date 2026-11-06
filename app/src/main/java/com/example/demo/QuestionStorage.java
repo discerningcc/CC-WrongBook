@@ -468,9 +468,37 @@ public class QuestionStorage {
 
     /** 导入 zip 题库文件（重名自动加「（2）」），返回导入后的题库 */
     public static QuestionBank importBank(Context context, Uri uri) throws Exception {
+        return importBank(context, uri, null);
+    }
+
+    /** 导入 zip 题库文件，带进度回调（done/total，解压条目数与题目处理数两段上报） */
+    public static QuestionBank importBank(Context context, Uri uri, ProgressListener listener) throws Exception {
         File tmpDir = new File(context.getCacheDir(), "import_" + System.currentTimeMillis());
         tmpDir.mkdirs();
         try {
+            // 先枚举压缩包条目数，供解压阶段展示进度（ZipInputStream 只能顺序读，需先探一遍）
+            int totalEntries = 0;
+            InputStream probe = null;
+            try {
+                probe = context.getContentResolver().openInputStream(uri);
+                if (probe != null) {
+                    ZipInputStream pz = new ZipInputStream(probe);
+                    try {
+                        ZipEntry pe;
+                        while ((pe = pz.getNextEntry()) != null) {
+                            if (!pe.isDirectory()) totalEntries++;
+                            pz.closeEntry();
+                        }
+                    } finally {
+                        pz.close();
+                    }
+                }
+            } catch (Exception ignored) {
+                totalEntries = 0;
+            }
+            if (listener != null) listener.onProgress(0, totalEntries);
+
+            int doneEntries = 0;
             InputStream is = context.getContentResolver().openInputStream(uri);
             if (is == null) throw new Exception("无法读取所选文件");
             ZipInputStream zis = new ZipInputStream(is);
@@ -492,6 +520,8 @@ public class QuestionStorage {
                         }
                     }
                     zis.closeEntry();
+                    doneEntries++;
+                    if (listener != null) listener.onProgress(doneEntries, totalEntries);
                 }
             } finally {
                 zis.close();
@@ -511,9 +541,14 @@ public class QuestionStorage {
             // 图片重写：zip 内相对路径 → 本机私有目录绝对路径（加题库 id 前缀防重名）
             File imagesDir = context.getDir(IMAGES_DIR, Context.MODE_PRIVATE);
             Map<String, String> pathMap = new HashMap<>();
+            int totalQ = bank.questions.size();
+            if (listener != null) listener.onProgress(0, totalQ);
+            int doneQ = 0;
             for (Question q : bank.questions) {
                 q.contentImages = rewriteImagePaths(imagesDir, bank.id, q.contentImages, tmpDir, pathMap);
                 q.answerImages = rewriteImagePaths(imagesDir, bank.id, q.answerImages, tmpDir, pathMap);
+                doneQ++;
+                if (listener != null) listener.onProgress(doneQ, totalQ);
             }
             writeBankNow(context, bank);
             return bank;

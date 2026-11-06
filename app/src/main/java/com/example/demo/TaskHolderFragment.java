@@ -98,9 +98,16 @@ public class TaskHolderFragment extends Fragment {
         progressMessage = "正在解压文件，请稍候…";
         errorMessage = null;
         importedBank = null;
+        Host h = host();
+        if (h != null) h.showProgress(titleForTask(), progressMessage);
         new Thread(() -> {
             try {
-                QuestionBank bank = QuestionStorage.importBank(appContext, uri);
+                QuestionBank bank = QuestionStorage.importBank(appContext, uri, (d, t) -> {
+                    done = d;
+                    total = t;
+                    progressMessage = t > 0 ? "正在导入 " + d + " / " + t : "正在解压文件…";
+                    notifyProgress();
+                });
                 importedBank = bank;
                 state = DONE;
                 notifyImportSuccess();

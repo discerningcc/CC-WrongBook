@@ -600,7 +600,7 @@ public class ReviewActivity extends AppCompatActivity {
     private void refreshTimerText() {
         if (tvTimer == null) return;
         boolean paused = session != null && session.timerPaused;
-        String prefix = paused ? "⏸ 已暂停 · " : "▶️ ";
+        String prefix = paused ? "⏸ " : "▶️ ";
         String text = prefix
                 + "总 " + formatDuration(totalNow())
                 + " · 本题 " + formatDuration(dwellNow());

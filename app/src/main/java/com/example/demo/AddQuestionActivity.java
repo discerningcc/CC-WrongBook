@@ -15,6 +15,8 @@ import java.util.ArrayList;
 public class AddQuestionActivity extends AppCompatActivity {
     private static final int REQ_CONTENT = 1001;
     private static final int REQ_ANSWER = 1002;
+    private static final String KEY_CONTENT_IMGS = "content_images";
+    private static final String KEY_ANSWER_IMGS = "answer_images";
 
     private EditText etContent, etAnswer;
     private LinearLayout layoutContentImg, layoutAnswerImg;
@@ -40,7 +42,16 @@ public class AddQuestionActivity extends AppCompatActivity {
         findViewById(R.id.btn_save).setOnClickListener(v -> save());
 
         String editQid = getIntent().getStringExtra("edit_qid");
-        if (editQid != null) {
+        if (savedInstanceState != null) {
+            // 旋转重建：恢复已选图片路径与编辑对象；输入框文本由系统按 View id 自动恢复
+            contentPaths = savedInstanceState.getStringArrayList(KEY_CONTENT_IMGS);
+            answerPaths = savedInstanceState.getStringArrayList(KEY_ANSWER_IMGS);
+            if (contentPaths == null) contentPaths = new ArrayList<>();
+            if (answerPaths == null) answerPaths = new ArrayList<>();
+            for (String path : contentPaths) addImage(layoutContentImg, path);
+            for (String path : answerPaths) addImage(layoutAnswerImg, path);
+            if (editQid != null) editQuestion = QuestionStorage.findById(this, editQid);
+        } else if (editQid != null) {
             editQuestion = QuestionStorage.findById(this, editQid);
             if (editQuestion != null) {
                 etContent.setText(editQuestion.content);
@@ -66,6 +77,13 @@ public class AddQuestionActivity extends AppCompatActivity {
         titleBar.setText(editQuestion != null
                 ? "修改题目 · " + bankName
                 : "添加题目 · 加入「" + bankName + "」");
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArrayList(KEY_CONTENT_IMGS, contentPaths);
+        outState.putStringArrayList(KEY_ANSWER_IMGS, answerPaths);
     }
 
     private void openGallery(int req) {

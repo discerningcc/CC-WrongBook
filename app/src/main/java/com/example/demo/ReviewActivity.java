@@ -52,6 +52,12 @@ public class ReviewActivity extends AppCompatActivity {
      */
     private PendingAnswer pending;
 
+    /** 旋转重建后需要重显的弹窗：exit=退出确认，exclude=斩题确认；null=无 */
+    private static final String DIALOG_EXIT = "exit";
+    private static final String DIALOG_EXCLUDE = "exclude";
+    private static final String KEY_RESTORE_DIALOG = "restore_dialog";
+    private String restoreDialog;
+
     private static class PendingAnswer {
         int index;                  // 对应 items 下标
         String result;             // KNOW / VAGUE / FORGET / SKIP / EXCLUDED
@@ -75,6 +81,7 @@ public class ReviewActivity extends AppCompatActivity {
         bindBackPressed();
 
         ReviewSession active = SessionStorage.getActive(this, bankId);
+        restoreDialog = savedInstanceState != null ? savedInstanceState.getString(KEY_RESTORE_DIALOG) : null;
         if (active == null) {
             startNewSession(false);
         } else if (!SessionStorage.isSameDay(active.startTime, System.currentTimeMillis())) {
@@ -84,6 +91,23 @@ public class ReviewActivity extends AppCompatActivity {
             // savedInstanceState 不为空 = 这次 onCreate 是系统重建（横竖屏切换、分屏切换等），
             // 用户并没有"重新进来"，不该再弹一次「已恢复上次进度」的提示条
             resumeSession(active, savedInstanceState == null);
+        }
+        restoreSavedDialog();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(KEY_RESTORE_DIALOG, restoreDialog);
+    }
+
+    /** 重建后按留存标识重显之前打开的确认弹窗 */
+    private void restoreSavedDialog() {
+        if (restoreDialog == null) return;
+        if (DIALOG_EXIT.equals(restoreDialog)) {
+            confirmExit();
+        } else if (DIALOG_EXCLUDE.equals(restoreDialog)) {
+            onExclude();
         }
     }
 
@@ -602,11 +626,16 @@ public class ReviewActivity extends AppCompatActivity {
     private void onExclude() {
         Question q = currentQuestion();
         if (q == null) return;
+        restoreDialog = DIALOG_EXCLUDE;
         new AlertDialog.Builder(this)
                 .setTitle("斩题")
                 .setMessage("这道题将退出复习队列和长期抽查，不再占用今日任务；题目本体保留，可在题目列表恢复。\n确定斩题吗？")
-                .setPositiveButton("斩题", (dialog, which) -> answerQuestion(ReviewSession.RESULT_EXCLUDED))
-                .setNegativeButton("取消", null)
+                .setPositiveButton("斩题", (dialog, which) -> {
+                    restoreDialog = null;
+                    answerQuestion(ReviewSession.RESULT_EXCLUDED);
+                })
+                .setNegativeButton("取消", (dialog, which) -> restoreDialog = null)
+                .setOnCancelListener(d -> restoreDialog = null)
                 .show();
     }
 
@@ -724,12 +753,13 @@ public class ReviewActivity extends AppCompatActivity {
             finish();
             return;
         }
+        restoreDialog = DIALOG_EXIT;
         showPrompt("退出复习？",
                 "已完成 " + session.closedOriginalCount() + " / " + session.originalTotal() + " 题，进度已保存\n下次进入可继续",
-                "继续复习", () -> {},
-                "退出", this::finish,
+                "继续复习", () -> { restoreDialog = null; },
+                "退出", () -> { restoreDialog = null; finish(); },
                 null, null,
-                null);
+                () -> restoreDialog = null);
     }
 
     private void openHistory() {

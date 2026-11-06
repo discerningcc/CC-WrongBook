@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -26,14 +27,19 @@ import java.util.Locale;
  * 题库管理页：
  * 点击题库 = 切换当前题库；长按 = 重命名 / 导出 / 删除；
  * 顶部按钮 = 新建 / 导入 / 导出当前。
+ * 导入导出线程与进度由 {@link TaskHolderFragment} 持有，旋转重建后重新挂载，不丢进度与结果。
  */
-public class SaveManageActivity extends AppCompatActivity {
+public class SaveManageActivity extends AppCompatActivity implements TaskHolderFragment.Host {
 
     private static final int REQ_IMPORT = 2001;
     private static final int REQ_EXPORT = 2002;
+    private static final String TAG_TASK_HOLDER = "task_holder";
+    private static final String KEY_PENDING_EXPORT = "pending_export_bank_id";
 
     private RecyclerView recycler;
     private BankAdapter adapter;
+    private TaskHolderFragment holder;
+    private ProgressDialog pd;
     private String pendingExportBankId;
 
     @Override
@@ -56,6 +62,16 @@ public class SaveManageActivity extends AppCompatActivity {
                 exportBank(current);
             }
         });
+
+        holder = (TaskHolderFragment) getSupportFragmentManager().findFragmentByTag(TAG_TASK_HOLDER);
+        if (holder == null) {
+            holder = new TaskHolderFragment();
+            getSupportFragmentManager().beginTransaction().add(holder, TAG_TASK_HOLDER).commit();
+        }
+
+        if (savedInstanceState != null) {
+            pendingExportBankId = savedInstanceState.getString(KEY_PENDING_EXPORT);
+        }
     }
 
     @Override
@@ -68,6 +84,19 @@ public class SaveManageActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadBanks();
+        holder.bindHost(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissProgress();
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(KEY_PENDING_EXPORT, pendingExportBankId);
     }
 
     private void loadBanks() {
@@ -183,83 +212,86 @@ public class SaveManageActivity extends AppCompatActivity {
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
 
         if (requestCode == REQ_IMPORT) {
-            importBankAsync(data.getData());
+            holder.startImport(getApplicationContext(), data.getData());
         } else if (requestCode == REQ_EXPORT) {
             if (pendingExportBankId == null) return;
-            exportBankAsync(pendingExportBankId, data.getData());
+            holder.startExport(getApplicationContext(), pendingExportBankId, data.getData());
         }
     }
 
-    // ==================== 导入 / 导出（后台线程，避免卡死主线程） ====================
+    // ==================== TaskHolderFragment.Host 回调（主线程） ====================
 
-    private void exportBankAsync(String bankId, Uri uri) {
-        android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
-        pd.setTitle("正在导出题库…");
-        pd.setMessage("正在准备…");
-        pd.setProgressStyle(android.app.ProgressDialog.STYLE_HORIZONTAL);
-        pd.setCancelable(false);
-        pd.show();
-        new Thread(() -> {
-            try {
-                QuestionStorage.exportBankToUri(this, bankId, uri, (done, total) -> {
-                    runOnUiThread(() -> {
-                        if (isFinishing() || isDestroyed()) return;
-                        if (total > 0) {
-                            pd.setMax(total);
-                            pd.setProgress(done);
-                            pd.setMessage("正在写入图片 " + done + " / " + total);
-                        } else {
-                            pd.setMessage("正在写入图片…");
-                        }
-                    });
-                });
-                runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    pd.dismiss();
-                    Toast.makeText(this, "导出成功", Toast.LENGTH_SHORT).show();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    pd.dismiss();
-                    Toast.makeText(this, "导出失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
+    @Override
+    public void showProgress(String title, String message) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            dismissProgress();
+            pd = new ProgressDialog(this);
+            pd.setTitle(title);
+            pd.setMessage(message);
+            pd.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            pd.setCancelable(false);
+            pd.show();
+        });
     }
 
-    private void importBankAsync(Uri uri) {
-        android.app.ProgressDialog pd = new android.app.ProgressDialog(this);
-        pd.setTitle("正在导入题库…");
-        pd.setMessage("正在解压文件，请稍候…");
-        pd.setCancelable(false);
-        pd.show();
-        new Thread(() -> {
-            try {
-                QuestionBank bank = QuestionStorage.importBank(this, uri);
-                runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    pd.dismiss();
-                    loadBanks();
-                    new AlertDialog.Builder(this)
-                            .setTitle("导入成功")
-                            .setMessage("题库「" + bank.name + "」已导入（" + bank.questions.size() + " 题），是否现在切换？")
-                            .setPositiveButton("切换", (d, w) -> {
-                                QuestionStorage.switchBank(this, bank.id);
-                                Toast.makeText(this, "已切换到：" + bank.name, Toast.LENGTH_SHORT).show();
-                                finish();
-                            })
-                            .setNegativeButton("暂不", null)
-                            .show();
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    if (isFinishing() || isDestroyed()) return;
-                    pd.dismiss();
-                    Toast.makeText(this, "导入失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+    @Override
+    public void updateProgress(int done, int total, String message) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed() || pd == null) return;
+            if (total > 0) {
+                pd.setMax(total);
+                pd.setProgress(done);
             }
-        }).start();
+            pd.setMessage(message);
+        });
+    }
+
+    @Override
+    public void onExportSuccess() {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            dismissProgress();
+            Toast.makeText(this, "导出成功", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    @Override
+    public void onImportSuccess(QuestionBank bank) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            dismissProgress();
+            loadBanks();
+            new AlertDialog.Builder(this)
+                    .setTitle("导入成功")
+                    .setMessage("题库「" + bank.name + "」已导入（" + bank.questions.size() + " 题），是否现在切换？")
+                    .setPositiveButton("切换", (d, w) -> {
+                        QuestionStorage.switchBank(this, bank.id);
+                        Toast.makeText(this, "已切换到：" + bank.name, Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .setNegativeButton("暂不", null)
+                    .show();
+        });
+    }
+
+    @Override
+    public void onFailure(String message) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            dismissProgress();
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private void dismissProgress() {
+        if (pd != null) {
+            try {
+                pd.dismiss();
+            } catch (Exception ignored) {
+            }
+            pd = null;
+        }
     }
 
     // ==================== Adapter ====================

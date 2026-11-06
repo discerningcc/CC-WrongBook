@@ -11,10 +11,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 复习记录页：按自然日分组展示历史会话。
@@ -25,8 +28,14 @@ public class ReviewHistoryActivity extends AppCompatActivity {
 
     /** 这个天数以内（含今天）的日期默认展开，更早的折叠 */
     private static final int EXPAND_DAYS = 7;
+    private static final String KEY_EXPANDED_DAYS = "expanded_days";
+    private static final String KEY_EXPANDED_SESSIONS = "expanded_sessions";
 
     private LinearLayout container;
+    /** 已展开的日期分组（dayStart 字符串）；旋转重建后据此恢复 */
+    private final Set<String> expandedDays = new HashSet<>();
+    /** 已展开的会话卡片（会话 id）；旋转重建后据此恢复 */
+    private final Set<String> expandedSessions = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +43,20 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_review_history);
         container = findViewById(R.id.history_container);
         findViewById(R.id.btn_history_back).setOnClickListener(v -> finish());
+        if (savedInstanceState != null) {
+            List<String> days = savedInstanceState.getStringArrayList(KEY_EXPANDED_DAYS);
+            List<String> sessions = savedInstanceState.getStringArrayList(KEY_EXPANDED_SESSIONS);
+            if (days != null) expandedDays.addAll(days);
+            if (sessions != null) expandedSessions.addAll(sessions);
+        }
         loadData();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArrayList(KEY_EXPANDED_DAYS, new ArrayList<>(expandedDays));
+        outState.putStringArrayList(KEY_EXPANDED_SESSIONS, new ArrayList<>(expandedSessions));
     }
 
     @Override
@@ -85,7 +107,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
                     container.addView(createHeader(header));
                     target = container;
                 } else {
-                    target = addCollapsedGroup(header, count);
+                    target = addCollapsedGroup(header, count, day, expandedDays.contains(String.valueOf(day)));
                 }
                 lastHeader = header;
             }
@@ -102,24 +124,26 @@ public class ReviewHistoryActivity extends AppCompatActivity {
     }
 
     /** 更早的日期折叠成一行「11月3日 · 3 条 ▸」，点开才显示当天卡片 */
-    private LinearLayout addCollapsedGroup(String header, int count) {
+    private LinearLayout addCollapsedGroup(String header, int count, long day, boolean open) {
+        String dayKey = String.valueOf(day);
         LinearLayout holder = new LinearLayout(this);
         holder.setOrientation(LinearLayout.VERTICAL);
 
         TextView head = new TextView(this);
-        head.setText(header + " · " + count + " 条 ▸");
+        head.setText(header + " · " + count + " 条 " + (open ? "▾" : "▸"));
         head.setTextSize(14);
         head.setTextColor(0xFF888888);
         head.setPadding(dp(16), dp(16), dp(16), dp(6));
 
         LinearLayout body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
-        body.setVisibility(View.GONE);
+        body.setVisibility(open ? View.VISIBLE : View.GONE);
 
         head.setOnClickListener(v -> {
             boolean expand = body.getVisibility() != View.VISIBLE;
             body.setVisibility(expand ? View.VISIBLE : View.GONE);
             head.setText(header + " · " + count + " 条 " + (expand ? "▾" : "▸"));
+            if (expand) expandedDays.add(dayKey); else expandedDays.remove(dayKey);
         });
 
         holder.addView(head);
@@ -158,7 +182,6 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         String timeRange = SessionStorage.formatTime(s.startTime)
                 + (s.endTime > 0 ? " - " + SessionStorage.formatTime(s.endTime) : "");
         String baseTitle = timeRange + " · " + total + " 题 · " + statusText;
-        title.setText(baseTitle + " ▾");
 
         int know = s.countOfResult(ReviewSession.RESULT_KNOW);
         int vague = s.countOfResult(ReviewSession.RESULT_VAGUE);
@@ -174,12 +197,21 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         boolean crossDay = s.endTime > 0 && !SessionStorage.isSameDay(s.startTime, s.endTime);
         bank.setText("题库：" + s.bankName + (crossDay ? " · 跨日复习" : ""));
 
-        questions.setVisibility(View.GONE);
+        boolean open = expandedSessions.contains(s.id);
+        if (open) {
+            fillQuestionRows(questions, s);
+            questions.setVisibility(View.VISIBLE);
+            title.setText(baseTitle + " ▴");
+        } else {
+            questions.setVisibility(View.GONE);
+            title.setText(baseTitle + " ▾");
+        }
         card.setOnClickListener(v -> {
             boolean expand = questions.getVisibility() != View.VISIBLE;
             if (expand && questions.getChildCount() == 0) fillQuestionRows(questions, s);
             questions.setVisibility(expand ? View.VISIBLE : View.GONE);
             title.setText(baseTitle + (expand ? " ▴" : " ▾"));
+            if (expand) expandedSessions.add(s.id); else expandedSessions.remove(s.id);
         });
 
         card.setOnLongClickListener(v -> {

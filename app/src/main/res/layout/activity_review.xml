@@ -75,8 +75,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingBottom="12dp">
+                android:gravity="center_vertical">
 
                 <LinearLayout
                     android:id="@+id/timer_row"
@@ -100,9 +99,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
-                    android:padding="8dp"
+                    android:paddingLeft="4dp"
+                    android:paddingRight="4dp"
                     android:text="⋮"
-                    android:textSize="22sp"
+                    android:textSize="14sp"
                     android:textColor="#1f6aa5" />
             </LinearLayout>
 

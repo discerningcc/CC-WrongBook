@@ -13,9 +13,13 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String KEY_HELP_DIALOG = "help_dialog_open";
+
     private boolean bankEmpty = false;
     /** 复习量弹窗：与设置页共用同一控制器，变更后回刷今日进度行 */
     private final BudgetDialogController budgetController = new BudgetDialogController();
+    /** 帮助弹窗打开态：跨旋转重建留存，关闭后清标记避免误唤醒 */
+    private boolean helpOpen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,22 +41,12 @@ public class MainActivity extends AppCompatActivity {
 
         budgetController.restore(savedInstanceState, this, this::refreshHome);
 
-        findViewById(R.id.btn_help).setOnClickListener(v -> {
-            String helpContent =
-                    "复习节奏（艾宾浩斯）：E(每天)→D(1天)→C(3天)→B(7天)→A(15天)→S(30天抽查)\n" +
-                    "记得：升级；模糊：等级不变但下次提前；不会：E~A打回E、S降回A；答错的题本次会再出现一次。\n" +
-                    "每日复习量可在设置里调；到期超过预算时，多出来的顺延到后面几天，S 长期题每天抽 1~2 道。\n\n" +
-                    "支持多题库管理，题库可导出zip备份（含图片）。\n" +
-                    "两种计时模式：自然日 / 24小时间隔。\n\n" +
-                    "⚠️ 全部数据本地存储，卸载会丢失，请记得备份！\n" +
-                    "联系作者：QQ2916388726";
+        findViewById(R.id.btn_help).setOnClickListener(v -> showHelpDialog());
 
-            new AlertDialog.Builder(MainActivity.this)
-                    .setTitle("CC错题本 · 帮助说明")
-                    .setMessage(helpContent)
-                    .setPositiveButton("知道了", null)
-                    .show();
-        });
+        // 旋转重建后恢复帮助弹窗；仅系统重建（savedInstanceState 非空）时执行
+        if (savedInstanceState != null && savedInstanceState.getBoolean(KEY_HELP_DIALOG, false)) {
+            showHelpDialog();
+        }
 
         findViewById(R.id.btn_review).setOnClickListener(v -> {
             if (bankEmpty) {
@@ -190,6 +184,26 @@ public class MainActivity extends AppCompatActivity {
         refreshHome();
     }
 
+    private void showHelpDialog() {
+        String helpContent =
+                "复习节奏（艾宾浩斯）：E(每天)→D(1天)→C(3天)→B(7天)→A(15天)→S(30天抽查)\n" +
+                "记得：升级；模糊：等级不变但下次提前；不会：E~A打回E、S降回A；答错的题本次会再出现一次。\n" +
+                "每日复习量可在设置里调；到期超过预算时，多出来的顺延到后面几天，S 长期题每天抽 1~2 道。\n\n" +
+                "支持多题库管理，题库可导出zip备份（含图片）。\n" +
+                "两种计时模式：自然日 / 24小时间隔。\n\n" +
+                "⚠️ 全部数据本地存储，卸载会丢失，请记得备份！\n" +
+                "联系作者：QQ2916388726";
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("CC错题本 · 帮助说明")
+                .setMessage(helpContent)
+                .setPositiveButton("知道了", null)
+                .create();
+        dialog.setOnDismissListener(d -> helpOpen = false);
+        helpOpen = true;
+        dialog.show();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -200,5 +214,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         budgetController.saveInstanceState(outState);
+        outState.putBoolean(KEY_HELP_DIALOG, helpOpen);
     }
 }

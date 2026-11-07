@@ -14,7 +14,7 @@ import java.util.List;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
-    private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge;
+    private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge, tvQuestionId;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout, actionGroup;
     private View btnExclude, btnRestudy, btnDelete;
     private TextView btnExcludeText;
@@ -41,6 +41,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvAnswer = findViewById(R.id.tv_answer);
         tvLevelBadge = findViewById(R.id.tv_level_badge);
         tvExcludedBadge = findViewById(R.id.tv_excluded_badge);
+        tvQuestionId = findViewById(R.id.tv_question_id);
         reviewImageLayout = findViewById(R.id.review_image_layout);
         answerLayout = findViewById(R.id.answer_layout);
         answerImageLayout = findViewById(R.id.answer_image_layout);
@@ -137,6 +138,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
             tvAnswer.setText("");
             tvLevelBadge.setVisibility(View.GONE);
             tvExcludedBadge.setVisibility(View.GONE);
+            tvQuestionId.setVisibility(View.GONE);
+            tvQuestionId.setText("");
             answerLayout.setVisibility(View.GONE);
             actionGroup.setVisibility(View.GONE);
             reviewImageLayout.removeAllViews();
@@ -153,6 +156,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(QuestionStorage.statusColor(status)));
         tvExcludedBadge.setVisibility(currentQuestion.excluded ? View.VISIBLE : View.GONE);
         tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
+        tvQuestionId.setVisibility(View.VISIBLE);
+        tvQuestionId.setText(currentQuestion.id == null ? "" : currentQuestion.id);
 
         tvQuestion.setText(currentQuestion.content == null ? "" : currentQuestion.content);
         tvAnswer.setText(currentQuestion.answer == null ? "" : currentQuestion.answer);
@@ -162,12 +167,12 @@ public class QuestionDetailActivity extends AppCompatActivity {
         boolean hasAnswerImages = currentQuestion.answerImages != null && !currentQuestion.answerImages.isEmpty();
         answerLayout.setVisibility(hasAnswerText || hasAnswerImages ? View.VISIBLE : View.GONE);
 
-        // 斩题 / 恢复按钮状态：已斩题只留「恢复此题」，隐藏「重学」；普通题保留「重学 + 斩题」
+        // 斩题 / 恢复按钮状态：已斩题只留「恢复」，隐藏「重学」；普通题保留「重学 + 斩题」
         int secondaryText = getColor(R.color.detail_text_secondary);
         int success = getColor(R.color.detail_success);
         if (currentQuestion.excluded) {
             btnRestudy.setVisibility(View.GONE);
-            btnExcludeText.setText("恢复此题");
+            btnExcludeText.setText("恢复");
             btnExcludeText.setTextColor(success);
             btnExclude.setBackgroundResource(R.drawable.bg_detail_outline_success);
             btnExcludeIcon.setImageResource(R.drawable.ic_detail_restore);

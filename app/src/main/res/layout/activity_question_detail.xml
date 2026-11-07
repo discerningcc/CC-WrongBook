@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- 头部徽章行：等级 + 已斩标记，与题干正文分离 -->
+            <!-- 头部徽章行：等级 + 题目ID + 已斩标记，与题干正文分离 -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -38,6 +38,15 @@
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:text="E" />
+
+                <TextView
+                    android:id="@+id/tv_question_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="@color/detail_text_secondary"
+                    android:textSize="12sp"
+                    android:singleLine="true" />
 
                 <TextView
                     android:id="@+id/tv_excluded_badge"
@@ -118,7 +127,7 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <!-- ====================== 底部操作区：主操作 / 状态操作 / 危险操作 三段 ====================== -->
+    <!-- ====================== 底部操作区：两列紧凑网格，危险行以分隔线隔离 ====================== -->
     <LinearLayout
         android:id="@+id/action_group"
         android:layout_width="match_parent"
@@ -126,90 +135,66 @@
         android:orientation="vertical"
         android:layout_marginTop="16dp">
 
-        <!-- 主操作：修改本题 -->
+        <!-- 第一行：主操作 修改 ｜ 状态操作 重学 -->
         <LinearLayout
-            android:id="@+id/btn_edit"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="@drawable/bg_detail_primary"
-            android:foreground="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_detail_edit"
-                android:contentDescription="修改" />
+            <LinearLayout
+                android:id="@+id/btn_edit"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_detail_primary"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="修改本题"
-                android:textColor="@android:color/white"
-                android:textSize="18sp" />
-        </LinearLayout>
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_detail_edit"
+                    android:contentDescription="修改" />
 
-        <!-- 状态操作：重学本题 -->
-        <LinearLayout
-            android:id="@+id/btn_restudy"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="@drawable/bg_detail_outline_warn"
-            android:foreground="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="修改"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_detail_restudy"
-                android:contentDescription="重学" />
+            <LinearLayout
+                android:id="@+id/btn_restudy"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="46dp"
+                android:layout_marginStart="12dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_detail_outline_warn"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="重学本题"
-                android:textColor="@color/detail_warn"
-                android:textSize="18sp" />
-        </LinearLayout>
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_detail_restudy"
+                    android:contentDescription="重学" />
 
-        <!-- 状态操作：斩题 / 恢复此题 -->
-        <LinearLayout
-            android:id="@+id/btn_exclude"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="@drawable/bg_detail_outline_gray"
-            android:foreground="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp">
-
-            <ImageView
-                android:id="@+id/btn_exclude_icon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_detail_exclude"
-                android:contentDescription="斩题" />
-
-            <TextView
-                android:id="@+id/btn_exclude_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="斩题"
-                android:textColor="@color/detail_text_secondary"
-                android:textSize="18sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="重学"
+                    android:textColor="@color/detail_warn"
+                    android:textSize="16sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- 危险操作分隔线 -->
@@ -217,34 +202,71 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/detail_divider"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp" />
 
-        <!-- 危险操作：删除本题（描边红字，低调隔离） -->
+        <!-- 第二行：状态操作 斩题/恢复 ｜ 危险操作 删除 -->
         <LinearLayout
-            android:id="@+id/btn_delete"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:background="@drawable/bg_detail_outline_danger"
-            android:foreground="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_detail_delete"
-                android:contentDescription="删除" />
+            <LinearLayout
+                android:id="@+id/btn_exclude"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_detail_outline_gray"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="删除本题"
-                android:textColor="@color/detail_danger"
-                android:textSize="18sp" />
+                <ImageView
+                    android:id="@+id/btn_exclude_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_detail_exclude"
+                    android:contentDescription="斩题" />
+
+                <TextView
+                    android:id="@+id/btn_exclude_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="斩题"
+                    android:textColor="@color/detail_text_secondary"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_delete"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="46dp"
+                android:layout_marginStart="12dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_detail_outline_danger"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_detail_delete"
+                    android:contentDescription="删除" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="删除"
+                    android:textColor="@color/detail_danger"
+                    android:textSize="16sp" />
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

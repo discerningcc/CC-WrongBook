@@ -185,6 +185,7 @@ public class CheckinStorage {
             CheckinRecord rec = e.getValue();
             if (!isValidRecord(key, rec)) continue;
             if (!local.containsKey(key)) {
+                rec.dateKey = key;   // 记录字段与权威日期键对齐，避免日历按记录字段重键时错位
                 local.put(key, rec);
                 added++;
             }

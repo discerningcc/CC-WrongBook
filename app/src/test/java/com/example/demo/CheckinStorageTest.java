@@ -209,6 +209,16 @@ public class CheckinStorageTest {
     }
 
     @Test
+    public void merge_recordDateKey_alignedToMapKey() {
+        Map<String, CheckinRecord> local = new HashMap<>();
+        CheckinRecord mismatched = record(null, 30, 50, 1762386400000L);
+        Map<String, CheckinRecord> incoming = new HashMap<>();
+        incoming.put("2026-11-06", mismatched);
+        assertEquals(1, CheckinStorage.mergeMaps(local, incoming));
+        assertEquals("2026-11-06", local.get("2026-11-06").dateKey);
+    }
+
+    @Test
     public void merge_nullKeyOrValue_skipped() {
         Map<String, CheckinRecord> local = new HashMap<>();
         Map<String, CheckinRecord> incoming = new HashMap<>();

@@ -230,18 +230,18 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 自定义 -->
+    <!-- 自定义：卡片内直接输入 -->
     <LinearLayout
         android:id="@+id/row_custom"
         android:layout_width="match_parent"
-        android:layout_height="58dp"
+        android:layout_height="64dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:layout_marginTop="10dp"
         android:paddingLeft="14dp"
         android:paddingRight="14dp"
         android:background="@drawable/bg_budget_option_normal"
-        android:clickable="true"
+        android:clickable="false"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground">
 
@@ -268,6 +268,38 @@
                 android:textSize="12sp"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
+
+        <EditText
+            android:id="@+id/row_custom_input"
+            android:layout_width="104dp"
+            android:layout_height="38dp"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="3"
+            android:hint="1~500"
+            android:textSize="15sp"
+            android:textColor="@color/home_text_primary"
+            android:textColorHint="@color/home_text_secondary"
+            android:background="@drawable/bg_budget_option_normal"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp" />
+
+        <TextView
+            android:id="@+id/btn_custom_confirm"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:layout_marginStart="10dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:gravity="center"
+            android:text="确定"
+            android:textSize="15sp"
+            android:textColor="@color/home_card"
+            android:background="@drawable/bg_prompt_button"
+            android:backgroundTint="@color/home_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground" />
     </LinearLayout>
 
     <!-- 不限量 -->

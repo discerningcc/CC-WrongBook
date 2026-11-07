@@ -4,10 +4,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -26,7 +26,6 @@ final class BudgetDialogController {
     static final int UNLIMITED = 0;
 
     private static final String KEY_BUDGET_DIALOG = "budget_dialog_open";
-    private static final String KEY_CUSTOM_DIALOG = "custom_dialog_open";
     private static final String KEY_CUSTOM_TEXT = "custom_dialog_text";
 
     private static final int[] CHIP_IDS = {
@@ -39,11 +38,14 @@ final class BudgetDialogController {
     };
 
     private boolean budgetOpen = false;
-    private boolean customOpen = false;
     private EditText customInput;
 
     /** 打开档位选择弹窗；选定后回调 onChanged 供调用方刷新自身文案/进度 */
     void showBudgetDialog(AppCompatActivity activity, Runnable onChanged) {
+        showBudgetDialog(activity, onChanged, null);
+    }
+
+    private void showBudgetDialog(AppCompatActivity activity, Runnable onChanged, String presetText) {
         int current = QuestionStorage.getDailyBudget(activity);
 
         BottomSheetDialog dialog = new BottomSheetDialog(activity);
@@ -78,9 +80,21 @@ final class BudgetDialogController {
         TextView customTitle = root.findViewById(R.id.row_custom_title);
         TextView customSub = root.findViewById(R.id.row_custom_sub);
         applyRowState(rowCustom, customTitle, customSub, isCustom);
-        rowCustom.setOnClickListener(v -> {
-            dialog.dismiss();
-            showCustomInput(activity, null, onChanged);
+
+        EditText input = root.findViewById(R.id.row_custom_input);
+        customInput = input;
+        String preset = presetText != null ? presetText
+                : (isCustom ? String.valueOf(current) : "");
+        input.setText(preset);
+        View confirm = root.findViewById(R.id.btn_custom_confirm);
+        View.OnClickListener apply = v -> applyCustom(activity, input, dialog, onChanged);
+        confirm.setOnClickListener(apply);
+        input.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                apply.onClick(v);
+                return true;
+            }
+            return false;
         });
 
         View rowUnlimited = root.findViewById(R.id.row_unlimited);
@@ -95,42 +109,29 @@ final class BudgetDialogController {
 
         root.findViewById(R.id.btn_budget_cancel).setOnClickListener(v -> dialog.dismiss());
 
-        dialog.setOnDismissListener(d -> budgetOpen = false);
+        dialog.setOnDismissListener(d -> {
+            budgetOpen = false;
+            customInput = null;
+        });
         budgetOpen = true;
         dialog.show();
     }
 
-    private void showCustomInput(AppCompatActivity activity, String presetText, Runnable onChanged) {
-        final EditText input = new EditText(activity);
-        customInput = input;
-        int current = QuestionStorage.getDailyBudget(activity);
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        input.setHint("输入 " + MIN_CUSTOM + " ~ " + MAX_CUSTOM + " 的数字");
-        String preset = presetText != null ? presetText : (current > 0 ? String.valueOf(current) : "");
-        input.setText(preset);
-
-        AlertDialog dialog = new AlertDialog.Builder(activity)
-                .setTitle("自定义每日复习量")
-                .setView(input)
-                .setPositiveButton("确定", (d, which) -> {
-                    String s = input.getText().toString().trim();
-                    int n;
-                    try {
-                        n = Integer.parseInt(s);
-                    } catch (NumberFormatException e) {
-                        Toast.makeText(activity, "请输入数字", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (n < MIN_CUSTOM) n = MIN_CUSTOM;
-                    if (n > MAX_CUSTOM) n = MAX_CUSTOM;
-                    QuestionStorage.setDailyBudget(activity, n);
-                    afterChange(onChanged);
-                })
-                .setNegativeButton("取消", null)
-                .create();
-        dialog.setOnDismissListener(d -> customOpen = false);
-        customOpen = true;
-        dialog.show();
+    private void applyCustom(AppCompatActivity activity, EditText input, BottomSheetDialog dialog,
+                              Runnable onChanged) {
+        String s = input.getText().toString().trim();
+        int n;
+        try {
+            n = Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            Toast.makeText(activity, "请输入数字", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (n < MIN_CUSTOM) n = MIN_CUSTOM;
+        if (n > MAX_CUSTOM) n = MAX_CUSTOM;
+        QuestionStorage.setDailyBudget(activity, n);
+        afterChange(onChanged);
+        dialog.dismiss();
     }
 
     private boolean isOption(int value) {
@@ -176,8 +177,7 @@ final class BudgetDialogController {
 
     void saveInstanceState(Bundle outState) {
         outState.putBoolean(KEY_BUDGET_DIALOG, budgetOpen);
-        outState.putBoolean(KEY_CUSTOM_DIALOG, customOpen);
-        if (customOpen && customInput != null) {
+        if (budgetOpen && customInput != null) {
             outState.putString(KEY_CUSTOM_TEXT, customInput.getText().toString());
         }
     }
@@ -185,10 +185,9 @@ final class BudgetDialogController {
     /** 仅系统重建（savedInstanceState 非空）时恢复弹窗；新建流程不重弹 */
     void restore(Bundle savedInstanceState, AppCompatActivity activity, Runnable onChanged) {
         if (savedInstanceState == null) return;
-        if (savedInstanceState.getBoolean(KEY_CUSTOM_DIALOG, false)) {
-            showCustomInput(activity, savedInstanceState.getString(KEY_CUSTOM_TEXT, null), onChanged);
-        } else if (savedInstanceState.getBoolean(KEY_BUDGET_DIALOG, false)) {
-            showBudgetDialog(activity, onChanged);
+        if (savedInstanceState.getBoolean(KEY_BUDGET_DIALOG, false)) {
+            showBudgetDialog(activity, onChanged,
+                    savedInstanceState.getString(KEY_CUSTOM_TEXT, null));
         }
     }
 }

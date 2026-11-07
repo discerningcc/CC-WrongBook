@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -37,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AddQuestionActivity extends AppCompatActivity {
+    private static final String TAG = "AddQuestionActivity";
     private static final String KEY_CONTENT_IMGS = "content_images";
     private static final String KEY_ANSWER_IMGS = "answer_images";
     private static final String KEY_DISCARD_OPEN = "discard_open";
@@ -373,7 +375,8 @@ public class AddQuestionActivity extends AppCompatActivity {
         BG.execute(() -> {
             try (FileWriter fw = new FileWriter(draftFile())) {
                 new Gson().toJson(draft, fw);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                Log.w(TAG, "save draft failed", e);
             }
         });
         QuestionStorage.retainDraftImages(combinedPaths());
@@ -392,7 +395,8 @@ public class AddQuestionActivity extends AppCompatActivity {
             answerPaths.clear();
             if (draft.contentImages != null) contentPaths.addAll(draft.contentImages);
             if (draft.answerImages != null) answerPaths.addAll(draft.answerImages);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.w(TAG, "parse draft failed", e);
             return false;
         }
         QuestionStorage.retainDraftImages(combinedPaths());

@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.content.ContentResolver;
+import android.util.Log;
 import android.util.LruCache;
 import android.util.SparseArray;
 import android.view.MotionEvent;
@@ -54,6 +55,8 @@ import java.util.function.Supplier;
  * 主线程回贴，ImageView tag 防止视图复用串图。全屏位图尺寸较大，不进内存缓存。
  */
 public final class ImageLoader {
+
+    private static final String TAG = "ImageLoader";
 
     /** 内存缓存上限 24MB，只缓存内联缩略图 */
     private static final int MEM_BYTES = 24 * 1024 * 1024;
@@ -668,6 +671,7 @@ public final class ImageLoader {
                     boolean ok = saveImageToGallery(appContext, src);
                     msg = ok ? "已保存到相册" : "保存失败";
                 } catch (Exception e) {
+                    Log.w(TAG, "save image to gallery failed: " + path, e);
                     msg = "保存失败";
                 }
                 final String out = msg;

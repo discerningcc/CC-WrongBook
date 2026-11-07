@@ -23,10 +23,18 @@ public class SettingsActivity extends AppCompatActivity {
     /** budget <= 0 表示不限量 */
     private static final int BUDGET_UNLIMITED = 0;
 
+    private static final String KEY_BUDGET_DIALOG = "budget_dialog_open";
+    private static final String KEY_CUSTOM_DIALOG = "custom_dialog_open";
+    private static final String KEY_CUSTOM_TEXT = "custom_dialog_text";
+
     private Switch switchCheckin;
     private TextView tvCheckinHint;
     private TextView tvCheckinTitle;
     private View checkinGuide;
+    private TextView budgetRow;
+    private EditText customInput;
+    private boolean budgetDialogOpen = false;
+    private boolean customDialogOpen = false;
     /** 程序化刷新开关时屏蔽监听回写，避免禁用态误落盘 */
     private boolean refreshingCheckin = false;
 
@@ -68,10 +76,22 @@ public class SettingsActivity extends AppCompatActivity {
             applySwitchState(switchTimer, isChecked, true);
         });
 
-        // 每日复习量：点一下弹「快捷档 + 自定义 + 不限量」
-        TextView budgetRow = findViewById(R.id.tv_budget_row);
+        // 每日复习量：点一下弹「快捷档 + 自定义 + 无限」
+        budgetRow = findViewById(R.id.tv_budget_row);
         refreshBudgetRow(budgetRow);
-        budgetRow.setOnClickListener(v -> showBudgetDialog(budgetRow));
+        budgetRow.setOnClickListener(v -> showBudgetDialog());
+
+        restoreTransientState(savedInstanceState);
+    }
+
+    /** 旋转重建后恢复复习量弹窗；仅系统重建（savedInstanceState 非空）时执行 */
+    private void restoreTransientState(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        if (savedInstanceState.getBoolean(KEY_CUSTOM_DIALOG, false)) {
+            showCustomInput(savedInstanceState.getString(KEY_CUSTOM_TEXT, null));
+        } else if (savedInstanceState.getBoolean(KEY_BUDGET_DIALOG, false)) {
+            showBudgetDialog();
+        }
     }
 
     /** 打卡行可用性跟随自然日模式：自然日关 → 灰置禁用，不回写持久值 */
@@ -108,7 +128,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    private void showBudgetDialog(TextView row) {
+    private void showBudgetDialog() {
         int current = QuestionStorage.getDailyBudget(this);
 
         String[] items = new String[BUDGET_OPTIONS.length + 2];
@@ -128,36 +148,42 @@ public class SettingsActivity extends AppCompatActivity {
             checked = (current <= 0) ? idxUnlimited : idxCustom;
         }
 
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("每日复习量")
-                .setSingleChoiceItems(items, checked, (dialog, which) -> {
+                .setSingleChoiceItems(items, checked, (d, which) -> {
                     if (which == idxCustom) {
-                        dialog.dismiss();
-                        showCustomInput(row, current);
+                        d.dismiss();
+                        showCustomInput(null);
                     } else if (which == idxUnlimited) {
                         QuestionStorage.setDailyBudget(this, BUDGET_UNLIMITED);
-                        refreshBudgetRow(row);
-                        dialog.dismiss();
+                        refreshBudgetRow(budgetRow);
+                        d.dismiss();
                     } else {
                         QuestionStorage.setDailyBudget(this, BUDGET_OPTIONS[which]);
-                        refreshBudgetRow(row);
-                        dialog.dismiss();
+                        refreshBudgetRow(budgetRow);
+                        d.dismiss();
                     }
                 })
                 .setNegativeButton("取消", null)
-                .show();
+                .create();
+        dialog.setOnDismissListener(d -> budgetDialogOpen = false);
+        budgetDialogOpen = true;
+        dialog.show();
     }
 
-    private void showCustomInput(TextView row, int current) {
+    private void showCustomInput(String presetText) {
         final EditText input = new EditText(this);
+        customInput = input;
+        int current = QuestionStorage.getDailyBudget(this);
         input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         input.setHint("输入 " + MIN_CUSTOM + " ~ " + MAX_CUSTOM + " 的数字");
-        input.setText(current > 0 ? String.valueOf(current) : "");
+        String preset = presetText != null ? presetText : (current > 0 ? String.valueOf(current) : "");
+        input.setText(preset);
 
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("自定义每日复习量")
                 .setView(input)
-                .setPositiveButton("确定", (dialog, which) -> {
+                .setPositiveButton("确定", (d, which) -> {
                     String s = input.getText().toString().trim();
                     int n;
                     try {
@@ -169,10 +195,23 @@ public class SettingsActivity extends AppCompatActivity {
                     if (n < MIN_CUSTOM) n = MIN_CUSTOM;
                     if (n > MAX_CUSTOM) n = MAX_CUSTOM;
                     QuestionStorage.setDailyBudget(this, n);
-                    refreshBudgetRow(row);
+                    refreshBudgetRow(budgetRow);
                 })
                 .setNegativeButton("取消", null)
-                .show();
+                .create();
+        dialog.setOnDismissListener(d -> customDialogOpen = false);
+        customDialogOpen = true;
+        dialog.show();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(KEY_BUDGET_DIALOG, budgetDialogOpen);
+        outState.putBoolean(KEY_CUSTOM_DIALOG, customDialogOpen);
+        if (customDialogOpen && customInput != null) {
+            outState.putString(KEY_CUSTOM_TEXT, customInput.getText().toString());
+        }
     }
 
     private void applySwitchState(Switch switchView, boolean isChecked, boolean enabled) {

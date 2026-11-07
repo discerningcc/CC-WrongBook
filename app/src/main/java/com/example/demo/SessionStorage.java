@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -28,6 +29,7 @@ import java.util.Locale;
  */
 public class SessionStorage {
 
+    private static final String TAG = "SessionStorage";
     private static final String DIR_NAME = "review_history";
     private static final String LEGACY_FILE = "sessions.json";
     private static final String LEGACY_BACKUP = "sessions.json.bak";
@@ -52,7 +54,7 @@ public class SessionStorage {
                 list.add(s);
             } catch (Exception e) {
                 // 单个文件坏了只丢这一条，不影响其他记录
-                e.printStackTrace();
+                Log.w(TAG, "skip corrupt session file: " + f.getName(), e);
             }
         }
         return list;
@@ -247,7 +249,7 @@ public class SessionStorage {
             }
         } catch (Exception e) {
             // 迁移中途出错：保留 sessions.json 不动，下次启动再试，避免两头都丢
-            e.printStackTrace();
+            Log.w(TAG, "legacy session migration failed, retry next launch", e);
             return;
         }
         File bak = new File(dir(context), LEGACY_BACKUP);
@@ -289,7 +291,7 @@ public class SessionStorage {
             }
         } catch (IOException e) {
             tmp.delete();
-            e.printStackTrace();
+            Log.e(TAG, "write session file failed: " + target, e);
         }
     }
 

@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -18,6 +19,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -44,6 +46,7 @@ import java.util.zip.ZipOutputStream;
  */
 public class QuestionStorage {
 
+    private static final String TAG = "QuestionStorage";
     private static final String PREFS = "settings";
     private static final String KEY_CURRENT_BANK = "current_save_id";
     private static final String KEY_MIGRATED = "data_migrated_v2";
@@ -129,6 +132,55 @@ public class QuestionStorage {
 
     private static boolean containsImage(List<String> images, String path) {
         return images != null && images.contains(path);
+    }
+
+    /**
+     * 启动时扫描私有图片目录，删除未被任何题库题目引用、也不在草稿保留集合中的孤儿文件。
+     * 保留集遍历 saves/ 下全部题库，避免误删其他题库正在使用的图；删除前仍做目录归属校验。
+     */
+    public static void sweepOrphanImages(Context context) {
+        File imagesDir = context.getDir(IMAGES_DIR, Context.MODE_PRIVATE);
+        Set<String> kept = new HashSet<>();
+        synchronized (WRITE_LOCK) {
+            addKeptPath(kept, sDraftRetained);
+        }
+        File[] bankFiles = savesDir(context).listFiles((d, n) -> n.endsWith(".json"));
+        if (bankFiles != null) {
+            for (File f : bankFiles) {
+                QuestionBank b = readBankFile(f);
+                if (b == null || b.questions == null) continue;
+                for (Question q : b.questions) {
+                    addKeptPath(kept, q.contentImages);
+                    addKeptPath(kept, q.answerImages);
+                }
+            }
+        }
+        File[] imgs = imagesDir.listFiles();
+        if (imgs == null) return;
+        for (File img : imgs) {
+            if (!img.isFile()) continue;
+            String canonical;
+            try {
+                canonical = img.getCanonicalPath();
+            } catch (IOException e) {
+                canonical = img.getAbsolutePath();
+            }
+            if (!kept.contains(canonical)) {
+                deleteImage(imagesDir, canonical);
+            }
+        }
+    }
+
+    private static void addKeptPath(Set<String> kept, Collection<String> paths) {
+        if (paths == null) return;
+        for (String p : paths) {
+            if (p == null || p.isEmpty()) continue;
+            try {
+                kept.add(new File(p).getCanonicalPath());
+            } catch (IOException e) {
+                kept.add(p);
+            }
+        }
     }
 
     /** 保存一条新题 */
@@ -652,7 +704,7 @@ public class QuestionStorage {
             cacheBank = bank;
             sp.edit().putBoolean(KEY_MIGRATED, true).apply();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w(TAG, "legacy questions migration failed", e);
         }
     }
 
@@ -863,7 +915,7 @@ public class QuestionStorage {
                 for (String path : question.answerImages) deleteImage(imagesDir, path);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w(TAG, "delete question images failed", e);
         }
     }
 
@@ -876,7 +928,7 @@ public class QuestionStorage {
                 f.delete();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w(TAG, "delete private image failed: " + path, e);
         }
     }
 
@@ -907,7 +959,7 @@ public class QuestionStorage {
             }
         } catch (IOException e) {
             tmp.delete();
-            e.printStackTrace();
+            Log.e(TAG, "write bank file failed: " + target, e);
         }
     }
 

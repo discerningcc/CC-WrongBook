@@ -71,7 +71,7 @@ public class QuestionBankActivity extends AppCompatActivity {
 
     /** 网格列数：宽屏（横屏平板）3 列，窄屏 2 列 */
     private int spanCount = 2;
-    /** 网格内图片应加载的目标宽度（px），传给 ThumbLoader */
+    /** 网格内图片应加载的目标宽度（px），传给 ImageLoader 网格缩略图 */
     private int colImgPx = 600;
 
     @Override
@@ -435,7 +435,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         public void onViewRecycled(ViewHolder holder) {
             super.onViewRecycled(holder);
             // 清掉 tag，避免还在后台解图的旧任务贴到被复用的行上
-            ThumbLoader.release(holder.thumb);
+            ImageLoader.releaseThumb(holder.thumb);
         }
 
         @Override
@@ -477,10 +477,10 @@ public class QuestionBankActivity extends AppCompatActivity {
                 String firstImage = imgCount > 0 ? q.contentImages.get(0) : null;
                 if (firstImage != null) {
                     thumb.setVisibility(View.VISIBLE);
-                    ThumbLoader.bind(itemView.getContext(), firstImage, thumb, colImgPx);
+                    ImageLoader.bindGridThumb(itemView.getContext(), thumb, firstImage, colImgPx);
                 } else {
                     thumb.setVisibility(View.GONE);
-                    ThumbLoader.release(thumb);
+                    ImageLoader.releaseThumb(thumb);
                 }
 
                 // 等级徽章：已斩题显示「斩」

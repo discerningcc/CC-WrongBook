@@ -12,6 +12,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 启动时清理未被任何题库引用、也不在草稿保留中的孤儿图片
+        QuestionStorage.sweepOrphanImages(this);
+
         refreshTodayCount();
         refreshCurrentBank();
 

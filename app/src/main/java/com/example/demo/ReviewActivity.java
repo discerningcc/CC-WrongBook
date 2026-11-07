@@ -690,14 +690,9 @@ public class ReviewActivity extends AppCompatActivity {
         }
     }
 
-    /** 毫秒格式：超 1 小时 h:mm:ss，否则 mm:ss */
+    /** 毫秒格式：超 1 小时 h:mm:ss，否则 mm:ss（口径与记录页共用 SessionStorage.formatDuration） */
     private String formatDuration(long ms) {
-        long sec = Math.max(0, ms / 1000);
-        long h = sec / 3600;
-        long m = (sec % 3600) / 60;
-        long s = sec % 60;
-        if (h > 0) return h + ":" + String.format("%02d:%02d", m, s);
-        return String.format("%02d:%02d", m, s);
+        return SessionStorage.formatDuration(ms);
     }
 
     private void addImage(LinearLayout parent, String path) {

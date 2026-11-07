@@ -170,6 +170,16 @@ public class SessionStorage {
         return new SimpleDateFormat("HH:mm", Locale.CHINA).format(new Date(ts));
     }
 
+    /** 时长格式化：不足 1 小时 mm:ss，超 1 小时 h:mm:ss；负数按 0 处理 */
+    public static String formatDuration(long ms) {
+        long sec = Math.max(0, ms / 1000);
+        long h = sec / 3600;
+        long m = (sec % 3600) / 60;
+        long s = sec % 60;
+        if (h > 0) return h + ":" + String.format("%02d:%02d", m, s);
+        return String.format("%02d:%02d", m, s);
+    }
+
     /** 日期分组标题：今天 / 昨天 / 11月3日 / 2025年11月3日 */
     public static String formatDateHeader(long ts) {
         long today = dayStart(System.currentTimeMillis());

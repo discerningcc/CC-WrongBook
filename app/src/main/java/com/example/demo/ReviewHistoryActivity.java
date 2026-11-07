@@ -192,6 +192,15 @@ public class ReviewHistoryActivity extends AppCompatActivity {
                 .append(" · 模糊 ").append(vague)
                 .append(" · 不会 ").append(forget);
         if (skip > 0) sb.append(" · 跳过 ").append(skip);
+        if (s.totalElapsedMs > 0) {
+            sb.append(" · 用时 ").append(SessionStorage.formatDuration(s.totalElapsedMs));
+            int answered = s.answeredCount();
+            if (answered > 0) {
+                sb.append(" · 平均 ").append(SessionStorage.formatDuration(s.totalElapsedMs / answered)).append("/题");
+            }
+        } else {
+            sb.append(" · 用时 —");
+        }
         stats.setText(sb.toString());
 
         boolean crossDay = s.endTime > 0 && !SessionStorage.isSameDay(s.startTime, s.endTime);
@@ -241,6 +250,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
             String label = labelOf(it);
             String text = (i + 1) + ". " + label + " " + it.contentSnapshot;
             if (it.hadImages) text += "（含图片）";
+            if (it.dwellMs > 0) text += " · " + SessionStorage.formatDuration(it.dwellMs);
             row.setText(text);
             row.setTextSize(13);
             row.setTextColor(0xFF555555);

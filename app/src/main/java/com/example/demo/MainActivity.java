@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
         renderCheckin(budget, done, due);
     }
 
-    /** 打卡状态行：门禁关闭时仅保留日历历史入口，动作文本隐藏 */
+    /** 打卡状态行：门禁关闭时以品牌名占位，仅保留日历历史入口 */
     private void renderCheckin(int budget, int done, int due) {
         View row = findViewById(R.id.checkin_row);
         TextView tv = findViewById(R.id.tv_checkin);
@@ -131,8 +131,11 @@ public class MainActivity extends AppCompatActivity {
         row.setVisibility(View.VISIBLE);
 
         if (!naturalOn || !checkinOn) {
-            // INVISIBLE 而非 GONE：保留 weight 占位槽，日历图标仍靠右端
-            tv.setVisibility(View.INVISIBLE);
+            // 保留 weight 占位槽，日历图标仍靠右端；左侧以品牌名占位避免空白突兀
+            tv.setVisibility(View.VISIBLE);
+            tv.setText("CC错题本");
+            tv.setTextColor(getColor(R.color.home_text_secondary));
+            tv.setClickable(false);
             return;
         }
         tv.setVisibility(View.VISIBLE);

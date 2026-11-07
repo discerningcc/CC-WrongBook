@@ -1,17 +1,13 @@
 package com.example.demo;
 import android.widget.Toast;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-import com.github.chrisbanes.photoview.PhotoView;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
@@ -163,31 +159,10 @@ public class QuestionDetailActivity extends AppCompatActivity {
         ImageView iv = new ImageView(this);
         int size = (int) (280 * getResources().getDisplayMetrics().density);
         iv.setLayoutParams(new LinearLayout.LayoutParams(size, LinearLayout.LayoutParams.WRAP_CONTENT));
-        iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
         iv.setAdjustViewBounds(true);
-        iv.setImageURI(android.net.Uri.parse("file://" + path));
-        iv.setOnClickListener(v -> showFullImage(path));
+        ImageLoader.bindThumb(this, iv, path, size);
+        iv.setOnClickListener(v -> ImageLoader.openFullscreen(this, path));
         parent.addView(iv);
-    }
-
-    private void showFullImage(String path) {
-        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        View view = getLayoutInflater().inflate(R.layout.dialog_photo_view, null);
-        PhotoView photoView = view.findViewById(R.id.photo_view);
-        photoView.setImageURI(android.net.Uri.parse("file://" + path));
-
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.getDecorView().setPadding(0,0,0,0);
-            window.setBackgroundDrawableResource(android.R.color.black);
-            WindowManager.LayoutParams params = window.getAttributes();
-            params.width = WindowManager.LayoutParams.MATCH_PARENT;
-            params.height = WindowManager.LayoutParams.MATCH_PARENT;
-            window.setAttributes(params);
-        }
-        dialog.setContentView(view);
-        dialog.show();
-        photoView.setOnPhotoTapListener((v, x, y) -> dialog.dismiss());
     }
 }

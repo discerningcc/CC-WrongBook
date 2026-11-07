@@ -114,9 +114,10 @@ public class AddQuestionActivity extends AppCompatActivity {
 
     private void addImage(LinearLayout layout, String path) {
         ImageView iv = new ImageView(this);
-        iv.setLayoutParams(new LinearLayout.LayoutParams(180, 180));
+        int size = (int) (180 * getResources().getDisplayMetrics().density);
+        iv.setLayoutParams(new LinearLayout.LayoutParams(size, size));
         iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        iv.setImageURI(Uri.parse("file://" + path));
+        ImageLoader.bindThumb(this, iv, path, size);
 
         iv.setOnClickListener(v -> {
             new android.app.AlertDialog.Builder(this)

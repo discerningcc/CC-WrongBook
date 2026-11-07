@@ -306,8 +306,9 @@ public class ReviewActivity extends AppCompatActivity {
             // 队列空：可能是真没题到期，也可能是今日目标已完成（还有题但预算额度没了）
             if (budget > 0 && dueAll > 0) {
                 int done = QuestionStorage.getTodayDone(this);
-                showPrompt("今日目标已完成",
-                        "今日目标 " + budget + " 道，已完成 " + done + " 道；\n还有 " + dueAll + " 道到期，要继续多做一些吗？",
+                String goalMsg = "今日目标 " + budget + " 道，已完成 " + done + " 道；\n还有 " + dueAll
+                        + " 道到期，要继续多做一些吗？" + checkinReminderIfEligible();
+                showPrompt("今日目标已完成", goalMsg,
                         "继续多做（" + dueAll + " 道）", this::launchExtraSession,
                         "回首页", this::finish,
                         null, null,
@@ -1070,6 +1071,19 @@ public class ReviewActivity extends AppCompatActivity {
 
     // ==================== 收尾 ====================
 
+    /** 满足打卡资格时返回提醒文案（带前导换行）；否则返回空串。打卡动作仍在主页手动完成。 */
+    private String checkinReminderIfEligible() {
+        int budget = QuestionStorage.getDailyBudget(this);
+        int done = QuestionStorage.getTodayDone(this);
+        int dueAll = QuestionStorage.getTodayReview(this).size();
+        boolean already = CheckinStorage.isCheckedToday(this);
+        boolean eligible = CheckinStorage.isEligible(
+                QuestionStorage.isNaturalDayEnabled(this),
+                QuestionStorage.isCheckinEnabled(this),
+                false, budget, done, dueAll, already);
+        return eligible ? "\n今日目标已完成，可回主页打卡" : "";
+    }
+
     private void finishSession() {
         if (finished) return;
         commitPending();
@@ -1096,6 +1110,7 @@ public class ReviewActivity extends AppCompatActivity {
         String stats = "共 " + total + " 题\n记得 " + know + " · 模糊 " + vague + " · 不会 " + forget
                 + (skip > 0 ? " · 跳过 " + skip : "")
                 + (excluded > 0 ? " · 斩题 " + excluded : "");
+        stats += checkinReminderIfEligible();
 
         tvQuestion.setText("本次复习已完成\n\n" + stats);
         tvAnswer.setText("");

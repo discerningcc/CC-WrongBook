@@ -18,6 +18,25 @@
         android:trackTint="@color/switch_track"/>
 
     <Switch
+        android:id="@+id/switch_checkin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="日历打卡（完成今日目标后记录当日打卡）"
+        android:textSize="18sp"
+        android:layout_marginTop="24dp"
+        android:thumbTint="@color/switch_thumb"
+        android:trackTint="@color/switch_track"/>
+
+    <TextView
+        android:id="@+id/tv_checkin_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textColor="@color/home_text_secondary"
+        android:layout_marginTop="4dp"
+        android:layout_marginStart="8dp"/>
+
+    <Switch
         android:id="@+id/switch_timer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

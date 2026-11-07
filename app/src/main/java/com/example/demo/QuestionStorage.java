@@ -64,6 +64,7 @@ public class QuestionStorage {
     private static final String SAVES_DIR = "saves";
     private static final String IMAGES_DIR = "images";
     private static final String EXPORT_JSON = "questions.json";
+    private static final String CHECKINS_JSON = "checkins.json";
 
     /** 当前题库缓存（含题目列表） */
     private static QuestionBank cacheBank = null;
@@ -252,6 +253,23 @@ public class QuestionStorage {
     public static void setDailyBudget(Context context, int n) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit().putInt(KEY_DAILY_BUDGET, n).apply();
+    }
+
+    /** 自然日模式开关（默认开）；关闭后为 24 小时滚动间隔，打卡功能不可用 */
+    public static boolean isNaturalDayEnabled(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(SettingsActivity.KEY_NATURAL_DAY, true);
+    }
+
+    /** 打卡总开关（默认开）；仅自然日模式下可在设置页切换 */
+    public static boolean isCheckinEnabled(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(SettingsActivity.KEY_CHECKIN_ENABLED, true);
+    }
+
+    public static void setCheckinEnabled(Context context, boolean on) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putBoolean(SettingsActivity.KEY_CHECKIN_ENABLED, on).apply();
     }
 
     /** 今天已经按目标完成的题数（跨自然日自动清零） */
@@ -553,6 +571,14 @@ public class QuestionStorage {
             zos.write(new Gson().toJson(exportBank).getBytes("UTF-8"));
             zos.closeEntry();
 
+            // 打卡记录随包备份；无记录时不写条目
+            String checkinsJson = CheckinStorage.exportJson(context);
+            if (checkinsJson != null && !checkinsJson.isEmpty()) {
+                zos.putNextEntry(new ZipEntry(CHECKINS_JSON));
+                zos.write(checkinsJson.getBytes("UTF-8"));
+                zos.closeEntry();
+            }
+
             int done = 0;
             for (Map.Entry<String, String> e : imageMap.entrySet()) {
                 File f = new File(e.getKey());
@@ -640,6 +666,16 @@ public class QuestionStorage {
             if (!jsonFile.exists()) throw new Exception("不是有效的题库文件（缺少 questions.json）");
             QuestionBank bank = new Gson().fromJson(readFile(jsonFile), QuestionBank.class);
             if (bank == null || bank.questions == null) throw new Exception("题库文件解析失败");
+
+            // 打卡记录合并：本地日期键优先；缺失或损坏均不阻断题库导入
+            try {
+                File checkinFile = new File(tmpDir, CHECKINS_JSON);
+                if (checkinFile.exists()) {
+                    CheckinStorage.mergeImportJson(context, readFile(checkinFile));
+                }
+            } catch (Exception ignored) {
+                Log.w(TAG, "skip importing checkins.json", ignored);
+            }
 
             bank.name = uniqueBankName(context, resolveImportBaseName(context, uri, bank.name));
             bank.id = UUID.randomUUID().toString();

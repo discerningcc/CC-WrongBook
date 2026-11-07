@@ -68,6 +68,13 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_history).setOnClickListener(v ->
                 startActivity(new Intent(this, ReviewHistoryActivity.class))
         );
+
+        // 打卡文本：仅在满足资格时响应点击
+        findViewById(R.id.tv_checkin).setOnClickListener(v -> onCheckinClick());
+        // 日历入口：历史记录随时可查看（24h 模式下只读）
+        findViewById(R.id.iv_checkin_calendar).setOnClickListener(v ->
+                startActivity(new Intent(this, CheckinCalendarActivity.class))
+        );
     }
 
     private void refreshHome() {
@@ -111,6 +118,61 @@ public class MainActivity extends AppCompatActivity {
         reviewSub.setText("到期 " + due + " 道");
         emptyHint.setVisibility(bankEmpty ? View.VISIBLE : View.GONE);
         findViewById(R.id.btn_review).setAlpha(bankEmpty ? 0.5f : 1f);
+
+        renderCheckin(budget, done, due);
+    }
+
+    /** 打卡状态行：门禁关闭时仅保留日历历史入口，动作文本隐藏 */
+    private void renderCheckin(int budget, int done, int due) {
+        View row = findViewById(R.id.checkin_row);
+        TextView tv = findViewById(R.id.tv_checkin);
+        boolean naturalOn = QuestionStorage.isNaturalDayEnabled(this);
+        boolean checkinOn = QuestionStorage.isCheckinEnabled(this);
+        row.setVisibility(View.VISIBLE);
+
+        if (!naturalOn || !checkinOn) {
+            // INVISIBLE 而非 GONE：保留 weight 占位槽，日历图标仍靠右端
+            tv.setVisibility(View.INVISIBLE);
+            return;
+        }
+        tv.setVisibility(View.VISIBLE);
+        boolean already = CheckinStorage.isCheckedToday(this);
+        boolean eligible = CheckinStorage.isEligible(true, true, bankEmpty, budget, done, due, already);
+        int streak = CheckinStorage.streakDays(
+                CheckinStorage.loadKeySet(this), System.currentTimeMillis());
+
+        if (already) {
+            tv.setText("今日已打卡 ✓" + (streak > 0 ? " · 连续 " + streak + " 天" : ""));
+            tv.setTextColor(getColor(R.color.detail_success));
+            tv.setClickable(false);
+        } else if (eligible) {
+            tv.setText("今日打卡");
+            tv.setTextColor(getColor(R.color.detail_primary));
+            tv.setClickable(true);
+        } else {
+            tv.setText("完成今日目标后可打卡");
+            tv.setTextColor(getColor(R.color.home_text_secondary));
+            tv.setClickable(false);
+        }
+    }
+
+    private void onCheckinClick() {
+        int budget = QuestionStorage.getDailyBudget(this);
+        int done = QuestionStorage.getTodayDone(this);
+        int due = 0;
+        for (Question q : QuestionStorage.loadAll(this)) {
+            if (QuestionStorage.isDue(this, q)) due++;
+        }
+        boolean already = CheckinStorage.isCheckedToday(this);
+        boolean eligible = CheckinStorage.isEligible(
+                QuestionStorage.isNaturalDayEnabled(this),
+                QuestionStorage.isCheckinEnabled(this),
+                bankEmpty, budget, done, due, already);
+        if (!eligible) return;
+
+        CheckinStorage.checkIn(this, done, budget, QuestionStorage.getCurrentBankName(this));
+        Toast.makeText(this, "打卡成功，已记录今日", Toast.LENGTH_SHORT).show();
+        refreshHome();
     }
 
     @Override

@@ -41,6 +41,7 @@
         <activity android:name=".QuestionBankActivity" />
         <activity android:name=".QuestionDetailActivity" />
         <activity android:name=".SettingsActivity" />
+        <activity android:name=".CheckinCalendarActivity" android:exported="false" />
         <activity android:name=".SaveManageActivity" />
 
     </application>

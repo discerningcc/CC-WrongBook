@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_NATURAL_DAY = "natural_day_enabled";
     public static final String KEY_TIMER_ENABLED = "timer_enabled";
+    /** 打卡总开关（默认开）；关闭自然日模式后该项不可编辑 */
+    public static final String KEY_CHECKIN_ENABLED = "checkin_enabled";
 
     /** 快捷档位；自定义输入会夹紧到 [MIN_CUSTOM, MAX_CUSTOM] */
     private static final int[] BUDGET_OPTIONS = {20, 30, 50, 80, 120, 200};
@@ -19,6 +21,11 @@ public class SettingsActivity extends AppCompatActivity {
     private static final int MAX_CUSTOM = 500;
     /** budget <= 0 表示不限量 */
     private static final int BUDGET_UNLIMITED = 0;
+
+    private Switch switchCheckin;
+    private TextView tvCheckinHint;
+    /** 程序化刷新开关时屏蔽监听回写，避免禁用态误落盘 */
+    private boolean refreshingCheckin = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,26 +37,57 @@ public class SettingsActivity extends AppCompatActivity {
 
         boolean enabled = sp.getBoolean(KEY_NATURAL_DAY, true);
         switchNaturalDay.setChecked(enabled);
-        updateSwitchColor(switchNaturalDay, enabled);
+        applySwitchState(switchNaturalDay, enabled, true);
 
         switchNaturalDay.setOnCheckedChangeListener((buttonView, isChecked) -> {
             sp.edit().putBoolean(KEY_NATURAL_DAY, isChecked).apply();
-            updateSwitchColor(switchNaturalDay, isChecked);
+            applySwitchState(switchNaturalDay, isChecked, true);
+            refreshCheckinRow();
+        });
+
+        switchCheckin = findViewById(R.id.switch_checkin);
+        tvCheckinHint = findViewById(R.id.tv_checkin_hint);
+        refreshCheckinRow();
+        switchCheckin.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (refreshingCheckin || !switchCheckin.isEnabled()) return;
+            QuestionStorage.setCheckinEnabled(this, isChecked);
+            applySwitchState(switchCheckin, isChecked, true);
         });
 
         Switch switchTimer = findViewById(R.id.switch_timer);
         boolean timerEnabled = sp.getBoolean(KEY_TIMER_ENABLED, true);
         switchTimer.setChecked(timerEnabled);
-        updateSwitchColor(switchTimer, timerEnabled);
+        applySwitchState(switchTimer, timerEnabled, true);
         switchTimer.setOnCheckedChangeListener((buttonView, isChecked) -> {
             sp.edit().putBoolean(KEY_TIMER_ENABLED, isChecked).apply();
-            updateSwitchColor(switchTimer, isChecked);
+            applySwitchState(switchTimer, isChecked, true);
         });
 
         // 每日复习量：点一下弹「快捷档 + 自定义 + 不限量」
         TextView budgetRow = findViewById(R.id.tv_budget_row);
         refreshBudgetRow(budgetRow);
         budgetRow.setOnClickListener(v -> showBudgetDialog(budgetRow));
+    }
+
+    /** 打卡行可用性跟随自然日模式：自然日关 → 灰置禁用，不回写持久值 */
+    private void refreshCheckinRow() {
+        SharedPreferences sp = getSharedPreferences("settings", MODE_PRIVATE);
+        boolean naturalOn = sp.getBoolean(KEY_NATURAL_DAY, true);
+        boolean checked = sp.getBoolean(KEY_CHECKIN_ENABLED, true);
+
+        refreshingCheckin = true;
+        switchCheckin.setEnabled(naturalOn);
+        switchCheckin.setChecked(checked);
+        refreshingCheckin = false;
+
+        applySwitchState(switchCheckin, checked, naturalOn);
+        if (naturalOn) {
+            tvCheckinHint.setText("完成今日目标后可在主页打卡，历史记录可在日历中查看");
+            tvCheckinHint.setTextColor(getColor(R.color.home_text_secondary));
+        } else {
+            tvCheckinHint.setText("24 小时模式无固定日界，打卡功能不可用；历史记录仍保留");
+            tvCheckinHint.setTextColor(getColor(R.color.detail_warn));
+        }
     }
 
     private void refreshBudgetRow(TextView row) {
@@ -128,7 +166,12 @@ public class SettingsActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void updateSwitchColor(Switch switchView, boolean isChecked) {
+    private void applySwitchState(Switch switchView, boolean isChecked, boolean enabled) {
+        if (!enabled) {
+            switchView.setThumbTintList(getColorStateList(R.color.switch_thumb_disabled));
+            switchView.setTrackTintList(getColorStateList(R.color.switch_track_disabled));
+            return;
+        }
         if (isChecked) {
             switchView.setThumbTintList(getColorStateList(R.color.switch_thumb));
             switchView.setTrackTintList(getColorStateList(R.color.switch_track));

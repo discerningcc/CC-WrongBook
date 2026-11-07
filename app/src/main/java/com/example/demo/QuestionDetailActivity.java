@@ -27,10 +27,17 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private String currentQid; // 保存ID，用于刷新
     /** 操作弹窗打开期间防重复点击 */
     private boolean actionBusy;
+    /** 打开中的操作弹窗类型；旋转重建后据此重显，null 表示无弹窗 */
+    private String pendingDialog;
     private static final String KEY_FS_PATHS = "fullscreen_paths";
     private static final String KEY_FS_INDEX = "fullscreen_index";
     private static final String KEY_FS_SUPP = "fullscreen_supp";
     private static final String KEY_FS_MENU = "fullscreen_menu";
+    private static final String KEY_DIALOG = "action_dialog";
+    private static final String DIALOG_RESTUDY = "restudy";
+    private static final String DIALOG_EXCLUDE = "exclude";
+    private static final String DIALOG_RESTORE = "restore";
+    private static final String DIALOG_DELETE = "delete";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +63,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         currentQid = getIntent().getStringExtra("qid");
         loadQuestionData(); // 加载题目
         restoreFullscreen(savedInstanceState);
+        restoreActionDialog(savedInstanceState);
 
         // 修改本题
         findViewById(R.id.btn_edit).setOnClickListener(v -> {
@@ -68,52 +76,90 @@ public class QuestionDetailActivity extends AppCompatActivity {
         // 重学本题
         btnRestudy.setOnClickListener(v -> {
             if (currentQuestion == null || actionBusy) return;
-            showActionDialog("重学本题", "确定要将此题重置为「未掌握」吗？\n将重新进入复习计划。", "确定", () -> {
-                QuestionStorage.restudyQuestion(this, currentQuestion);
-                Toast.makeText(this, "已重置，将重新复习", Toast.LENGTH_SHORT).show();
-                loadQuestionData(); // 刷新页面等级显示
-            });
+            showActionDialog(DIALOG_RESTUDY, "重学本题", "确定要将此题重置为「未掌握」吗？\n将重新进入复习计划。", "确定", this::confirmRestudy);
         });
 
         // 斩题 / 恢复本题
         btnExclude.setOnClickListener(v -> {
             if (currentQuestion == null || actionBusy) return;
             if (currentQuestion.excluded) {
-                showActionDialog("恢复此题", "确定恢复这道题吗？\n将重置为 E 级，重新进入复习计划。", "恢复", () -> {
-                    QuestionStorage.restoreQuestion(this, currentQuestion);
-                    Toast.makeText(this, "已恢复，重新开始复习", Toast.LENGTH_SHORT).show();
-                    loadQuestionData();
-                });
+                showActionDialog(DIALOG_RESTORE, "恢复此题", "确定恢复这道题吗？\n将重置为 E 级，重新进入复习计划。", "恢复", this::confirmRestore);
             } else {
-                showActionDialog("斩题", "这道题将退出复习队列和长期抽查，题目本体保留，可在列表恢复。\n确定斩题吗？", "斩题", () -> {
-                    QuestionStorage.excludeQuestion(this, currentQuestion);
-                    Toast.makeText(this, "已斩题，不再进入复习", Toast.LENGTH_SHORT).show();
-                    loadQuestionData();
-                });
+                showActionDialog(DIALOG_EXCLUDE, "斩题", "这道题将退出复习队列和长期抽查，题目本体保留，可在列表恢复。\n确定斩题吗？", "斩题", this::confirmExclude);
             }
         });
 
         // 删除本题
         btnDelete.setOnClickListener(v -> {
             if (currentQuestion == null || actionBusy) return;
-            showActionDialog("确认删除", "确定要删除这道题吗？\n本题引用的图片将一并清理，删除后无法恢复！", "删除", () -> {
-                QuestionStorage.delete(this, currentQuestion);
-                Toast.makeText(this, "题目已删除", Toast.LENGTH_SHORT).show();
-                finish();
-            });
+            showActionDialog(DIALOG_DELETE, "确认删除", "确定要删除这道题吗？\n本题引用的图片将一并清理，删除后无法恢复！", "删除", this::confirmDelete);
         });
     }
 
-    /** 确认弹窗：打开期间置忙，关闭后复位，避免重复点击叠弹 */
-    private void showActionDialog(String title, String message, String positive, Runnable onConfirm) {
+    private void confirmRestudy() {
+        QuestionStorage.restudyQuestion(this, currentQuestion);
+        Toast.makeText(this, "已重置，将重新复习", Toast.LENGTH_SHORT).show();
+        loadQuestionData(); // 刷新页面等级显示
+    }
+
+    private void confirmRestore() {
+        QuestionStorage.restoreQuestion(this, currentQuestion);
+        Toast.makeText(this, "已恢复，重新开始复习", Toast.LENGTH_SHORT).show();
+        loadQuestionData();
+    }
+
+    private void confirmExclude() {
+        QuestionStorage.excludeQuestion(this, currentQuestion);
+        Toast.makeText(this, "已斩题，不再进入复习", Toast.LENGTH_SHORT).show();
+        loadQuestionData();
+    }
+
+    private void confirmDelete() {
+        QuestionStorage.delete(this, currentQuestion);
+        Toast.makeText(this, "题目已删除", Toast.LENGTH_SHORT).show();
+        finish();
+    }
+
+    /** 确认弹窗：打开期间置忙并记录类型，关闭后复位，避免重复点击叠弹；类型供旋转重建后重显 */
+    private void showActionDialog(String kind, String title, String message, String positive, Runnable onConfirm) {
+        pendingDialog = kind;
         actionBusy = true;
         new AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)
-                .setPositiveButton(positive, (dialog, which) -> onConfirm.run())
-                .setNegativeButton("取消", null)
-                .setOnDismissListener(dialog -> actionBusy = false)
+                .setPositiveButton(positive, (dialog, which) -> {
+                    pendingDialog = null;
+                    onConfirm.run();
+                })
+                .setNegativeButton("取消", (dialog, which) -> pendingDialog = null)
+                .setOnCancelListener(d -> pendingDialog = null)
+                .setOnDismissListener(dialog -> { pendingDialog = null; actionBusy = false; })
                 .show();
+    }
+
+    /** 旋转重建后按留存类型重显之前打开的确认弹窗；仅系统重建（savedInstanceState 非空）时执行，避免同一次 onCreate 重复弹 */
+    private void restoreActionDialog(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        pendingDialog = savedInstanceState.getString(KEY_DIALOG);
+        if (pendingDialog == null || currentQuestion == null) return;
+        switch (pendingDialog) {
+            case DIALOG_RESTUDY:
+                showActionDialog(DIALOG_RESTUDY, "重学本题", "确定要将此题重置为「未掌握」吗？\n将重新进入复习计划。", "确定", this::confirmRestudy);
+                break;
+            case DIALOG_RESTORE:
+                if (!currentQuestion.excluded) { pendingDialog = null; break; }
+                showActionDialog(DIALOG_RESTORE, "恢复此题", "确定恢复这道题吗？\n将重置为 E 级，重新进入复习计划。", "恢复", this::confirmRestore);
+                break;
+            case DIALOG_EXCLUDE:
+                if (currentQuestion.excluded) { pendingDialog = null; break; }
+                showActionDialog(DIALOG_EXCLUDE, "斩题", "这道题将退出复习队列和长期抽查，题目本体保留，可在列表恢复。\n确定斩题吗？", "斩题", this::confirmExclude);
+                break;
+            case DIALOG_DELETE:
+                showActionDialog(DIALOG_DELETE, "确认删除", "确定要删除这道题吗？\n本题引用的图片将一并清理，删除后无法恢复！", "删除", this::confirmDelete);
+                break;
+            default:
+                pendingDialog = null;
+        }
     }
 
     @Override
@@ -248,6 +294,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putString(KEY_DIALOG, pendingDialog);
         if (fullscreenOpen) {
             outState.putStringArrayList(KEY_FS_PATHS, new ArrayList<>(fullscreenPaths));
             outState.putInt(KEY_FS_INDEX, fullscreenIndex);

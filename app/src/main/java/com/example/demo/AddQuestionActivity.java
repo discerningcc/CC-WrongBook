@@ -20,8 +20,19 @@ public class AddQuestionActivity extends AppCompatActivity {
     private static final int REQ_ANSWER = 1002;
     private static final String KEY_CONTENT_IMGS = "content_images";
     private static final String KEY_ANSWER_IMGS = "answer_images";
+    private static final String KEY_DISCARD_OPEN = "discard_open";
+    private static final String KEY_DELETE_GROUP = "delete_group";
+    private static final String KEY_DELETE_PATH = "delete_path";
+    private static final String KEY_FS_OPEN = "fs_open";
+    private static final String KEY_FS_GROUP = "fs_group";
+    private static final String KEY_FS_INDEX = "fs_index";
+    private static final String KEY_FS_SUPP = "fs_supp";
+    private static final String KEY_FS_MENU = "fs_menu";
     /** 每组图片上限 */
     private static final int MAX_IMAGES = 9;
+    /** 图片分组：0 题干图，1 答案图 */
+    private static final int GROUP_CONTENT = 0;
+    private static final int GROUP_ANSWER = 1;
 
     private EditText etContent, etAnswer;
     private LinearLayout layoutContentImg, layoutAnswerImg;
@@ -36,6 +47,14 @@ public class AddQuestionActivity extends AppCompatActivity {
     // 进入页面时的基线内容，用于判断是否有未保存改动
     private String initContent, initAnswer;
     private ArrayList<String> initContentImgs, initAnswerImgs;
+
+    // 跨旋转留存的临时弹窗/看图状态
+    private boolean discardConfirmOpen;
+    private int deleteGroup = -1;
+    private String deletePath;
+    private boolean fullscreenOpen;
+    private int fsGroup = -1;
+    private int fsIndex = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,9 +83,16 @@ public class AddQuestionActivity extends AppCompatActivity {
             answerPaths = savedInstanceState.getStringArrayList(KEY_ANSWER_IMGS);
             if (contentPaths == null) contentPaths = new ArrayList<>();
             if (answerPaths == null) answerPaths = new ArrayList<>();
-            for (String path : contentPaths) addImage(layoutContentImg, path);
-            for (String path : answerPaths) addImage(layoutAnswerImg, path);
+            for (String path : contentPaths) addImage(layoutContentImg, GROUP_CONTENT, path);
+            for (String path : answerPaths) addImage(layoutAnswerImg, GROUP_ANSWER, path);
             if (editQid != null) editQuestion = QuestionStorage.findById(this, editQid);
+
+            discardConfirmOpen = savedInstanceState.getBoolean(KEY_DISCARD_OPEN, false);
+            deleteGroup = savedInstanceState.getInt(KEY_DELETE_GROUP, -1);
+            deletePath = savedInstanceState.getString(KEY_DELETE_PATH);
+            fullscreenOpen = savedInstanceState.getBoolean(KEY_FS_OPEN, false);
+            fsGroup = savedInstanceState.getInt(KEY_FS_GROUP, -1);
+            fsIndex = savedInstanceState.getInt(KEY_FS_INDEX, -1);
         } else if (editQid != null) {
             editQuestion = QuestionStorage.findById(this, editQid);
             if (editQuestion != null) {
@@ -76,13 +102,13 @@ public class AddQuestionActivity extends AppCompatActivity {
                 contentPaths.clear();
                 contentPaths.addAll(editQuestion.contentImages);
                 for (String path : editQuestion.contentImages) {
-                    addImage(layoutContentImg, path);
+                    addImage(layoutContentImg, GROUP_CONTENT, path);
                 }
 
                 answerPaths.clear();
                 answerPaths.addAll(editQuestion.answerImages);
                 for (String path : editQuestion.answerImages) {
-                    addImage(layoutAnswerImg, path);
+                    addImage(layoutAnswerImg, GROUP_ANSWER, path);
                 }
             }
         }
@@ -97,6 +123,21 @@ public class AddQuestionActivity extends AppCompatActivity {
         titleBar.setText(editQuestion != null
                 ? "修改题目 · " + bankName
                 : "添加题目 · 加入「" + bankName + "」");
+
+        restoreTransientState(savedInstanceState);
+    }
+
+    /** 旋转重建后恢复临时弹窗与大图预览；仅系统重建（savedInstanceState 非空）时执行 */
+    private void restoreTransientState(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        if (discardConfirmOpen) showDiscardConfirm();
+        if (deletePath != null) confirmDelete(deleteGroup, deletePath);
+        if (fullscreenOpen && fsGroup >= 0 && fsIndex >= 0) {
+            List<String> list = fsGroup == GROUP_CONTENT ? contentPaths : answerPaths;
+            float[] supp = savedInstanceState.getFloatArray(KEY_FS_SUPP);
+            boolean menuOpen = savedInstanceState.getBoolean(KEY_FS_MENU, false);
+            openPreview(fsGroup, fsIndex, list, supp, menuOpen);
+        }
     }
 
     @Override
@@ -104,6 +145,16 @@ public class AddQuestionActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         outState.putStringArrayList(KEY_CONTENT_IMGS, contentPaths);
         outState.putStringArrayList(KEY_ANSWER_IMGS, answerPaths);
+        outState.putBoolean(KEY_DISCARD_OPEN, discardConfirmOpen);
+        outState.putInt(KEY_DELETE_GROUP, deleteGroup);
+        outState.putString(KEY_DELETE_PATH, deletePath);
+        outState.putBoolean(KEY_FS_OPEN, fullscreenOpen);
+        outState.putInt(KEY_FS_GROUP, fsGroup);
+        outState.putInt(KEY_FS_INDEX, fsIndex);
+        if (fullscreenOpen) {
+            outState.putFloatArray(KEY_FS_SUPP, ImageLoader.captureSuppMatrix());
+            outState.putBoolean(KEY_FS_MENU, ImageLoader.captureSaveMenuOpen());
+        }
     }
 
     /** 记录进入/上一次保存后的基线，供脏状态判定 */
@@ -145,32 +196,33 @@ public class AddQuestionActivity extends AppCompatActivity {
             String path = ImageUtils.saveImageToPrivate(this, uri);
             if (requestCode == REQ_CONTENT) {
                 contentPaths.add(path);
-                addImage(layoutContentImg, path);
+                addImage(layoutContentImg, GROUP_CONTENT, path);
             } else {
                 answerPaths.add(path);
-                addImage(layoutAnswerImg, path);
+                addImage(layoutAnswerImg, GROUP_ANSWER, path);
             }
         } catch (Exception e) {
             Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void addImage(LinearLayout layout, String path) {
+    private void addImage(LinearLayout layout, int group, String path) {
         ImageView iv = new ImageView(this);
         int size = (int) (180 * getResources().getDisplayMetrics().density);
         iv.setLayoutParams(new LinearLayout.LayoutParams(size, size));
         iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        iv.setTag(path);
         ImageLoader.bindThumb(this, iv, path, size);
 
         // 点击先进入大图预览
         iv.setOnClickListener(v -> {
-            List<String> list = layout == layoutContentImg ? contentPaths : answerPaths;
+            List<String> list = group == GROUP_CONTENT ? contentPaths : answerPaths;
             int idx = Math.max(0, layout.indexOfChild(iv));
-            ImageLoader.openFullscreen(this, list, idx);
+            openPreview(group, idx, list, null, false);
         });
         // 长按弹出删除确认
         iv.setOnLongClickListener(v -> {
-            confirmDelete(layout, iv, path);
+            confirmDelete(group, path);
             return true;
         });
 
@@ -178,18 +230,32 @@ public class AddQuestionActivity extends AppCompatActivity {
         refreshCounts();
     }
 
-    private void confirmDelete(LinearLayout layout, ImageView iv, String path) {
+    private void confirmDelete(int group, String path) {
+        deleteGroup = group;
+        deletePath = path;
+        LinearLayout layout = group == GROUP_CONTENT ? layoutContentImg : layoutAnswerImg;
         new AlertDialog.Builder(this)
                 .setTitle("删除图片")
                 .setMessage("确定删除这张图吗？")
+                .setOnDismissListener(d -> {
+                    deleteGroup = -1;
+                    deletePath = null;
+                })
                 .setPositiveButton("删除", (dialog, which) -> {
                     boolean wasBaseline = initContentImgs.contains(path) || initAnswerImgs.contains(path);
-                    if (layout == layoutContentImg) {
+                    if (group == GROUP_CONTENT) {
                         contentPaths.remove(path);
                     } else {
                         answerPaths.remove(path);
                     }
-                    layout.removeView(iv);
+                    // 按路径找回对应缩略图并移除
+                    for (int i = 0; i < layout.getChildCount(); i++) {
+                        View child = layout.getChildAt(i);
+                        if (path.equals(child.getTag())) {
+                            layout.removeViewAt(i);
+                            break;
+                        }
+                    }
                     // 本次新加后又删掉的图，立即清理私有文件；基线图的移除留到保存时统一比对
                     if (!wasBaseline) {
                         QuestionStorage.deletePrivateImageIfUnused(this, path);
@@ -198,6 +264,15 @@ public class AddQuestionActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    /** 打开大图预览并记录留存状态；弹窗关闭时清掉打开标记 */
+    private void openPreview(int group, int index, List<String> list, float[] restoreSupp, boolean restoreMenu) {
+        fullscreenOpen = true;
+        fsGroup = group;
+        fsIndex = index;
+        ImageLoader.openFullscreen(this, list, index, () -> fullscreenOpen = false,
+                restoreSupp, restoreMenu);
     }
 
     @Override
@@ -273,14 +348,20 @@ public class AddQuestionActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         if (isDirty()) {
-            new AlertDialog.Builder(this)
-                    .setTitle("放弃当前编辑")
-                    .setMessage("内容尚未保存，确定放弃吗？")
-                    .setPositiveButton("放弃", (dialog, which) -> finish())
-                    .setNegativeButton("继续编辑", null)
-                    .show();
+            showDiscardConfirm();
             return;
         }
         super.onBackPressed();
+    }
+
+    private void showDiscardConfirm() {
+        discardConfirmOpen = true;
+        new AlertDialog.Builder(this)
+                .setTitle("放弃当前编辑")
+                .setMessage("内容尚未保存，确定放弃吗？")
+                .setOnDismissListener(d -> discardConfirmOpen = false)
+                .setPositiveButton("放弃", (dialog, which) -> finish())
+                .setNegativeButton("继续编辑", null)
+                .show();
     }
 }

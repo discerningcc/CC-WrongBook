@@ -16,4 +16,13 @@
     <color name="detail_divider">#E0E0E0</color>
     <color name="detail_text_primary">#333333</color>
     <color name="detail_text_secondary">#616161</color>
+
+    <!-- 主页 -->
+    <color name="home_primary">#5D9CEC</color>
+    <color name="home_bg">#F0F2F5</color>
+    <color name="home_card">#FFFFFF</color>
+    <color name="home_stroke">#E0E0E0</color>
+    <color name="home_text_primary">#333333</color>
+    <color name="home_text_secondary">#616161</color>
+    <color name="home_on_primary_secondary">#CCFFFFFF</color>
 </resources>

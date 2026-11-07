@@ -1,160 +1,247 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#f0f2f5"
-    android:padding="16dp"
-    android:gravity="center">  <!-- 核心：上下左右全部居中 -->
+    android:background="@color/home_bg"
+    android:fillViewport="true">
 
-    <!-- 顶部：当前题库 + 设置 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="12dp">
-
-        <TextView
-            android:id="@+id/tv_current_bank"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="8dp"
-            android:text="当前题库：我的题库 ▾"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#1f6aa5"/>
-
-        <ImageView
-            android:id="@+id/ic_setting"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@android:drawable/ic_menu_preferences"/>
-    </LinearLayout>
-
-    <!-- 今日待复习 -->
-    <TextView
-        android:id="@+id/tv_today_review"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="今日待复习：0 题"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="#1f6aa5"
-        android:gravity="center"
-        android:layout_marginBottom="16dp"/>
-
-    <!-- 按钮区域：垂直居中 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingLeft="50dp"
-        android:paddingRight="50dp">
+        android:padding="@dimen/home_padding"
+        android:gravity="top|center_horizontal">
 
-        <!-- 开始复习 + 复习记录：并排两个按钮 -->
-        <LinearLayout
+        <!-- 顶部信息卡：当前题库 + 今日进度 -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            app:cardBackgroundColor="@color/home_card"
+            app:cardCornerRadius="@dimen/home_card_corner"
+            android:layout_marginBottom="@dimen/home_card_margin">
 
-            <androidx.cardview.widget.CardView
-                android:clickable="true"
-                android:focusable="true"
-                android:id="@+id/btn_review"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="60dp"
-                android:layout_margin="10dp"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#5d9cec">
-                <TextView
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/home_info_padding">
+
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_current_bank"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:padding="8dp"
+                        android:text="当前题库：我的题库 ▾"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/detail_primary" />
+
+                    <ImageView
+                        android:id="@+id/ic_setting"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:padding="4dp"
+                        android:contentDescription="设置"
+                        android:src="@android:drawable/ic_menu_preferences" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_today_main"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="今日已完成 0 / 50"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/home_text_primary" />
+
+                <TextView
+                    android:id="@+id/tv_today_sub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="到期 0 道 · 队列 0"
+                    android:textSize="13sp"
+                    android:textColor="@color/home_text_secondary" />
+
+                <ProgressBar
+                    android:id="@+id/progress_today"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/home_progress_height"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progress="0"
+                    android:progressTint="@color/home_primary"
+                    android:progressBackgroundTint="@color/home_stroke" />
+
+                <TextView
+                    android:id="@+id/tv_empty_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    android:text="当前题库还没有题目，先添加新题吧"
+                    android:textSize="13sp"
+                    android:textColor="@color/detail_warn" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 主行动：开始复习 -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/btn_review"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/home_primary_height"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/home_primary"
+            app:cardCornerRadius="@dimen/home_card_corner"
+            android:foreground="?attr/selectableItemBackground"
+            android:contentDescription="开始复习"
+            android:layout_marginBottom="@dimen/home_inner_margin">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="开始复习"
                     android:textColor="#FFFFFF"
                     android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:gravity="center"/>
-            </androidx.cardview.widget.CardView>
+                    android:textStyle="bold" />
 
-            <androidx.cardview.widget.CardView
-                android:clickable="true"
-                android:focusable="true"
+                <TextView
+                    android:id="@+id/tv_review_sub"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="到期 0 道"
+                    android:textColor="@color/home_on_primary_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 次级入口第一排：复习记录 / 题目列表 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="@dimen/home_inner_margin">
+
+            <LinearLayout
                 android:id="@+id/btn_history"
                 android:layout_width="0dp"
+                android:layout_height="@dimen/home_secondary_height"
                 android:layout_weight="1"
-                android:layout_height="60dp"
-                android:layout_margin="10dp"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#5d9cec">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="复习记录"
-                    android:textColor="#FFFFFF"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:gravity="center"/>
-            </androidx.cardview.widget.CardView>
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/bg_home_secondary"
+                android:foreground="?attr/selectableItemBackground"
+                android:contentDescription="复习记录"
+                android:gravity="center"
+                android:layout_margin="@dimen/home_inner_margin">
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="复习记录"
+                    android:textColor="@color/detail_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_bank"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/home_secondary_height"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/bg_home_secondary"
+                android:foreground="?attr/selectableItemBackground"
+                android:contentDescription="题目列表"
+                android:gravity="center"
+                android:layout_margin="@dimen/home_inner_margin">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="题目列表"
+                    android:textColor="@color/detail_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/btn_add"
+        <!-- 次级入口第二排：添加新题 / 帮助 -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_margin="10dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="#5d9cec">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="添加新题"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:gravity="center"/>
-        </androidx.cardview.widget.CardView>
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="@dimen/home_inner_margin">
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/btn_bank"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_margin="10dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="#5d9cec">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="题目列表"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:gravity="center"/>
-        </androidx.cardview.widget.CardView>
+            <LinearLayout
+                android:id="@+id/btn_add"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/home_secondary_height"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/bg_home_secondary"
+                android:foreground="?attr/selectableItemBackground"
+                android:contentDescription="添加新题"
+                android:gravity="center"
+                android:layout_margin="@dimen/home_inner_margin">
 
-        <androidx.cardview.widget.CardView
-            android:id="@+id/btn_help"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_margin="10dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="#5d9cec">
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="帮助"
-                android:textColor="#FFFFFF"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:gravity="center"/>
-        </androidx.cardview.widget.CardView>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="添加新题"
+                    android:textColor="@color/detail_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_help"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/home_secondary_height"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/bg_home_secondary"
+                android:foreground="?attr/selectableItemBackground"
+                android:contentDescription="帮助"
+                android:gravity="center"
+                android:layout_margin="@dimen/home_inner_margin">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="帮助"
+                    android:textColor="@color/detail_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
 
     </LinearLayout>
-
-</LinearLayout>
+</ScrollView>

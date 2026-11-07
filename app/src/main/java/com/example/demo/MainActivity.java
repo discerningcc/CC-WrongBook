@@ -3,20 +3,27 @@ package com.example.demo;
 import androidx.appcompat.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
+
+    private boolean bankEmpty = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 启动时清理未被任何题库引用、也不在草稿保留中的孤儿图片
-        QuestionStorage.sweepOrphanImages(this);
+        // 孤儿图片扫描放后台线程，避免启动时在主线程遍历全部题库与图片目录
+        new Thread(() -> QuestionStorage.sweepOrphanImages(this), "orphan-sweep").start();
 
-        refreshTodayCount();
-        refreshCurrentBank();
+        refreshHome();
 
         findViewById(R.id.btn_help).setOnClickListener(v -> {
             String helpContent =
@@ -35,16 +42,19 @@ public class MainActivity extends AppCompatActivity {
                     .show();
         });
 
-        findViewById(R.id.btn_review).setOnClickListener(v ->
-                startActivity(new Intent(this, ReviewActivity.class))
-        );
+        findViewById(R.id.btn_review).setOnClickListener(v -> {
+            if (bankEmpty) {
+                Toast.makeText(this, "当前题库还没有题目，先添加新题吧", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            startActivity(new Intent(this, ReviewActivity.class));
+        });
         findViewById(R.id.btn_add).setOnClickListener(v ->
                 startActivity(new Intent(this, AddQuestionActivity.class))
         );
         findViewById(R.id.btn_bank).setOnClickListener(v ->
                 startActivity(new Intent(this, QuestionBankActivity.class))
         );
-        // 【删掉了这一行！】 findViewById(R.id.btn_help).setOnClickListener(v -> {});
 
         findViewById(R.id.ic_setting).setOnClickListener(v -> {
             startActivity(new Intent(this, SettingsActivity.class));
@@ -60,36 +70,52 @@ public class MainActivity extends AppCompatActivity {
         );
     }
 
-    private void refreshTodayCount() {
-        int queued = QuestionStorage.buildTodayQueue(this).size();
-        int dueAll = QuestionStorage.getTodayReview(this).size();
-        int budget = QuestionStorage.getDailyBudget(this);
-        String text;
-        if (budget <= 0) {
-            text = "今日复习：已排 " + queued + " / 到期 " + dueAll + "（不限量）";
-        } else {
-            int done = QuestionStorage.getTodayDone(this);
-            int remain = Math.max(0, budget - done);
-            if (done >= budget) {
-                text = "今日目标已完成 " + done + "/" + budget
-                        + "（到期还剩 " + dueAll + " 道，可点开始复习继续多做）";
-            } else {
-                text = "今日复习：目标 " + budget + " · 已完成 " + done
-                        + " · 还剩 " + remain + "（到期 " + dueAll + "）";
-            }
+    private void refreshHome() {
+        List<Question> all = QuestionStorage.loadAll(this);
+        int total = all.size();
+        int due = 0;
+        for (Question q : all) {
+            if (QuestionStorage.isDue(this, q)) due++;
         }
-        ((TextView) findViewById(R.id.tv_today_review)).setText(text);
-    }
+        int queued = QuestionStorage.buildTodayQueue(this).size();
+        int budget = QuestionStorage.getDailyBudget(this);
+        int done = QuestionStorage.getTodayDone(this);
+        bankEmpty = total == 0;
 
-    private void refreshCurrentBank() {
         ((TextView) findViewById(R.id.tv_current_bank))
                 .setText("当前题库：" + QuestionStorage.getCurrentBankName(this) + " ▾");
+
+        TextView main = findViewById(R.id.tv_today_main);
+        TextView sub = findViewById(R.id.tv_today_sub);
+        ProgressBar progress = findViewById(R.id.progress_today);
+        TextView reviewSub = findViewById(R.id.tv_review_sub);
+        TextView emptyHint = findViewById(R.id.tv_empty_hint);
+
+        if (budget <= 0) {
+            main.setText("今日已完成 " + done + "（不限量）");
+            sub.setText("到期 " + due + " 道 · 队列 " + queued);
+            progress.setMax(Math.max(1, due));
+            progress.setProgress(Math.min(done, due));
+        } else if (done >= budget) {
+            main.setText("今日目标已完成 " + done + " / " + budget);
+            sub.setText("到期还剩 " + due + " 道，可继续多做");
+            progress.setMax(budget);
+            progress.setProgress(budget);
+        } else {
+            main.setText("今日已完成 " + done + " / " + budget);
+            sub.setText("到期 " + due + " 道 · 队列 " + queued);
+            progress.setMax(budget);
+            progress.setProgress(done);
+        }
+
+        reviewSub.setText("到期 " + due + " 道");
+        emptyHint.setVisibility(bankEmpty ? View.VISIBLE : View.GONE);
+        findViewById(R.id.btn_review).setAlpha(bankEmpty ? 0.5f : 1f);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        refreshTodayCount();
-        refreshCurrentBank();
+        refreshHome();
     }
 }

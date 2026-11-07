@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 主页间距与尺寸 -->
+    <dimen name="home_padding">16dp</dimen>
+    <dimen name="home_card_corner">14dp</dimen>
+    <dimen name="home_primary_height">64dp</dimen>
+    <dimen name="home_secondary_height">54dp</dimen>
+    <dimen name="home_card_margin">10dp</dimen>
+    <dimen name="home_inner_margin">5dp</dimen>
+    <dimen name="home_info_padding">16dp</dimen>
+    <dimen name="home_progress_height">8dp</dimen>
+</resources>

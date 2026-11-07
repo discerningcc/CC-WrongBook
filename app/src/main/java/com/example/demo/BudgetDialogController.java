@@ -1,10 +1,16 @@
 package com.example.demo;
 
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 /**
  * 每日复习量选择弹窗：设置页与主页共用。
@@ -23,6 +29,15 @@ final class BudgetDialogController {
     private static final String KEY_CUSTOM_DIALOG = "custom_dialog_open";
     private static final String KEY_CUSTOM_TEXT = "custom_dialog_text";
 
+    private static final int[] CHIP_IDS = {
+            R.id.chip_0, R.id.chip_1, R.id.chip_2,
+            R.id.chip_3, R.id.chip_4, R.id.chip_5
+    };
+    private static final int[] CHIP_NUM_IDS = {
+            R.id.chip_num_0, R.id.chip_num_1, R.id.chip_num_2,
+            R.id.chip_num_3, R.id.chip_num_4, R.id.chip_num_5
+    };
+
     private boolean budgetOpen = false;
     private boolean customOpen = false;
     private EditText customInput;
@@ -31,41 +46,55 @@ final class BudgetDialogController {
     void showBudgetDialog(AppCompatActivity activity, Runnable onChanged) {
         int current = QuestionStorage.getDailyBudget(activity);
 
-        String[] items = new String[OPTIONS.length + 2];
-        for (int i = 0; i < OPTIONS.length; i++) {
-            items[i] = OPTIONS[i] + " 题/天";
-        }
-        int idxCustom = OPTIONS.length;
-        int idxUnlimited = OPTIONS.length + 1;
-        items[idxCustom] = "自定义（" + MIN_CUSTOM + "~" + MAX_CUSTOM + "）…";
-        items[idxUnlimited] = "无限";
+        BottomSheetDialog dialog = new BottomSheetDialog(activity);
+        View root = LayoutInflater.from(activity).inflate(R.layout.dialog_budget, null);
+        dialog.setContentView(root);
 
-        int checked = -1;
-        for (int i = 0; i < OPTIONS.length; i++) {
-            if (OPTIONS[i] == current) checked = i;
-        }
-        if (checked < 0) {
-            checked = (current <= 0) ? idxUnlimited : idxCustom;
+        View sheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (sheet != null) {
+            BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(sheet);
+            behavior.setPeekHeight(BottomSheetBehavior.PEEK_HEIGHT_AUTO);
+            behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(activity)
-                .setTitle("每日复习量")
-                .setSingleChoiceItems(items, checked, (d, which) -> {
-                    if (which == idxCustom) {
-                        d.dismiss();
-                        showCustomInput(activity, null, onChanged);
-                    } else if (which == idxUnlimited) {
-                        QuestionStorage.setDailyBudget(activity, UNLIMITED);
-                        afterChange(onChanged);
-                        d.dismiss();
-                    } else {
-                        QuestionStorage.setDailyBudget(activity, OPTIONS[which]);
-                        afterChange(onChanged);
-                        d.dismiss();
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .create();
+        TextView currentView = root.findViewById(R.id.tv_budget_current);
+        currentView.setText(currentDescription(current));
+
+        for (int i = 0; i < OPTIONS.length; i++) {
+            View chip = root.findViewById(CHIP_IDS[i]);
+            TextView num = root.findViewById(CHIP_NUM_IDS[i]);
+            int value = OPTIONS[i];
+            num.setText(String.valueOf(value));
+            applyChipState(chip, num, value == current);
+            chip.setOnClickListener(v -> {
+                QuestionStorage.setDailyBudget(activity, value);
+                afterChange(onChanged);
+                dialog.dismiss();
+            });
+        }
+
+        boolean isCustom = current > 0 && !isOption(current);
+        View rowCustom = root.findViewById(R.id.row_custom);
+        TextView customTitle = root.findViewById(R.id.row_custom_title);
+        TextView customSub = root.findViewById(R.id.row_custom_sub);
+        applyRowState(rowCustom, customTitle, customSub, isCustom);
+        rowCustom.setOnClickListener(v -> {
+            dialog.dismiss();
+            showCustomInput(activity, null, onChanged);
+        });
+
+        View rowUnlimited = root.findViewById(R.id.row_unlimited);
+        TextView unlimitedTitle = root.findViewById(R.id.row_unlimited_title);
+        TextView unlimitedSub = root.findViewById(R.id.row_unlimited_sub);
+        applyRowState(rowUnlimited, unlimitedTitle, unlimitedSub, current <= UNLIMITED);
+        rowUnlimited.setOnClickListener(v -> {
+            QuestionStorage.setDailyBudget(activity, UNLIMITED);
+            afterChange(onChanged);
+            dialog.dismiss();
+        });
+
+        root.findViewById(R.id.btn_budget_cancel).setOnClickListener(v -> dialog.dismiss());
+
         dialog.setOnDismissListener(d -> budgetOpen = false);
         budgetOpen = true;
         dialog.show();
@@ -102,6 +131,43 @@ final class BudgetDialogController {
         dialog.setOnDismissListener(d -> customOpen = false);
         customOpen = true;
         dialog.show();
+    }
+
+    private boolean isOption(int value) {
+        for (int option : OPTIONS) {
+            if (option == value) return true;
+        }
+        return false;
+    }
+
+    private String currentDescription(int current) {
+        if (current <= UNLIMITED) return "当前：不限量";
+        return "当前：" + current + " 题/天";
+    }
+
+    private void applyChipState(View chip, TextView num, boolean selected) {
+        chip.setBackgroundResource(selected
+                ? R.drawable.bg_budget_option_selected
+                : R.drawable.bg_budget_option_normal);
+        num.setTextColor(chip.getContext().getColor(selected
+                ? R.color.home_primary
+                : R.color.home_text_primary));
+        TextView unit = (TextView) ((ViewGroup) chip).getChildAt(1);
+        unit.setTextColor(chip.getContext().getColor(selected
+                ? R.color.home_primary
+                : R.color.home_text_secondary));
+    }
+
+    private void applyRowState(View row, TextView title, TextView sub, boolean selected) {
+        row.setBackgroundResource(selected
+                ? R.drawable.bg_budget_option_selected
+                : R.drawable.bg_budget_option_normal);
+        title.setTextColor(row.getContext().getColor(selected
+                ? R.color.home_primary
+                : R.color.home_text_primary));
+        sub.setTextColor(row.getContext().getColor(selected
+                ? R.color.home_primary
+                : R.color.home_text_secondary));
     }
 
     private void afterChange(Runnable onChanged) {

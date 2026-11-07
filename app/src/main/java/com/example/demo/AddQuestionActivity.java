@@ -83,6 +83,8 @@ public class AddQuestionActivity extends AppCompatActivity {
     private int fsIndex = -1;
     /** 用户确认放弃后置位，抑制 onPause 兜底再次落草稿 */
     private boolean discarding = false;
+    /** 新题保存并退出后置位，抑制 onPause 兜底把已落库表单回写成草稿 */
+    private boolean savedFinishing = false;
     /** 是否由上次草稿回填进入（回填内容按未保存改动处理，返回需确认放弃） */
     private boolean draftRestored = false;
 
@@ -358,7 +360,7 @@ public class AddQuestionActivity extends AppCompatActivity {
 
     /** 新增态把当前文本与图片路径写入私有草稿；全空则清除草稿。编辑既有题不写草稿。 */
     private void saveDraft() {
-        if (editQuestion != null || discarding) return;
+        if (editQuestion != null || discarding || savedFinishing) return;
         String content = etContent.getText().toString();
         String answer = etAnswer.getText().toString();
         boolean empty = content.trim().isEmpty() && answer.trim().isEmpty()
@@ -476,6 +478,7 @@ public class AddQuestionActivity extends AppCompatActivity {
         if (andContinue) {
             resetForm();
         } else {
+            savedFinishing = true;
             finish();
         }
     }

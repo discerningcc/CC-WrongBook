@@ -5,9 +5,11 @@ import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.LruCache;
+import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -54,6 +56,10 @@ public final class ImageLoader {
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
 
+    /** 当前打开中的看图翻页器与适配器，供采集缩放/平移状态；关闭后清空 */
+    private static ViewPager2 sActivePager;
+    private static PhotoPagerAdapter sActiveAdapter;
+
     private ImageLoader() {
     }
 
@@ -95,21 +101,44 @@ public final class ImageLoader {
     public static void openFullscreen(final Activity activity, String path) {
         List<String> paths = new ArrayList<>(1);
         paths.add(path);
-        openFullscreen(activity, paths, 0, null);
+        openFullscreen(activity, paths, 0, null, null);
     }
 
     /** 多图翻页入口（无关闭回调）。 */
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex) {
-        openFullscreen(activity, paths, startIndex, null);
+        openFullscreen(activity, paths, startIndex, null, null);
+    }
+
+    /** 多图翻页入口（无缩放状态恢复）。 */
+    public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
+                                      final Runnable onDismiss) {
+        openFullscreen(activity, paths, startIndex, onDismiss, null);
+    }
+
+    /**
+     * 采集当前打开看图当前页的缩放/平移矩阵（supp matrix，9 个值）；无打开中的看图时返回 null。
+     * 供调用方在 onSaveInstanceState 中留存，旋转重建后回贴。
+     */
+    public static float[] captureSuppMatrix() {
+        if (sActivePager == null || sActiveAdapter == null) return null;
+        int pos = sActivePager.getCurrentItem();
+        PhotoView pv = sActiveAdapter.viewAt(pos);
+        if (pv == null) return null;
+        Matrix m = new Matrix();
+        pv.getSuppMatrix(m);
+        float[] values = new float[9];
+        m.getValues(values);
+        return values;
     }
 
     /**
      * 全屏看图：同题图片左右翻页，顶部显示 当前/总数 页码；点按图片或周围黑边关闭。
      * 每张图采样到屏幕最长边以内后交给 PhotoView 缩放查看；文件缺失或解码失败该页留空。
      * 弹窗关闭时回调 onDismiss（可为空），供调用方清理「看图打开中」的留存状态。
+     * restoreSupp 为旋转重建后需要回贴的缩放/平移矩阵（9 个值，可为空），仅作用于起始页。
      */
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
-                                      final Runnable onDismiss) {
+                                      final Runnable onDismiss, final float[] restoreSupp) {
         if (activity == null || activity.isFinishing()) return;
         if (paths == null || paths.isEmpty()) {
             Toast.makeText(activity, "图片已不存在", Toast.LENGTH_SHORT).show();
@@ -123,6 +152,8 @@ public final class ImageLoader {
         Dialog dialog = new Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setOnDismissListener(d -> {
+            sActivePager = null;
+            sActiveAdapter = null;
             if (onDismiss != null) onDismiss.run();
         });
 
@@ -153,8 +184,11 @@ public final class ImageLoader {
                 counter.setText((position + 1) + "/" + size);
             }
         });
-        pager.setAdapter(new PhotoPagerAdapter(dialog, snapshot, screenMax));
+        PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp);
+        pager.setAdapter(adapter);
         pager.setCurrentItem(start, false);
+        sActivePager = pager;
+        sActiveAdapter = adapter;
 
         dialog.show();
     }
@@ -191,11 +225,21 @@ public final class ImageLoader {
         private final Dialog dialog;
         private final List<String> paths;
         private final int screenMax;
+        private final int restorePosition;
+        private final float[] restoreSupp;
+        private final SparseArray<PhotoView> views = new SparseArray<>();
 
-        PhotoPagerAdapter(Dialog dialog, List<String> paths, int screenMax) {
+        PhotoPagerAdapter(Dialog dialog, List<String> paths, int screenMax,
+                          int restorePosition, float[] restoreSupp) {
             this.dialog = dialog;
             this.paths = paths;
             this.screenMax = screenMax;
+            this.restorePosition = restorePosition;
+            this.restoreSupp = restoreSupp;
+        }
+
+        PhotoView viewAt(int position) {
+            return views.get(position);
         }
 
         @Override
@@ -211,6 +255,7 @@ public final class ImageLoader {
         @Override
         public void onBindViewHolder(VH holder, int position) {
             final PhotoView photoView = holder.pv;
+            views.put(position, photoView);
             photoView.setImageBitmap(null);
             final String path = paths.get(position);
             if (path == null || path.isEmpty()) return;
@@ -219,6 +264,15 @@ public final class ImageLoader {
                 MAIN.post(() -> {
                     if (holder.getAdapterPosition() == position) {
                         photoView.setImageBitmap(bmp);
+                        // 重建恢复：在布局完成后回贴缩放/平移矩阵
+                        if (restoreSupp != null && position == restorePosition) {
+                            photoView.post(() -> {
+                                photoView.getAttacher().update();
+                                Matrix m = new Matrix();
+                                m.setValues(restoreSupp);
+                                photoView.setSuppMatrix(m);
+                            });
+                        }
                     }
                 });
             });

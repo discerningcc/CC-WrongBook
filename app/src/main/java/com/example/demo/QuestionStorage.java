@@ -96,6 +96,7 @@ public class QuestionStorage {
     /** 删除单题（同时删除该题关联的图片文件） */
     public static void delete(Context context, Question question) {
         ensureBankExists(context);
+        if (question == null) return;
         cacheBank.questions.remove(question);
         write(context);
         deleteQuestionImages(context, question);
@@ -211,6 +212,26 @@ public class QuestionStorage {
         q.excluded = false;
         q.updateStatus("E");
         write(context);
+    }
+
+    /** 重学本题：打回 E 级并刷新更新时间，重新进入复习计划；斩题标记保持不变 */
+    public static void restudyQuestion(Context context, Question q) {
+        ensureBankExists(context);
+        if (q == null) return;
+        q.updateStatus("E");
+        write(context);
+    }
+
+    /** 等级徽章颜色：E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红 */
+    public static int statusColor(String status) {
+        switch (status == null ? "E" : status) {
+            case "S": return 0xfff44336;   // 红
+            case "A": return 0xffff9800;   // 橙
+            case "B": return 0xff9c27b0;   // 紫
+            case "C": return 0xff2196f3;   // 蓝
+            case "D": return 0xff4caf50;   // 绿
+            default: return 0xff9e9e9e;    // E 灰
+        }
     }
 
     /** 今日全部到期的题（不截断；用于统计、筛选）。开 session 用 buildTodayQueue */

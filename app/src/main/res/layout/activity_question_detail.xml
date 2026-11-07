@@ -20,13 +20,48 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- 头部徽章行：等级 + 已斩标记，与题干正文分离 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_level_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_level_badge"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="E" />
+
+                <TextView
+                    android:id="@+id/tv_excluded_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_level_badge"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="已斩"
+                    android:visibility="gone" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tv_question"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:textSize="20sp"
-                android:textColor="#333333"
-                android:lineSpacingExtra="8dp"/>
+                android:textColor="@color/detail_text_primary"
+                android:lineSpacingExtra="8dp" />
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
@@ -37,7 +72,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="8dp"/>
+                    android:padding="8dp" />
             </HorizontalScrollView>
 
             <LinearLayout
@@ -55,15 +90,15 @@
                     android:text="【答案】"
                     android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="#1f6aa5"/>
+                    android:textColor="#1f6aa5" />
 
                 <TextView
                     android:id="@+id/tv_answer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="18sp"
-                    android:textColor="#333333"
-                    android:layout_marginTop="8dp"/>
+                    android:textColor="@color/detail_text_primary"
+                    android:layout_marginTop="8dp" />
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"
@@ -74,7 +109,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:padding="8dp"/>
+                        android:padding="8dp" />
                 </HorizontalScrollView>
 
             </LinearLayout>
@@ -83,84 +118,134 @@
 
     </androidx.core.widget.NestedScrollView>
 
-    <!--  ====================== 新加的两个按钮 ====================== -->
+    <!-- ====================== 底部操作区：主操作 / 状态操作 / 危险操作 三段 ====================== -->
     <LinearLayout
+        android:id="@+id/action_group"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:layout_marginTop="16dp">
 
-        <!-- 修改本题 -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- 主操作：修改本题 -->
+        <LinearLayout
             android:id="@+id/btn_edit"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#1f6aa5"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/bg_detail_primary"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
             android:layout_marginBottom="8dp">
 
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/ic_detail_edit"
+                android:contentDescription="修改" />
+
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="修改本题"
                 android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:gravity="center"/>
-        </com.google.android.material.card.MaterialCardView>
+                android:textSize="18sp" />
+        </LinearLayout>
 
-        <!-- 重学本题 -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- 状态操作：重学本题 -->
+        <LinearLayout
             android:id="@+id/btn_restudy"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#ff9800"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/bg_detail_outline_warn"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
             android:layout_marginBottom="8dp">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="重学本题"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:gravity="center"/>
-        </com.google.android.material.card.MaterialCardView>
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/ic_detail_restudy"
+                android:contentDescription="重学" />
 
-        <!-- 斩题 / 恢复 -->
-        <com.google.android.material.card.MaterialCardView
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="重学本题"
+                android:textColor="@color/detail_warn"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- 状态操作：斩题 / 恢复此题 -->
+        <LinearLayout
             android:id="@+id/btn_exclude"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#616161"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/bg_detail_outline_gray"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
             android:layout_marginBottom="8dp">
+
+            <ImageView
+                android:id="@+id/btn_exclude_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/ic_detail_exclude"
+                android:contentDescription="斩题" />
 
             <TextView
                 android:id="@+id/btn_exclude_text"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="斩题"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:gravity="center"/>
-        </com.google.android.material.card.MaterialCardView>
+                android:textColor="@color/detail_text_secondary"
+                android:textSize="18sp" />
+        </LinearLayout>
 
-        <!-- 删除本题 -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- 危险操作分隔线 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/detail_divider"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 危险操作：删除本题（描边红字，低调隔离） -->
+        <LinearLayout
             android:id="@+id/btn_delete"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            app:cardCornerRadius="16dp"
-            app:cardBackgroundColor="#ff4d4f">
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/bg_detail_outline_danger"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/ic_detail_delete"
+                android:contentDescription="删除" />
 
             <TextView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="删除本题"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:gravity="center"/>
-        </com.google.android.material.card.MaterialCardView>
+                android:textColor="@color/detail_danger"
+                android:textSize="18sp" />
+        </LinearLayout>
 
     </LinearLayout>
 

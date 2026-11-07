@@ -6,4 +6,14 @@
     <color name="switch_thumb_disabled">#BDBDBD</color>
     <color name="switch_track">#5d9cec</color>
     <color name="switch_track_disabled">#E0E0E0</color>
+
+    <!-- 详情页操作区语义色 -->
+    <color name="detail_primary">#1F6AA5</color>
+    <color name="detail_secondary_stroke">#9E9E9E</color>
+    <color name="detail_warn">#FF9800</color>
+    <color name="detail_success">#4CAF50</color>
+    <color name="detail_danger">#FF4D4F</color>
+    <color name="detail_divider">#E0E0E0</color>
+    <color name="detail_text_primary">#333333</color>
+    <color name="detail_text_secondary">#616161</color>
 </resources>

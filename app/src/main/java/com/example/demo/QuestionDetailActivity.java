@@ -2,6 +2,7 @@ package com.example.demo;
 import android.widget.Toast;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
@@ -13,21 +14,23 @@ import java.util.List;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
-    private TextView tvQuestion, tvAnswer;
-    private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
+    private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge;
+    private LinearLayout reviewImageLayout, answerImageLayout, answerLayout, actionGroup;
+    private View btnExclude, btnRestudy, btnDelete;
+    private TextView btnExcludeText;
+    private ImageView btnExcludeIcon;
     private Question currentQuestion;
     private final List<String> fullscreenPaths = new ArrayList<>();
     /** 全屏看图是否打开中；旋转重建后据此重弹 */
     private boolean fullscreenOpen;
     private int fullscreenIndex = -1;
     private String currentQid; // 保存ID，用于刷新
+    /** 操作弹窗打开期间防重复点击 */
+    private boolean actionBusy;
     private static final String KEY_FS_PATHS = "fullscreen_paths";
     private static final String KEY_FS_INDEX = "fullscreen_index";
     private static final String KEY_FS_SUPP = "fullscreen_supp";
     private static final String KEY_FS_MENU = "fullscreen_menu";
-    private com.google.android.material.card.MaterialCardView btnExclude;
-    private com.google.android.material.card.MaterialCardView btnRestudy;
-    private TextView btnExcludeText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,83 +39,80 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
         tvQuestion = findViewById(R.id.tv_question);
         tvAnswer = findViewById(R.id.tv_answer);
+        tvLevelBadge = findViewById(R.id.tv_level_badge);
+        tvExcludedBadge = findViewById(R.id.tv_excluded_badge);
         reviewImageLayout = findViewById(R.id.review_image_layout);
         answerLayout = findViewById(R.id.answer_layout);
         answerImageLayout = findViewById(R.id.answer_image_layout);
+        actionGroup = findViewById(R.id.action_group);
         btnExclude = findViewById(R.id.btn_exclude);
         btnExcludeText = findViewById(R.id.btn_exclude_text);
+        btnExcludeIcon = findViewById(R.id.btn_exclude_icon);
         btnRestudy = findViewById(R.id.btn_restudy);
+        btnDelete = findViewById(R.id.btn_delete);
 
         // 拿到ID并保存
         currentQid = getIntent().getStringExtra("qid");
         loadQuestionData(); // 加载题目
         restoreFullscreen(savedInstanceState);
 
-
         // 修改本题
         findViewById(R.id.btn_edit).setOnClickListener(v -> {
+            if (currentQuestion == null || actionBusy) return;
             Intent intent = new Intent(QuestionDetailActivity.this, AddQuestionActivity.class);
             intent.putExtra("edit_qid", currentQid);
             startActivity(intent);
         });
 
-        // 重学本题（新加）
-        findViewById(R.id.btn_restudy).setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setTitle("重学本题")
-                    .setMessage("确定要将此题重置为「未掌握」吗？\n将重新进入复习计划。")
-                    .setPositiveButton("确定", (dialog, which) -> {
-                        currentQuestion.status = "E";
-                        currentQuestion.updateTime = System.currentTimeMillis();
-                        QuestionStorage.update(this);
-                        Toast.makeText(this, "已重置，将重新复习", Toast.LENGTH_SHORT).show();
-                        loadQuestionData(); // 刷新页面等级显示
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+        // 重学本题
+        btnRestudy.setOnClickListener(v -> {
+            if (currentQuestion == null || actionBusy) return;
+            showActionDialog("重学本题", "确定要将此题重置为「未掌握」吗？\n将重新进入复习计划。", "确定", () -> {
+                QuestionStorage.restudyQuestion(this, currentQuestion);
+                Toast.makeText(this, "已重置，将重新复习", Toast.LENGTH_SHORT).show();
+                loadQuestionData(); // 刷新页面等级显示
+            });
         });
 
         // 斩题 / 恢复本题
         btnExclude.setOnClickListener(v -> {
-            if (currentQuestion == null) return;
+            if (currentQuestion == null || actionBusy) return;
             if (currentQuestion.excluded) {
-                new AlertDialog.Builder(this)
-                        .setTitle("恢复此题")
-                        .setMessage("确定恢复这道题吗？\n将重置为 E 级，重新进入复习计划。")
-                        .setPositiveButton("恢复", (dialog, which) -> {
-                            QuestionStorage.restoreQuestion(this, currentQuestion);
-                            Toast.makeText(this, "已恢复，重新开始复习", Toast.LENGTH_SHORT).show();
-                            loadQuestionData();
-                        })
-                        .setNegativeButton("取消", null)
-                        .show();
+                showActionDialog("恢复此题", "确定恢复这道题吗？\n将重置为 E 级，重新进入复习计划。", "恢复", () -> {
+                    QuestionStorage.restoreQuestion(this, currentQuestion);
+                    Toast.makeText(this, "已恢复，重新开始复习", Toast.LENGTH_SHORT).show();
+                    loadQuestionData();
+                });
             } else {
-                new AlertDialog.Builder(this)
-                        .setTitle("斩题")
-                        .setMessage("这道题将退出复习队列和长期抽查，题目本体保留，可在列表恢复。\n确定斩题吗？")
-                        .setPositiveButton("斩题", (dialog, which) -> {
-                            QuestionStorage.excludeQuestion(this, currentQuestion);
-                            Toast.makeText(this, "已斩题，不再进入复习", Toast.LENGTH_SHORT).show();
-                            loadQuestionData();
-                        })
-                        .setNegativeButton("取消", null)
-                        .show();
+                showActionDialog("斩题", "这道题将退出复习队列和长期抽查，题目本体保留，可在列表恢复。\n确定斩题吗？", "斩题", () -> {
+                    QuestionStorage.excludeQuestion(this, currentQuestion);
+                    Toast.makeText(this, "已斩题，不再进入复习", Toast.LENGTH_SHORT).show();
+                    loadQuestionData();
+                });
             }
         });
 
         // 删除本题
-        findViewById(R.id.btn_delete).setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setTitle("确认删除")
-                    .setMessage("确定要删除这道题吗？\n删除后无法恢复！")
-                    .setPositiveButton("删除", (dialog, which) -> {
-                        QuestionStorage.delete(this, currentQuestion);
-                        Toast.makeText(this, "题目已删除", Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+        btnDelete.setOnClickListener(v -> {
+            if (currentQuestion == null || actionBusy) return;
+            showActionDialog("确认删除", "确定要删除这道题吗？\n本题引用的图片将一并清理，删除后无法恢复！", "删除", () -> {
+                QuestionStorage.delete(this, currentQuestion);
+                Toast.makeText(this, "题目已删除", Toast.LENGTH_SHORT).show();
+                finish();
+            });
         });
+    }
+
+    /** 确认弹窗：打开期间置忙，关闭后复位，避免重复点击叠弹 */
+    private void showActionDialog(String title, String message, String positive, Runnable onConfirm) {
+        actionBusy = true;
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(positive, (dialog, which) -> onConfirm.run())
+                .setNegativeButton("取消", null)
+                .setOnDismissListener(dialog -> actionBusy = false)
+                .show();
     }
 
     @Override
@@ -134,24 +134,51 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
         if (currentQuestion == null) {
             tvQuestion.setText("题目不存在");
+            tvAnswer.setText("");
+            tvLevelBadge.setVisibility(View.GONE);
+            tvExcludedBadge.setVisibility(View.GONE);
+            answerLayout.setVisibility(View.GONE);
+            actionGroup.setVisibility(View.GONE);
+            reviewImageLayout.removeAllViews();
+            answerImageLayout.removeAllViews();
+            fullscreenPaths.clear();
             return;
         }
 
-        tvQuestion.setText("【等级：" + currentQuestion.status + "】"
-                + (currentQuestion.excluded ? "【已斩】" : "")
-                + "\n题目：\n" + currentQuestion.content);
-        tvAnswer.setText(currentQuestion.answer);
-        answerLayout.setVisibility(View.VISIBLE);
+        actionGroup.setVisibility(View.VISIBLE);
+
+        // 头部徽章：等级 + 已斩
+        String status = currentQuestion.status == null ? "E" : currentQuestion.status;
+        tvLevelBadge.setText(status);
+        tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(QuestionStorage.statusColor(status)));
+        tvExcludedBadge.setVisibility(currentQuestion.excluded ? View.VISIBLE : View.GONE);
+        tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
+
+        tvQuestion.setText(currentQuestion.content == null ? "" : currentQuestion.content);
+        tvAnswer.setText(currentQuestion.answer == null ? "" : currentQuestion.answer);
+
+        // 答案文本与答案图都为空时隐藏答案块
+        boolean hasAnswerText = currentQuestion.answer != null && !currentQuestion.answer.trim().isEmpty();
+        boolean hasAnswerImages = currentQuestion.answerImages != null && !currentQuestion.answerImages.isEmpty();
+        answerLayout.setVisibility(hasAnswerText || hasAnswerImages ? View.VISIBLE : View.GONE);
 
         // 斩题 / 恢复按钮状态：已斩题只留「恢复此题」，隐藏「重学」；普通题保留「重学 + 斩题」
+        int secondaryText = getColor(R.color.detail_text_secondary);
+        int success = getColor(R.color.detail_success);
         if (currentQuestion.excluded) {
             btnRestudy.setVisibility(View.GONE);
             btnExcludeText.setText("恢复此题");
-            btnExclude.setCardBackgroundColor(0xff4caf50);
+            btnExcludeText.setTextColor(success);
+            btnExclude.setBackgroundResource(R.drawable.bg_detail_outline_success);
+            btnExcludeIcon.setImageResource(R.drawable.ic_detail_restore);
+            btnExcludeIcon.setContentDescription("恢复");
         } else {
             btnRestudy.setVisibility(View.VISIBLE);
             btnExcludeText.setText("斩题");
-            btnExclude.setCardBackgroundColor(0xff616161);
+            btnExcludeText.setTextColor(secondaryText);
+            btnExclude.setBackgroundResource(R.drawable.bg_detail_outline_gray);
+            btnExcludeIcon.setImageResource(R.drawable.ic_detail_exclude);
+            btnExcludeIcon.setContentDescription("斩题");
         }
 
         // 刷新图片

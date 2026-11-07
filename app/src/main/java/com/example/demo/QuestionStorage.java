@@ -95,6 +95,21 @@ public class QuestionStorage {
         deleteQuestionImages(context, question);
     }
 
+    /** 删除单张私有图片：仅当未被当前题库任何题目引用时才删文件，避免误删共享图 */
+    public static void deletePrivateImageIfUnused(Context context, String path) {
+        if (path == null || path.isEmpty()) return;
+        ensureBankExists(context);
+        for (Question q : cacheBank.questions) {
+            if (containsImage(q.contentImages, path) || containsImage(q.answerImages, path)) return;
+        }
+        File imagesDir = context.getDir(IMAGES_DIR, Context.MODE_PRIVATE);
+        deleteImage(imagesDir, path);
+    }
+
+    private static boolean containsImage(List<String> images, String path) {
+        return images != null && images.contains(path);
+    }
+
     /** 保存一条新题 */
     public static void save(Context context, Question question) {
         ensureBankExists(context);

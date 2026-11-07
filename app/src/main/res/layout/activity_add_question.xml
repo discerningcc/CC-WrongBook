@@ -8,17 +8,34 @@
     android:orientation="vertical"
     android:background="#f0f2f5">
 
-    <!-- 标题栏 -->
-    <TextView
-        android:id="@+id/title_bar"
+    <!-- 标题栏：返回 + 居中标题 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
+        android:orientation="horizontal"
         android:background="#ffffff"
-        android:text="添加题目"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:elevation="4dp"/>
+        android:elevation="4dp">
+
+        <TextView
+            android:id="@+id/btn_back"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:paddingHorizontal="16dp"
+            android:gravity="center"
+            android:text="←"
+            android:textSize="20sp"
+            android:textColor="#333333" />
+
+        <TextView
+            android:id="@+id/title_bar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="添加题目"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -31,12 +48,27 @@
             android:orientation="vertical">
 
             <!-- 题目内容 -->
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="题目内容"
-                android:textSize="16sp"
-                android:textStyle="bold"/>
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="题目内容"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_content_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0/9"
+                    android:textSize="14sp"
+                    android:textColor="#999999" />
+            </LinearLayout>
 
             <EditText
                 android:id="@+id/et_content"
@@ -45,10 +77,11 @@
                 android:background="#fff"
                 android:padding="14dp"
                 android:minHeight="120dp"
-                android:hint="输入题目..."
+                android:hint="输入题目，可拍照/截图后从相册添加"
                 android:gravity="top|start"
+                android:inputType="textMultiLine"
                 android:layout_marginTop="6dp"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginBottom="8dp" />
 
             <!-- 题目图片横向滚动条 -->
             <HorizontalScrollView
@@ -61,31 +94,41 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical"/>
+                    android:gravity="center_vertical" />
             </HorizontalScrollView>
 
-            <androidx.cardview.widget.CardView
+            <TextView
                 android:id="@+id/btn_add_content_img"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
-                app:cardCornerRadius="10dp"
-                app:cardBackgroundColor="#91a7ff">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="添加题目图片"
-                    android:textColor="#fff"
-                    android:gravity="center"/>
-            </androidx.cardview.widget.CardView>
+                android:background="@drawable/bg_add_button"
+                android:text="添加题目图片"
+                android:textColor="#1f6aa5"
+                android:gravity="center" />
 
             <!-- 答案内容 -->
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="答案内容"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginTop="18dp"/>
+                android:orientation="horizontal"
+                android:layout_marginTop="18dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="答案内容"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_answer_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0/9"
+                    android:textSize="14sp"
+                    android:textColor="#999999" />
+            </LinearLayout>
 
             <EditText
                 android:id="@+id/et_answer"
@@ -94,10 +137,11 @@
                 android:background="#fff"
                 android:padding="14dp"
                 android:minHeight="120dp"
-                android:hint="输入答案..."
+                android:hint="输入答案，可拍照/截图后从相册添加"
                 android:gravity="top|start"
+                android:inputType="textMultiLine"
                 android:layout_marginTop="6dp"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginBottom="8dp" />
 
             <!-- 答案图片横向滚动条 -->
             <HorizontalScrollView
@@ -110,39 +154,52 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical"/>
+                    android:gravity="center_vertical" />
             </HorizontalScrollView>
 
-            <androidx.cardview.widget.CardView
+            <TextView
                 android:id="@+id/btn_add_answer_img"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
-                app:cardCornerRadius="10dp"
-                app:cardBackgroundColor="#91a7ff">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="添加答案图片"
-                    android:textColor="#fff"
-                    android:gravity="center"/>
-            </androidx.cardview.widget.CardView>
+                android:background="@drawable/bg_add_button"
+                android:text="添加答案图片"
+                android:textColor="#1f6aa5"
+                android:gravity="center" />
 
-            <!-- 保存按钮 -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/btn_save"
+            <!-- 保存按钮：主操作 + 保存并继续（仅新增态显示） -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_marginTop="20dp"
-                app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="#5d9cec">
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="20dp">
+
                 <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="保存题目"
-                    android:textSize="18sp"
-                    android:textColor="#fff"
-                    android:gravity="center"/>
-            </androidx.cardview.widget.CardView>
+                    android:id="@+id/btn_save_continue"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:layout_marginRight="10dp"
+                    android:background="@drawable/bg_add_button"
+                    android:text="保存并继续"
+                    android:textColor="#1f6aa5"
+                    android:gravity="center" />
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/btn_save"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    app:cardCornerRadius="12dp"
+                    app:cardBackgroundColor="#5d9cec">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:text="保存题目"
+                        android:textSize="18sp"
+                        android:textColor="#fff"
+                        android:gravity="center" />
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

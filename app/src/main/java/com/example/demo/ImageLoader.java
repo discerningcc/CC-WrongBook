@@ -1,13 +1,20 @@
 package com.example.demo;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
+import android.content.ContentResolver;
 import android.util.LruCache;
 import android.util.SparseArray;
 import android.view.MotionEvent;
@@ -27,10 +34,17 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.github.chrisbanes.photoview.PhotoView;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 /**
  * 复习页 / 题目详情页 / 编辑页共用的图片加载与全屏看图组件。
@@ -219,7 +233,8 @@ public final class ImageLoader {
                 }
             });
         }
-        PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp);
+        PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp,
+                activity.getApplicationContext(), () -> snapshot.get(pager.getCurrentItem()));
         pager.setAdapter(adapter);
         pager.setCurrentItem(start, false);
         sActivePager = pager;
@@ -254,6 +269,63 @@ public final class ImageLoader {
         }
     }
 
+    /**
+     * 把当前图片原样写入系统相册 Pictures/错题本，时间戳命名；返回是否成功。
+     * Android 10+ 走 MediaStore（免存储权限），更低版本回退公共目录直写。
+     */
+    private static boolean saveImageToGallery(Context ctx, File src) throws Exception {
+        String ext = extensionOf(src.getName());
+        String mime = "png".equals(ext) ? "image/png" : "image/jpeg";
+        String baseName = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.getDefault())
+                .format(new Date());
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, baseName + "." + ext);
+        values.put(MediaStore.Images.Media.MIME_TYPE, mime);
+        ContentResolver resolver = ctx.getContentResolver();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.put(MediaStore.Images.Media.RELATIVE_PATH,
+                    Environment.DIRECTORY_PICTURES + "/错题本");
+            values.put(MediaStore.Images.Media.IS_PENDING, 1);
+            Uri uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) return false;
+            try (OutputStream os = resolver.openOutputStream(uri);
+                 FileInputStream is = new FileInputStream(src)) {
+                copyBytes(is, os);
+            }
+            ContentValues done = new ContentValues();
+            done.put(MediaStore.Images.Media.IS_PENDING, 0);
+            resolver.update(uri, done, null, null);
+        } else {
+            File dir = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_PICTURES), "错题本");
+            if (!dir.exists()) dir.mkdirs();
+            File out = new File(dir, baseName + "." + ext);
+            try (FileOutputStream fos = new FileOutputStream(out);
+                 FileInputStream is = new FileInputStream(src)) {
+                copyBytes(is, fos);
+            }
+            values.clear();
+            values.put(MediaStore.Images.Media.DATA, out.getAbsolutePath());
+            resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        }
+        return true;
+    }
+
+    private static String extensionOf(String name) {
+        int dot = name == null ? -1 : name.lastIndexOf('.');
+        if (dot < 0 || dot == name.length() - 1) return "jpg";
+        return name.substring(dot + 1).toLowerCase(Locale.US);
+    }
+
+    private static void copyBytes(FileInputStream is, OutputStream os) throws Exception {
+        byte[] buf = new byte[8192];
+        int len;
+        while ((len = is.read(buf)) != -1) {
+            os.write(buf, 0, len);
+        }
+    }
+
     /** 全屏翻页适配器：每个页面一个 PhotoView，解码在后台线程执行。 */
     private static final class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.VH> {
 
@@ -262,19 +334,54 @@ public final class ImageLoader {
         private final int screenMax;
         private final int restorePosition;
         private final float[] restoreSupp;
+        private final Context appContext;
+        private final Supplier<String> currentPath;
         private final SparseArray<PhotoView> views = new SparseArray<>();
 
         PhotoPagerAdapter(Dialog dialog, List<String> paths, int screenMax,
-                          int restorePosition, float[] restoreSupp) {
+                          int restorePosition, float[] restoreSupp,
+                          Context appContext, Supplier<String> currentPath) {
             this.dialog = dialog;
             this.paths = paths;
             this.screenMax = screenMax;
             this.restorePosition = restorePosition;
             this.restoreSupp = restoreSupp;
+            this.appContext = appContext;
+            this.currentPath = currentPath;
         }
 
         PhotoView viewAt(int position) {
             return views.get(position);
+        }
+
+        private void showSaveMenu(View anchor) {
+            new AlertDialog.Builder(dialog.getContext())
+                    .setItems(new CharSequence[]{"保存到本地"}, (d, which) -> saveCurrentImage())
+                    .show();
+        }
+
+        private void saveCurrentImage() {
+            String path = currentPath.get();
+            if (path == null || path.isEmpty()) {
+                MAIN.post(() -> Toast.makeText(appContext, "图片已不存在", Toast.LENGTH_SHORT).show());
+                return;
+            }
+            final File src = new File(path);
+            if (!src.isFile()) {
+                MAIN.post(() -> Toast.makeText(appContext, "图片已不存在", Toast.LENGTH_SHORT).show());
+                return;
+            }
+            POOL.execute(() -> {
+                String msg;
+                try {
+                    boolean ok = saveImageToGallery(appContext, src);
+                    msg = ok ? "已保存到相册" : "保存失败";
+                } catch (Exception e) {
+                    msg = "保存失败";
+                }
+                final String out = msg;
+                MAIN.post(() -> Toast.makeText(appContext, out, Toast.LENGTH_SHORT).show());
+            });
         }
 
         @Override
@@ -287,6 +394,11 @@ public final class ImageLoader {
             photoView.setScaleLevels(1f, 2f, 3f);
             // 点按视图任意位置（含图片两侧黑边）都关闭弹窗
             photoView.setOnViewTapListener((v, x, y) -> dialog.dismiss());
+            // 长按弹出操作菜单，当前项「保存到本地」
+            photoView.setOnLongClickListener(v -> {
+                showSaveMenu(photoView);
+                return true;
+            });
 
             TouchGuardFrame frame = new TouchGuardFrame(parent.getContext());
             // ViewPager2 要求页面根布局填满整页

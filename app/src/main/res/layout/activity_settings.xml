@@ -96,34 +96,13 @@
                         android:layout_weight="1"
                         android:orientation="vertical">
 
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/tv_checkin_title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <TextView
-                                android:id="@+id/tv_checkin_title"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="日历打卡"
-                                android:textSize="15sp"
-                                android:textColor="@color/home_text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_checkin_tag"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="依赖自然日模式"
-                                android:textSize="11sp"
-                                android:textColor="@color/detail_primary"
-                                android:background="@drawable/bg_settings_tag"
-                                android:paddingStart="6dp"
-                                android:paddingEnd="6dp"
-                                android:paddingTop="2dp"
-                                android:paddingBottom="2dp"
-                                android:layout_marginStart="8dp" />
-                        </LinearLayout>
+                            android:text="日历打卡"
+                            android:textSize="15sp"
+                            android:textColor="@color/home_text_primary" />
 
                         <TextView
                             android:id="@+id/tv_checkin_hint"

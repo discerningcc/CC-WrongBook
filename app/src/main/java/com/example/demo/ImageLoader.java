@@ -18,7 +18,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.recyclerview.widget.RecyclerView;
@@ -157,7 +157,7 @@ public final class ImageLoader {
 
         View view = activity.getLayoutInflater().inflate(R.layout.dialog_photo_view, null);
         final ViewPager2 pager = view.findViewById(R.id.photo_pager);
-        final TextView counter = view.findViewById(R.id.photo_counter);
+        final LinearLayout dots = view.findViewById(R.id.photo_dots);
 
         dialog.setOnDismissListener(d -> {
             sActivePager = null;
@@ -180,14 +180,45 @@ public final class ImageLoader {
         android.util.DisplayMetrics dm = activity.getResources().getDisplayMetrics();
         final int screenMax = Math.max(dm.widthPixels, dm.heightPixels);
 
-        counter.setText((start + 1) + "/" + size);
-        counter.setVisibility(size > 1 ? View.VISIBLE : View.GONE);
-        pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                counter.setText((position + 1) + "/" + size);
+        if (size <= 1) {
+            dots.setVisibility(View.GONE);
+        } else {
+            dots.setVisibility(View.VISIBLE);
+            final int activeDot = Math.round(10 * dm.density);
+            final int inactiveDot = Math.round(8 * dm.density);
+            final int dotGap = Math.round(8 * dm.density);
+            final List<View> dotViews = new ArrayList<>();
+            for (int i = 0; i < dots.getChildCount(); i++) {
+                dotViews.add(dots.getChildAt(i));
             }
-        });
+            final int[] current = {start};
+            final Runnable renderDots = () -> {
+                for (int i = 0; i < dotViews.size(); i++) {
+                    View dot = dotViews.get(i);
+                    if (i >= size) {
+                        dot.setVisibility(View.GONE);
+                        continue;
+                    }
+                    boolean active = i == current[0];
+                    dot.setVisibility(View.VISIBLE);
+                    dot.setBackgroundResource(active ? R.drawable.dot_active : R.drawable.dot_inactive);
+                    LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) dot.getLayoutParams();
+                    int d = active ? activeDot : inactiveDot;
+                    lp.width = d;
+                    lp.height = d;
+                    lp.leftMargin = i > 0 ? dotGap : 0;
+                    dot.setLayoutParams(lp);
+                }
+            };
+            renderDots.run();
+            pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+                @Override
+                public void onPageSelected(int position) {
+                    current[0] = position;
+                    renderDots.run();
+                }
+            });
+        }
         PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp);
         pager.setAdapter(adapter);
         pager.setCurrentItem(start, false);

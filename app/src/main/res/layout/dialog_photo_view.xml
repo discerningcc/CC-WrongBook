@@ -10,17 +10,95 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <TextView
-        android:id="@+id/photo_counter"
+    <LinearLayout
+        android:id="@+id/photo_dots"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="24dp"
-        android:background="#66000000"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="6dp"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:visibility="gone"/>
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/dot_0"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_1"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_2"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_3"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_4"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_5"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_6"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_7"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_8"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/dot_9"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/dot_inactive"
+            android:visibility="gone"/>
+
+    </LinearLayout>
 
 </FrameLayout>

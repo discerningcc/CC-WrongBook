@@ -601,6 +601,12 @@ public class QuestionStorage {
         }
     }
 
+    /** 导入结果：题库本体 + 本次并入的打卡记录条数。 */
+    public static class ImportResult {
+        public QuestionBank bank;
+        public int checkinCount;
+    }
+
     /** 导入 zip 题库文件（重名自动加「（2）」），返回导入后的题库 */
     public static QuestionBank importBank(Context context, Uri uri) throws Exception {
         return importBank(context, uri, null);
@@ -608,6 +614,11 @@ public class QuestionStorage {
 
     /** 导入 zip 题库文件，带进度回调（done/total，解压条目数与题目处理数两段上报） */
     public static QuestionBank importBank(Context context, Uri uri, ProgressListener listener) throws Exception {
+        return importBankWithResult(context, uri, listener).bank;
+    }
+
+    /** 导入 zip 题库文件，返回题库本体与并入打卡条数。 */
+    public static ImportResult importBankWithResult(Context context, Uri uri, ProgressListener listener) throws Exception {
         File tmpDir = new File(context.getCacheDir(), "import_" + System.currentTimeMillis());
         tmpDir.mkdirs();
         try {
@@ -667,16 +678,6 @@ public class QuestionStorage {
             QuestionBank bank = new Gson().fromJson(readFile(jsonFile), QuestionBank.class);
             if (bank == null || bank.questions == null) throw new Exception("题库文件解析失败");
 
-            // 打卡记录合并：本地日期键优先；缺失或损坏均不阻断题库导入
-            try {
-                File checkinFile = new File(tmpDir, CHECKINS_JSON);
-                if (checkinFile.exists()) {
-                    CheckinStorage.mergeImportJson(context, readFile(checkinFile));
-                }
-            } catch (Exception ignored) {
-                Log.w(TAG, "skip importing checkins.json", ignored);
-            }
-
             bank.name = uniqueBankName(context, resolveImportBaseName(context, uri, bank.name));
             bank.id = UUID.randomUUID().toString();
             long now = System.currentTimeMillis();
@@ -695,8 +696,24 @@ public class QuestionStorage {
                 doneQ++;
                 if (listener != null) listener.onProgress(doneQ, totalQ);
             }
+
+            // 打卡记录合并延后到题库解析与图片重写成功之后：本地日期键优先；
+            // 缺失或损坏均不阻断题库导入；返回本次并入条数供界面反馈。
+            int checkinCount = 0;
+            try {
+                File checkinFile = new File(tmpDir, CHECKINS_JSON);
+                if (checkinFile.exists()) {
+                    checkinCount = CheckinStorage.mergeImportJson(context, readFile(checkinFile));
+                }
+            } catch (Exception ignored) {
+                Log.w(TAG, "skip importing checkins.json", ignored);
+            }
+
             writeBankNow(context, bank);
-            return bank;
+            ImportResult result = new ImportResult();
+            result.bank = bank;
+            result.checkinCount = Math.max(0, checkinCount);
+            return result;
         } finally {
             deleteRecursive(tmpDir);
         }

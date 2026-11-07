@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -153,10 +154,10 @@ public class CheckinStorage {
 
     /**
      * 合并导入备份里的打卡记录：日期键已存在时本地优先，不覆盖；其余并入。
-     * 入参为空或解析失败时静默跳过，不影响题库导入。
+     * 入参为空或解析失败时静默跳过，返回本次并入条数（0 表示未并入）。
      */
-    public static void mergeImportJson(Context context, String json) {
-        if (json == null || json.trim().isEmpty()) return;
+    public static int mergeImportJson(Context context, String json) {
+        if (json == null || json.trim().isEmpty()) return 0;
         Map<String, CheckinRecord> local = loadMap(context);
         Map<String, CheckinRecord> incoming;
         try {
@@ -164,18 +165,50 @@ public class CheckinStorage {
             incoming = new Gson().fromJson(json, type);
         } catch (Exception e) {
             Log.w(TAG, "skip corrupt checkins json", e);
-            return;
+            return 0;
         }
-        if (incoming == null || incoming.isEmpty()) return;
-        boolean changed = false;
+        if (incoming == null || incoming.isEmpty()) return 0;
+        int added = mergeMaps(local, incoming);
+        if (added > 0) writeAtomic(context, new Gson().toJson(local));
+        return added;
+    }
+
+    /**
+     * 纯函数：把 incoming 中合法且本地缺失的记录按日期键并入 local，返回并入条数。
+     * 本地已有日期不覆盖；非法键/记录跳过。不触碰 Context 与文件系统，可宿主机单测。
+     */
+    public static int mergeMaps(Map<String, CheckinRecord> local, Map<String, CheckinRecord> incoming) {
+        if (local == null || incoming == null) return 0;
+        int added = 0;
         for (Map.Entry<String, CheckinRecord> e : incoming.entrySet()) {
-            if (e.getKey() == null || e.getValue() == null) continue;
-            if (!local.containsKey(e.getKey())) {
-                local.put(e.getKey(), e.getValue());
-                changed = true;
+            String key = e.getKey();
+            CheckinRecord rec = e.getValue();
+            if (!isValidRecord(key, rec)) continue;
+            if (!local.containsKey(key)) {
+                local.put(key, rec);
+                added++;
             }
         }
-        if (changed) writeAtomic(context, new Gson().toJson(local));
+        return added;
+    }
+
+    /** 记录合法性：日期键为合法 yyyy-MM-dd，时间/题数/预算非负。 */
+    static boolean isValidRecord(String key, CheckinRecord rec) {
+        if (key == null || rec == null) return false;
+        if (!isValidDateKey(key)) return false;
+        return rec.dayStart >= 0 && rec.checkedAt >= 0 && rec.done >= 0 && rec.budget >= 0;
+    }
+
+    private static boolean isValidDateKey(String key) {
+        if (!key.matches("\\d{4}-\\d{2}-\\d{2}")) return false;
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
+        fmt.setLenient(false);
+        try {
+            fmt.parse(key);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
     }
 
     // ==================== 内部实现 ====================

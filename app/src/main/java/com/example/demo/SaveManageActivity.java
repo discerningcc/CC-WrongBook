@@ -262,14 +262,21 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
     }
 
     @Override
-    public void onImportSuccess(QuestionBank bank) {
+    public void onImportSuccess(QuestionBank bank, int checkinCount) {
         runOnUiThread(() -> {
             if (isFinishing() || isDestroyed()) return;
             dismissProgress();
             loadBanks();
+            StringBuilder message = new StringBuilder("题库「")
+                    .append(bank.name).append("」已导入（")
+                    .append(bank.questions.size()).append(" 题）");
+            if (checkinCount > 0) {
+                message.append("\n同时补回 ").append(checkinCount).append(" 条打卡记录");
+            }
+            message.append("，是否现在切换？");
             new AlertDialog.Builder(this)
                     .setTitle("导入成功")
-                    .setMessage("题库「" + bank.name + "」已导入（" + bank.questions.size() + " 题），是否现在切换？")
+                    .setMessage(message.toString())
                     .setPositiveButton("切换", (d, w) -> {
                         QuestionStorage.switchBank(this, bank.id);
                         Toast.makeText(this, "已切换到：" + bank.name, Toast.LENGTH_SHORT).show();

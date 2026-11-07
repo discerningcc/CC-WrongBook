@@ -18,7 +18,7 @@ public class TaskHolderFragment extends Fragment {
         void showProgress(String title, String message);
         void updateProgress(int done, int total, String message);
         void onExportSuccess();
-        void onImportSuccess(QuestionBank bank);
+        void onImportSuccess(QuestionBank bank, int checkinCount);
         void onFailure(String message);
     }
 
@@ -37,6 +37,7 @@ public class TaskHolderFragment extends Fragment {
     int total = 0;
     String progressMessage = "";
     QuestionBank importedBank;
+    int importedCheckinCount = 0;
     String errorMessage;
 
     private WeakReference<Host> hostRef = new WeakReference<>(null);
@@ -98,17 +99,19 @@ public class TaskHolderFragment extends Fragment {
         progressMessage = "正在解压文件，请稍候…";
         errorMessage = null;
         importedBank = null;
+        importedCheckinCount = 0;
         Host h = host();
         if (h != null) h.showProgress(titleForTask(), progressMessage);
         new Thread(() -> {
             try {
-                QuestionBank bank = QuestionStorage.importBank(appContext, uri, (d, t) -> {
+                QuestionStorage.ImportResult result = QuestionStorage.importBankWithResult(appContext, uri, (d, t) -> {
                     done = d;
                     total = t;
                     progressMessage = t > 0 ? "正在导入 " + d + " / " + t : "正在解压文件…";
                     notifyProgress();
                 });
-                importedBank = bank;
+                importedBank = result.bank;
+                importedCheckinCount = result.checkinCount;
                 state = DONE;
                 notifyImportSuccess();
             } catch (Exception e) {
@@ -134,7 +137,7 @@ public class TaskHolderFragment extends Fragment {
                 if (taskType == EXPORT) {
                     h.onExportSuccess();
                 } else {
-                    h.onImportSuccess(importedBank);
+                    h.onImportSuccess(importedBank, importedCheckinCount);
                 }
             }
             clearResult();
@@ -156,6 +159,7 @@ public class TaskHolderFragment extends Fragment {
         taskType = NONE;
         errorMessage = null;
         importedBank = null;
+        importedCheckinCount = 0;
     }
 
     private void notifyProgress() {
@@ -170,7 +174,7 @@ public class TaskHolderFragment extends Fragment {
 
     private void notifyImportSuccess() {
         Host h = host();
-        if (h != null) h.onImportSuccess(importedBank);
+        if (h != null) h.onImportSuccess(importedBank, importedCheckinCount);
     }
 
     private void notifyFailure() {

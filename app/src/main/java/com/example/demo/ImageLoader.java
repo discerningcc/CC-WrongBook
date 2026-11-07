@@ -6,7 +6,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.LruCache;
@@ -161,7 +160,6 @@ public final class ImageLoader {
         final TextView counter = view.findViewById(R.id.photo_counter);
 
         dialog.setOnDismissListener(d -> {
-            pager.setUserInputEnabled(true);
             sActivePager = null;
             sActiveAdapter = null;
             if (onDismiss != null) onDismiss.run();
@@ -188,13 +186,9 @@ public final class ImageLoader {
             @Override
             public void onPageSelected(int position) {
                 counter.setText((position + 1) + "/" + size);
-                if (sActiveAdapter != null) {
-                    PhotoView pv = sActiveAdapter.viewAt(position);
-                    if (pv != null) sActiveAdapter.applyZoomGate(pv);
-                }
             }
         });
-        PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, pager, snapshot, screenMax, start, restoreSupp);
+        PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp);
         pager.setAdapter(adapter);
         pager.setCurrentItem(start, false);
         sActivePager = pager;
@@ -232,21 +226,16 @@ public final class ImageLoader {
     /** 全屏翻页适配器：每个页面一个 PhotoView，解码在后台线程执行。 */
     private static final class PhotoPagerAdapter extends RecyclerView.Adapter<PhotoPagerAdapter.VH> {
 
-        /** 缩放级别高于适配级别多少视为「已放大」，此时锁定左右翻页避免手势打架 */
-        private static final float ZOOM_GATE_EPSILON = 0.05f;
-
         private final Dialog dialog;
-        private final ViewPager2 pager;
         private final List<String> paths;
         private final int screenMax;
         private final int restorePosition;
         private final float[] restoreSupp;
         private final SparseArray<PhotoView> views = new SparseArray<>();
 
-        PhotoPagerAdapter(Dialog dialog, ViewPager2 pager, List<String> paths, int screenMax,
+        PhotoPagerAdapter(Dialog dialog, List<String> paths, int screenMax,
                           int restorePosition, float[] restoreSupp) {
             this.dialog = dialog;
-            this.pager = pager;
             this.paths = paths;
             this.screenMax = screenMax;
             this.restorePosition = restorePosition;
@@ -257,13 +246,6 @@ public final class ImageLoader {
             return views.get(position);
         }
 
-        /** 已放大时禁用翻页器左右滑动，回到适配级别后恢复；与微信看图手势划分一致。 */
-        void applyZoomGate(PhotoView pv) {
-            if (pager == null || pv == null) return;
-            boolean zoomed = pv.getScale() > pv.getMinimumScale() + ZOOM_GATE_EPSILON;
-            pager.setUserInputEnabled(!zoomed);
-        }
-
         @Override
         public VH onCreateViewHolder(ViewGroup parent, int viewType) {
             final PhotoView photoView = new PhotoView(parent.getContext());
@@ -272,12 +254,10 @@ public final class ImageLoader {
             // 显式开启缩放并设定级别：适配 1x / 双击中等 2x / 最大 3x
             photoView.setZoomable(true);
             photoView.setScaleLevels(1f, 2f, 3f);
-            // 矩阵提交后联动翻页器输入开关
-            photoView.setOnMatrixChangeListener((RectF rect) -> applyZoomGate(photoView));
             // 点按视图任意位置（含图片两侧黑边）都关闭弹窗
             photoView.setOnViewTapListener((v, x, y) -> dialog.dismiss());
 
-            TouchGuardFrame frame = new TouchGuardFrame(parent.getContext(), pager);
+            TouchGuardFrame frame = new TouchGuardFrame(parent.getContext());
             // ViewPager2 要求页面根布局填满整页
             frame.setLayoutParams(new RecyclerView.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -304,7 +284,6 @@ public final class ImageLoader {
                                 Matrix m = new Matrix();
                                 m.setValues(restoreSupp);
                                 photoView.setSuppMatrix(m);
-                                applyZoomGate(photoView);
                             });
                         }
                     }
@@ -328,21 +307,16 @@ public final class ImageLoader {
     }
 
     /**
-     * 页面包裹层：多指落下期间阻止内部 RecyclerView 抢触摸，并把翻页器输入临时锁定，
-     * 保证双指捏合缩放能完整到达 PhotoView；单指抬起后按当前缩放级别恢复翻页。
+     * 页面包裹层：多指落下时阻止内部 RecyclerView 抢触摸，保证双指捏合缩放完整到达 PhotoView；
+     * 翻页器输入始终保持可用，放大后仍可左右翻页。
      */
     private static final class TouchGuardFrame extends FrameLayout {
 
-        private final ViewPager2 pager;
-        private PhotoView pv;
-
-        TouchGuardFrame(Context context, ViewPager2 pager) {
+        TouchGuardFrame(Context context) {
             super(context);
-            this.pager = pager;
         }
 
         void attach(PhotoView pv) {
-            this.pv = pv;
             addView(pv, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
@@ -355,18 +329,9 @@ public final class ImageLoader {
 
         @Override
         public boolean dispatchTouchEvent(MotionEvent ev) {
-            int action = ev.getActionMasked();
             if (ev.getPointerCount() >= 2) {
-                if (pager != null) pager.setUserInputEnabled(false);
                 ViewParent parent = getParent();
                 if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
-            } else if (action == MotionEvent.ACTION_UP
-                    || action == MotionEvent.ACTION_CANCEL
-                    || action == MotionEvent.ACTION_POINTER_UP) {
-                if (pager != null && pv != null) {
-                    boolean zoomed = pv.getScale() > pv.getMinimumScale() + 0.05f;
-                    pager.setUserInputEnabled(!zoomed);
-                }
             }
             return super.dispatchTouchEvent(ev);
         }

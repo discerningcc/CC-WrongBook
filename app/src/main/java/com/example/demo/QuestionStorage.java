@@ -65,6 +65,9 @@ public class QuestionStorage {
     /** 当前题库缓存（含题目列表） */
     private static QuestionBank cacheBank = null;
 
+    /** 加题页草稿期引用的图片路径：孤儿清理不得删除；保存/放弃后清空 */
+    private static final Set<String> sDraftRetained = new HashSet<>();
+
     // ==================== 后台写盘 ====================
     // 答题时只改内存里的题目对象，真正的 JSON 序列化和文件写入交给这个单线程执行器，
     // 主线程不再为 78 KB 的整份题库买单；连续多次改动会用「最新快照」覆盖前一份，不会堆积。
@@ -95,15 +98,33 @@ public class QuestionStorage {
         deleteQuestionImages(context, question);
     }
 
-    /** 删除单张私有图片：仅当未被当前题库任何题目引用时才删文件，避免误删共享图 */
+    /** 删除单张私有图片：仅当未被当前题库任何题目引用、也不在草稿保留集合中时才删文件，避免误删共享图/草稿图 */
     public static void deletePrivateImageIfUnused(Context context, String path) {
         if (path == null || path.isEmpty()) return;
+        synchronized (WRITE_LOCK) {
+            if (sDraftRetained.contains(path)) return;
+        }
         ensureBankExists(context);
         for (Question q : cacheBank.questions) {
             if (containsImage(q.contentImages, path) || containsImage(q.answerImages, path)) return;
         }
         File imagesDir = context.getDir(IMAGES_DIR, Context.MODE_PRIVATE);
         deleteImage(imagesDir, path);
+    }
+
+    /** 登记加题页草稿期引用的图片，清理孤儿图时保留；入参传当前两组路径集合 */
+    public static void retainDraftImages(List<String> paths) {
+        synchronized (WRITE_LOCK) {
+            sDraftRetained.clear();
+            if (paths != null) sDraftRetained.addAll(paths);
+        }
+    }
+
+    /** 保存成功或放弃退出后清空草稿保留集合 */
+    public static void clearDraftRetained() {
+        synchronized (WRITE_LOCK) {
+            sDraftRetained.clear();
+        }
     }
 
     private static boolean containsImage(List<String> images, String path) {

@@ -1,23 +1,40 @@
 package com.example.demo;
 
 import android.app.AlertDialog;
-import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.gson.Gson;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class AddQuestionActivity extends AppCompatActivity {
-    private static final int REQ_CONTENT = 1001;
-    private static final int REQ_ANSWER = 1002;
     private static final String KEY_CONTENT_IMGS = "content_images";
     private static final String KEY_ANSWER_IMGS = "answer_images";
     private static final String KEY_DISCARD_OPEN = "discard_open";
@@ -33,14 +50,19 @@ public class AddQuestionActivity extends AppCompatActivity {
     /** 图片分组：0 题干图，1 答案图 */
     private static final int GROUP_CONTENT = 0;
     private static final int GROUP_ANSWER = 1;
+    /** 草稿文件名（仅新增态使用） */
+    private static final String DRAFT_FILE = "draft_add_question.json";
 
     private EditText etContent, etAnswer;
-    private LinearLayout layoutContentImg, layoutAnswerImg;
+    private RecyclerView rvContent, rvAnswer;
     private TextView tvContentCount, tvAnswerCount;
     private View btnSaveContinue;
     private ArrayList<String> contentPaths = new ArrayList<>();
     private ArrayList<String> answerPaths = new ArrayList<>();
     private Question editQuestion = null;
+
+    private ThumbAdapter adapterContent, adapterAnswer;
+    private ItemTouchHelper helperContent, helperAnswer;
 
     private TextView titleBar;
 
@@ -55,6 +77,24 @@ public class AddQuestionActivity extends AppCompatActivity {
     private boolean fullscreenOpen;
     private int fsGroup = -1;
     private int fsIndex = -1;
+    /** 用户确认放弃后置位，抑制 onPause 兜底再次落草稿 */
+    private boolean discarding = false;
+    /** 是否由上次草稿回填进入（回填内容按未保存改动处理，返回需确认放弃） */
+    private boolean draftRestored = false;
+
+    private final ExecutorService BG = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "add-question-bg");
+        t.setDaemon(true);
+        return t;
+    });
+    private final Handler MAIN = new Handler(Looper.getMainLooper());
+
+    /** 相册取图：题干图 */
+    private final ActivityResultLauncher<String> pickContent = registerForActivityResult(
+            new ActivityResultContracts.GetContent(), uri -> onPicked(GROUP_CONTENT, uri));
+    /** 相册取图：答案图 */
+    private final ActivityResultLauncher<String> pickAnswer = registerForActivityResult(
+            new ActivityResultContracts.GetContent(), uri -> onPicked(GROUP_ANSWER, uri));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,17 +104,25 @@ public class AddQuestionActivity extends AppCompatActivity {
         titleBar = findViewById(R.id.title_bar);
         etContent = findViewById(R.id.et_content);
         etAnswer = findViewById(R.id.et_answer);
-        layoutContentImg = findViewById(R.id.layout_content_images);
-        layoutAnswerImg = findViewById(R.id.layout_answer_images);
+        rvContent = findViewById(R.id.rv_content_images);
+        rvAnswer = findViewById(R.id.rv_answer_images);
         tvContentCount = findViewById(R.id.tv_content_count);
         tvAnswerCount = findViewById(R.id.tv_answer_count);
         btnSaveContinue = findViewById(R.id.btn_save_continue);
 
+        boolean landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+        int spanCount = landscape ? 4 : 3;
+        rvContent.setLayoutManager(new GridLayoutManager(this, spanCount));
+        rvAnswer.setLayoutManager(new GridLayoutManager(this, spanCount));
+
         findViewById(R.id.btn_back).setOnClickListener(v -> onBackPressed());
-        findViewById(R.id.btn_add_content_img).setOnClickListener(v -> openGallery(REQ_CONTENT));
-        findViewById(R.id.btn_add_answer_img).setOnClickListener(v -> openGallery(REQ_ANSWER));
+        findViewById(R.id.btn_add_content_img).setOnClickListener(v -> pickContent.launch("image/*"));
+        findViewById(R.id.btn_add_answer_img).setOnClickListener(v -> pickAnswer.launch("image/*"));
         findViewById(R.id.btn_save).setOnClickListener(v -> save(false));
         btnSaveContinue.setOnClickListener(v -> save(true));
+
+        etContent.addTextChangedListener(draftWatcher);
+        etAnswer.addTextChangedListener(draftWatcher);
 
         String editQid = getIntent().getStringExtra("edit_qid");
         if (savedInstanceState != null) {
@@ -83,8 +131,6 @@ public class AddQuestionActivity extends AppCompatActivity {
             answerPaths = savedInstanceState.getStringArrayList(KEY_ANSWER_IMGS);
             if (contentPaths == null) contentPaths = new ArrayList<>();
             if (answerPaths == null) answerPaths = new ArrayList<>();
-            for (String path : contentPaths) addImage(layoutContentImg, GROUP_CONTENT, path);
-            for (String path : answerPaths) addImage(layoutAnswerImg, GROUP_ANSWER, path);
             if (editQid != null) editQuestion = QuestionStorage.findById(this, editQid);
 
             discardConfirmOpen = savedInstanceState.getBoolean(KEY_DISCARD_OPEN, false);
@@ -101,19 +147,25 @@ public class AddQuestionActivity extends AppCompatActivity {
 
                 contentPaths.clear();
                 contentPaths.addAll(editQuestion.contentImages);
-                for (String path : editQuestion.contentImages) {
-                    addImage(layoutContentImg, GROUP_CONTENT, path);
-                }
-
                 answerPaths.clear();
                 answerPaths.addAll(editQuestion.answerImages);
-                for (String path : editQuestion.answerImages) {
-                    addImage(layoutAnswerImg, GROUP_ANSWER, path);
-                }
             }
+        } else {
+            // 新增态：回填上次未保存的草稿
+            draftRestored = loadDraft();
         }
 
+        adapterContent = new ThumbAdapter(GROUP_CONTENT, contentPaths);
+        adapterAnswer = new ThumbAdapter(GROUP_ANSWER, answerPaths);
+        helperContent = makeHelper(adapterContent);
+        helperAnswer = makeHelper(adapterAnswer);
+        helperContent.attachToRecyclerView(rvContent);
+        helperAnswer.attachToRecyclerView(rvAnswer);
+        rvContent.setAdapter(adapterContent);
+        rvAnswer.setAdapter(adapterAnswer);
+
         snapshotBaseline();
+        if (draftRestored) resetBaselineToEmpty();
         refreshCounts();
         // 编辑态不提供「保存并继续」
         btnSaveContinue.setVisibility(editQuestion != null ? View.GONE : View.VISIBLE);
@@ -165,6 +217,14 @@ public class AddQuestionActivity extends AppCompatActivity {
         initAnswerImgs = new ArrayList<>(answerPaths);
     }
 
+    /** 草稿回填时把基线置空：回填内容视为未保存改动，返回需确认放弃 */
+    private void resetBaselineToEmpty() {
+        initContent = "";
+        initAnswer = "";
+        initContentImgs = new ArrayList<>();
+        initAnswerImgs = new ArrayList<>();
+    }
+
     private boolean isDirty() {
         String content = etContent.getText().toString();
         String answer = etAnswer.getText().toString();
@@ -177,63 +237,41 @@ public class AddQuestionActivity extends AppCompatActivity {
         tvAnswerCount.setText(answerPaths.size() + "/" + MAX_IMAGES);
     }
 
-    private void openGallery(int req) {
-        Intent i = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(i, req);
+    private ThumbAdapter adapterOf(int group) {
+        return group == GROUP_CONTENT ? adapterContent : adapterAnswer;
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode != RESULT_OK || data == null) return;
-        ArrayList<String> target = requestCode == REQ_CONTENT ? contentPaths : answerPaths;
+    // ==================== 相册取图（Activity Result API） ====================
+
+    private void onPicked(int group, Uri uri) {
+        if (uri == null) return;
+        ArrayList<String> target = group == GROUP_CONTENT ? contentPaths : answerPaths;
         if (target.size() >= MAX_IMAGES) {
             Toast.makeText(this, "每组最多 " + MAX_IMAGES + " 张图片", Toast.LENGTH_SHORT).show();
             return;
         }
-        Uri uri = data.getData();
-        try {
-            String path = ImageUtils.saveImageToPrivate(this, uri);
-            if (requestCode == REQ_CONTENT) {
-                contentPaths.add(path);
-                addImage(layoutContentImg, GROUP_CONTENT, path);
-            } else {
-                answerPaths.add(path);
-                addImage(layoutAnswerImg, GROUP_ANSWER, path);
+        BG.execute(() -> {
+            String path;
+            try {
+                path = ImageUtils.saveImageToPrivate(this, uri);
+            } catch (Exception e) {
+                MAIN.post(() -> Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show());
+                return;
             }
-        } catch (Exception e) {
-            Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show();
-        }
+            MAIN.post(() -> {
+                target.add(path);
+                adapterOf(group).notifyItemInserted(target.size() - 1);
+                refreshCounts();
+                saveDraft();
+            });
+        });
     }
 
-    private void addImage(LinearLayout layout, int group, String path) {
-        ImageView iv = new ImageView(this);
-        int size = (int) (180 * getResources().getDisplayMetrics().density);
-        iv.setLayoutParams(new LinearLayout.LayoutParams(size, size));
-        iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        iv.setTag(path);
-        ImageLoader.bindThumb(this, iv, path, size);
-
-        // 点击先进入大图预览
-        iv.setOnClickListener(v -> {
-            List<String> list = group == GROUP_CONTENT ? contentPaths : answerPaths;
-            int idx = Math.max(0, layout.indexOfChild(iv));
-            openPreview(group, idx, list, null, false);
-        });
-        // 长按弹出删除确认
-        iv.setOnLongClickListener(v -> {
-            confirmDelete(group, path);
-            return true;
-        });
-
-        layout.addView(iv);
-        refreshCounts();
-    }
+    // ==================== 删除 ====================
 
     private void confirmDelete(int group, String path) {
         deleteGroup = group;
         deletePath = path;
-        LinearLayout layout = group == GROUP_CONTENT ? layoutContentImg : layoutAnswerImg;
         new AlertDialog.Builder(this)
                 .setTitle("删除图片")
                 .setMessage("确定删除这张图吗？")
@@ -241,29 +279,33 @@ public class AddQuestionActivity extends AppCompatActivity {
                     deleteGroup = -1;
                     deletePath = null;
                 })
-                .setPositiveButton("删除", (dialog, which) -> {
-                    boolean wasBaseline = initContentImgs.contains(path) || initAnswerImgs.contains(path);
-                    if (group == GROUP_CONTENT) {
-                        contentPaths.remove(path);
-                    } else {
-                        answerPaths.remove(path);
-                    }
-                    // 按路径找回对应缩略图并移除
-                    for (int i = 0; i < layout.getChildCount(); i++) {
-                        View child = layout.getChildAt(i);
-                        if (path.equals(child.getTag())) {
-                            layout.removeViewAt(i);
-                            break;
-                        }
-                    }
-                    // 本次新加后又删掉的图，立即清理私有文件；基线图的移除留到保存时统一比对
-                    if (!wasBaseline) {
-                        QuestionStorage.deletePrivateImageIfUnused(this, path);
-                    }
-                    refreshCounts();
-                })
+                .setPositiveButton("删除", (dialog, which) -> doDelete(group, path))
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    private void doDelete(int group, String path) {
+        boolean wasBaseline = initContentImgs.contains(path) || initAnswerImgs.contains(path);
+        ArrayList<String> target = group == GROUP_CONTENT ? contentPaths : answerPaths;
+        int idx = target.indexOf(path);
+        if (idx >= 0) {
+            target.remove(idx);
+            adapterOf(group).notifyItemRemoved(idx);
+        }
+        refreshCounts();
+        saveDraft();
+        // 本次新加后又删掉的图，立即清理私有文件；基线图的移除留到保存时统一比对
+        if (!wasBaseline) {
+            QuestionStorage.deletePrivateImageIfUnused(this, path);
+        }
+        // 若从大图内触发删除，同步把看图当前页移除；组内清空由组件关闭看图
+        if (fullscreenOpen) ImageLoader.removeCurrentViewerImage();
+    }
+
+    /** 大图内「删除当前图」回调：复用本组删图确认口径 */
+    private void onViewerDeleteRequested(String path) {
+        if (fsGroup < 0) return;
+        confirmDelete(fsGroup, path);
     }
 
     /** 打开大图预览并记录留存状态；弹窗关闭时清掉打开标记 */
@@ -272,13 +314,94 @@ public class AddQuestionActivity extends AppCompatActivity {
         fsGroup = group;
         fsIndex = index;
         ImageLoader.openFullscreen(this, list, index, () -> fullscreenOpen = false,
-                restoreSupp, restoreMenu);
+                restoreSupp, restoreMenu, this::onViewerDeleteRequested);
+    }
+
+    // ==================== 草稿持久化（仅新增态） ====================
+
+    private final TextWatcher draftWatcher = new TextWatcher() {
+        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+        @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+        @Override public void afterTextChanged(Editable s) { saveDraft(); }
+    };
+
+    private File draftFile() {
+        return new File(getFilesDir(), DRAFT_FILE);
+    }
+
+    private List<String> combinedPaths() {
+        List<String> all = new ArrayList<>();
+        all.addAll(contentPaths);
+        all.addAll(answerPaths);
+        return all;
+    }
+
+    /** 新增态把当前文本与图片路径写入私有草稿；全空则清除草稿。编辑既有题不写草稿。 */
+    private void saveDraft() {
+        if (editQuestion != null || discarding) return;
+        String content = etContent.getText().toString();
+        String answer = etAnswer.getText().toString();
+        boolean empty = content.trim().isEmpty() && answer.trim().isEmpty()
+                && contentPaths.isEmpty() && answerPaths.isEmpty();
+        if (empty) {
+            clearDraft();
+            return;
+        }
+        final Draft draft = new Draft();
+        draft.content = content;
+        draft.answer = answer;
+        draft.contentImages = new ArrayList<>(contentPaths);
+        draft.answerImages = new ArrayList<>(answerPaths);
+        BG.execute(() -> {
+            try (FileWriter fw = new FileWriter(draftFile())) {
+                new Gson().toJson(draft, fw);
+            } catch (Exception ignored) {
+            }
+        });
+        QuestionStorage.retainDraftImages(combinedPaths());
+    }
+
+    /** 进入新增态时回填草稿；草稿图登记到保留集合，避免被孤儿清理误删。返回是否回填了非空草稿。 */
+    private boolean loadDraft() {
+        File f = draftFile();
+        if (!f.exists()) return false;
+        try (FileReader fr = new FileReader(f)) {
+            Draft draft = new Gson().fromJson(fr, Draft.class);
+            if (draft == null) return false;
+            etContent.setText(draft.content == null ? "" : draft.content);
+            etAnswer.setText(draft.answer == null ? "" : draft.answer);
+            contentPaths.clear();
+            answerPaths.clear();
+            if (draft.contentImages != null) contentPaths.addAll(draft.contentImages);
+            if (draft.answerImages != null) answerPaths.addAll(draft.answerImages);
+        } catch (Exception ignored) {
+            return false;
+        }
+        QuestionStorage.retainDraftImages(combinedPaths());
+        return !etContent.getText().toString().trim().isEmpty()
+                || !etAnswer.getText().toString().trim().isEmpty()
+                || !contentPaths.isEmpty() || !answerPaths.isEmpty();
+    }
+
+    /** 清除草稿文件并解除草稿图保留登记。 */
+    private void clearDraft() {
+        File f = draftFile();
+        if (f.exists()) f.delete();
+        QuestionStorage.clearDraftRetained();
+    }
+
+    private static class Draft {
+        String content;
+        String answer;
+        List<String> contentImages;
+        List<String> answerImages;
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         QuestionStorage.flush(this);   // 退出页面前把新增/修改的题目写完
+        saveDraft();                   // 兜底落一次草稿
     }
 
     private void save(boolean andContinue) {
@@ -325,6 +448,8 @@ public class AddQuestionActivity extends AppCompatActivity {
         q.answerImages.addAll(answerPaths);
         QuestionStorage.save(this, q);
         for (String p : removed) QuestionStorage.deletePrivateImageIfUnused(this, p);
+        // 新题保存成功，草稿已落库，清除草稿
+        clearDraft();
         Toast.makeText(this, "题目已保存", Toast.LENGTH_SHORT).show();
         if (andContinue) {
             resetForm();
@@ -339,10 +464,11 @@ public class AddQuestionActivity extends AppCompatActivity {
         etAnswer.setText("");
         contentPaths.clear();
         answerPaths.clear();
-        layoutContentImg.removeAllViews();
-        layoutAnswerImg.removeAllViews();
+        adapterContent.notifyDataSetChanged();
+        adapterAnswer.notifyDataSetChanged();
         snapshotBaseline();
         refreshCounts();
+        clearDraft();
     }
 
     @Override
@@ -360,8 +486,122 @@ public class AddQuestionActivity extends AppCompatActivity {
                 .setTitle("放弃当前编辑")
                 .setMessage("内容尚未保存，确定放弃吗？")
                 .setOnDismissListener(d -> discardConfirmOpen = false)
-                .setPositiveButton("放弃", (dialog, which) -> finish())
+                .setPositiveButton("放弃", (dialog, which) -> {
+                    discarding = true;
+                    clearDraft();
+                    finish();
+                })
                 .setNegativeButton("继续编辑", null)
                 .show();
+    }
+
+    // ==================== 网格适配器 + 直接拖拽 ====================
+
+    private ItemTouchHelper makeHelper(ThumbAdapter adapter) {
+        ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN
+                        | ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, 0) {
+
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder from, RecyclerView.ViewHolder to) {
+                adapter.swap(from.getAdapterPosition(), to.getAdapterPosition());
+                return true;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                // 不支持滑动删除
+            }
+
+            @Override
+            public boolean isLongPressDragEnabled() {
+                // 直接拖拽：关闭默认长按起拖，由触摸滑距判定后手动 startDrag
+                return false;
+            }
+        };
+        return new ItemTouchHelper(callback);
+    }
+
+    private final class ThumbAdapter extends RecyclerView.Adapter<ThumbAdapter.VH> {
+        private final int group;
+        private final List<String> paths;
+
+        ThumbAdapter(int group, List<String> paths) {
+            this.group = group;
+            this.paths = paths;
+        }
+
+        @Override
+        public VH onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
+            View root = getLayoutInflater().inflate(R.layout.item_add_thumb, parent, false);
+            return new VH(root);
+        }
+
+        @Override
+        public void onBindViewHolder(VH holder, int position) {
+            String path = paths.get(position);
+            holder.iv.setTag(path);
+            ImageLoader.bindThumb(AddQuestionActivity.this, holder.iv, path, 300);
+
+            holder.itemView.setOnClickListener(v -> {
+                int idx = holder.getAdapterPosition();
+                if (idx < 0) return;
+                openPreview(group, idx, paths, null, false);
+            });
+            holder.itemView.setOnLongClickListener(v -> {
+                int idx = holder.getAdapterPosition();
+                if (idx < 0) return true;
+                confirmDelete(group, paths.get(idx));
+                return true;
+            });
+            attachDirectDrag(holder);
+        }
+
+        @Override
+        public int getItemCount() {
+            return paths.size();
+        }
+
+        void swap(int from, int to) {
+            if (from < 0 || to < 0 || from >= paths.size() || to >= paths.size()) return;
+            Collections.swap(paths, from, to);
+            notifyItemMoved(from, to);
+            saveDraft();
+        }
+
+        private void attachDirectDrag(VH holder) {
+            final float slop = ViewConfiguration.get(AddQuestionActivity.this).getScaledTouchSlop();
+            final float[] down = new float[2];
+            final boolean[] started = {false};
+            holder.itemView.setOnTouchListener((v, ev) -> {
+                switch (ev.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        down[0] = ev.getX();
+                        down[1] = ev.getY();
+                        started[0] = false;
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (!started[0]
+                                && Math.hypot(ev.getX() - down[0], ev.getY() - down[1]) > slop) {
+                            started[0] = true;
+                            ItemTouchHelper helper = group == GROUP_CONTENT ? helperContent : helperAnswer;
+                            if (helper != null) helper.startDrag(holder);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                return false;
+            });
+        }
+
+        final class VH extends RecyclerView.ViewHolder {
+            final ImageView iv;
+
+            VH(View root) {
+                super(root);
+                iv = root.findViewById(R.id.thumb);
+            }
+        }
     }
 }

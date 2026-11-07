@@ -83,19 +83,14 @@
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="8dp" />
 
-            <!-- 题目图片横向滚动条 -->
-            <HorizontalScrollView
+            <!-- 题目图片网格 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_content_images"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 android:layout_marginTop="8dp"
-                android:layout_marginBottom="10dp">
-                <LinearLayout
-                    android:id="@+id/layout_content_images"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical" />
-            </HorizontalScrollView>
+                android:layout_marginBottom="10dp" />
 
             <TextView
                 android:id="@+id/btn_add_content_img"
@@ -143,19 +138,14 @@
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="8dp" />
 
-            <!-- 答案图片横向滚动条 -->
-            <HorizontalScrollView
+            <!-- 答案图片网格 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_answer_images"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 android:layout_marginTop="8dp"
-                android:layout_marginBottom="10dp">
-                <LinearLayout
-                    android:id="@+id/layout_answer_images"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical" />
-            </HorizontalScrollView>
+                android:layout_marginBottom="10dp" />
 
             <TextView
                 android:id="@+id/btn_add_answer_img"

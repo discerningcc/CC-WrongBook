@@ -81,6 +81,11 @@ public final class ImageLoader {
     private static AlertDialog sSaveMenu;
     private static boolean sSaveMenuOpen;
 
+    /** 大图内删除回调：仅加题页挂载；复习/详情页不传，菜单不出现删除项 */
+    public interface OnImageDeleteListener {
+        void onDeleteRequested(String path);
+    }
+
     private ImageLoader() {
     }
 
@@ -122,18 +127,18 @@ public final class ImageLoader {
     public static void openFullscreen(final Activity activity, String path) {
         List<String> paths = new ArrayList<>(1);
         paths.add(path);
-        openFullscreen(activity, paths, 0, null, null, false);
+        openFullscreen(activity, paths, 0, null, null, false, null);
     }
 
     /** 多图翻页入口（无关闭回调）。 */
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex) {
-        openFullscreen(activity, paths, startIndex, null, null, false);
+        openFullscreen(activity, paths, startIndex, null, null, false, null);
     }
 
     /** 多图翻页入口（无缩放状态恢复）。 */
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
                                       final Runnable onDismiss) {
-        openFullscreen(activity, paths, startIndex, onDismiss, null, false);
+        openFullscreen(activity, paths, startIndex, onDismiss, null, false, null);
     }
 
     /**
@@ -157,6 +162,11 @@ public final class ImageLoader {
         return sSaveMenuOpen;
     }
 
+    /** 从当前打开的看图中移除当前页；组内清空则关闭看图。无打开中的看图时忽略。 */
+    public static void removeCurrentViewerImage() {
+        if (sActiveAdapter != null) sActiveAdapter.removeCurrent();
+    }
+
     /**
      * 全屏看图：同题图片左右翻页，顶部显示 当前/总数 页码；点按图片或周围黑边关闭。
      * 每张图采样到屏幕最长边以内后交给 PhotoView 缩放查看；文件缺失或解码失败该页留空。
@@ -167,6 +177,21 @@ public final class ImageLoader {
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
                                       final Runnable onDismiss, final float[] restoreSupp,
                                       final boolean restoreSaveMenu) {
+        openFullscreen(activity, paths, startIndex, onDismiss, restoreSupp, restoreSaveMenu, null);
+    }
+
+    /**
+     * 全屏看图：同题图片左右翻页，顶部显示 当前/总数 页码；点按图片或周围黑边关闭。
+     * 每张图采样到屏幕最长边以内后交给 PhotoView 缩放查看；文件缺失或解码失败该页留空。
+     * 弹窗关闭时回调 onDismiss（可为空），供调用方清理「看图打开中」的留存状态。
+     * restoreSupp 为旋转重建后需要回贴的缩放/平移矩阵（9 个值，可为空），仅作用于起始页。
+     * restoreSaveMenu 为旋转重建后是否需要重新展开保存菜单。
+     * deleteListener 非空时，大图长按菜单额外提供「删除当前图」；为空则不显示删除项。
+     */
+    public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
+                                      final Runnable onDismiss, final float[] restoreSupp,
+                                      final boolean restoreSaveMenu,
+                                      final OnImageDeleteListener deleteListener) {
         if (activity == null || activity.isFinishing()) return;
         if (paths == null || paths.isEmpty()) {
             Toast.makeText(activity, "图片已不存在", Toast.LENGTH_SHORT).show();
@@ -249,8 +274,9 @@ public final class ImageLoader {
             });
         }
         PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp,
-                activity.getApplicationContext(), () -> snapshot.get(pager.getCurrentItem()));
+                activity.getApplicationContext(), () -> snapshot.get(pager.getCurrentItem()), deleteListener);
         pager.setAdapter(adapter);
+        adapter.attachPager(pager);
         pager.setCurrentItem(start, false);
         sActivePager = pager;
         sActiveAdapter = adapter;
@@ -356,11 +382,14 @@ public final class ImageLoader {
         private final float[] restoreSupp;
         private final Context appContext;
         private final Supplier<String> currentPath;
+        private final OnImageDeleteListener deleteListener;
         private final SparseArray<PhotoView> views = new SparseArray<>();
+        private ViewPager2 pager;
 
         PhotoPagerAdapter(Dialog dialog, List<String> paths, int screenMax,
                           int restorePosition, float[] restoreSupp,
-                          Context appContext, Supplier<String> currentPath) {
+                          Context appContext, Supplier<String> currentPath,
+                          OnImageDeleteListener deleteListener) {
             this.dialog = dialog;
             this.paths = paths;
             this.screenMax = screenMax;
@@ -368,6 +397,11 @@ public final class ImageLoader {
             this.restoreSupp = restoreSupp;
             this.appContext = appContext;
             this.currentPath = currentPath;
+            this.deleteListener = deleteListener;
+        }
+
+        void attachPager(ViewPager2 pager) {
+            this.pager = pager;
         }
 
         PhotoView viewAt(int position) {
@@ -375,15 +409,40 @@ public final class ImageLoader {
         }
 
         void showSaveMenu() {
+            List<CharSequence> items = new ArrayList<>();
+            List<Runnable> actions = new ArrayList<>();
+            items.add("保存到本地");
+            actions.add(this::saveCurrentImage);
+            if (deleteListener != null) {
+                items.add("删除当前图");
+                actions.add(() -> {
+                    String p = currentPath.get();
+                    if (p != null && !p.isEmpty()) deleteListener.onDeleteRequested(p);
+                });
+            }
             AlertDialog menu = new AlertDialog.Builder(dialog.getContext())
                     .setOnDismissListener(d -> {
                         sSaveMenuOpen = false;
                         sSaveMenu = null;
                     })
-                    .setItems(new CharSequence[]{"保存到本地"}, (d, which) -> saveCurrentImage())
+                    .setItems(items.toArray(new CharSequence[0]), (d, which) -> actions.get(which).run())
                     .show();
             sSaveMenu = menu;
             sSaveMenuOpen = true;
+        }
+
+        /** 移除当前页；组内清空则关闭看图。 */
+        void removeCurrent() {
+            int pos = pager != null ? pager.getCurrentItem() : -1;
+            if (pos < 0 || pos >= paths.size()) return;
+            paths.remove(pos);
+            views.remove(pos);
+            notifyItemRemoved(pos);
+            if (paths.isEmpty()) {
+                dialog.dismiss();
+            } else if (pos >= paths.size()) {
+                pager.setCurrentItem(paths.size() - 1, false);
+            }
         }
 
         private void saveCurrentImage() {

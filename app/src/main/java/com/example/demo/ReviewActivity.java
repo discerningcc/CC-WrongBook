@@ -105,6 +105,7 @@ public class ReviewActivity extends AppCompatActivity {
     private static final String KEY_FS_PATHS = "fullscreen_paths";
     private static final String KEY_FS_INDEX = "fullscreen_index";
     private static final String KEY_FS_SUPP = "fullscreen_supp";
+    private static final String KEY_FS_MENU = "fullscreen_menu";
     private String restoreDialog;
     /** 跨日弹窗已选择「继续上次」；重建后静默恢复，不再重复询问 */
     private boolean crossdayResumed;
@@ -178,18 +179,23 @@ public class ReviewActivity extends AppCompatActivity {
             outState.putStringArrayList(KEY_FS_PATHS, new ArrayList<>(fullscreenPaths));
             outState.putInt(KEY_FS_INDEX, fullscreenIndex);
             outState.putFloatArray(KEY_FS_SUPP, ImageLoader.captureSuppMatrix());
+            outState.putBoolean(KEY_FS_MENU, ImageLoader.captureSaveMenuOpen());
         }
     }
 
     /** 打开全屏看图并记录留存状态；弹窗关闭时清掉打开标记 */
     private void openFullscreenFromReview(int index) {
-        openFullscreenFromReview(index, null);
+        openFullscreenFromReview(index, null, false);
     }
 
     private void openFullscreenFromReview(int index, float[] supp) {
+        openFullscreenFromReview(index, supp, false);
+    }
+
+    private void openFullscreenFromReview(int index, float[] supp, boolean menuOpen) {
         fullscreenOpen = true;
         fullscreenIndex = index;
-        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false, supp);
+        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false, supp, menuOpen);
     }
 
     /** 旋转重建后重弹之前打开的全屏看图；仅系统重建（savedInstanceState 非空）时执行 */
@@ -200,7 +206,8 @@ public class ReviewActivity extends AppCompatActivity {
         fullscreenPaths.clear();
         fullscreenPaths.addAll(paths);
         fullscreenIndex = savedInstanceState.getInt(KEY_FS_INDEX, 0);
-        openFullscreenFromReview(fullscreenIndex, savedInstanceState.getFloatArray(KEY_FS_SUPP));
+        boolean menuOpen = savedInstanceState.getBoolean(KEY_FS_MENU, false);
+        openFullscreenFromReview(fullscreenIndex, savedInstanceState.getFloatArray(KEY_FS_SUPP), menuOpen);
     }
 
     /** 重建后恢复顶部提示条（文案/重启按钮/剩余秒数）与右上角菜单展开态 */

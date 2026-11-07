@@ -24,6 +24,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private static final String KEY_FS_PATHS = "fullscreen_paths";
     private static final String KEY_FS_INDEX = "fullscreen_index";
     private static final String KEY_FS_SUPP = "fullscreen_supp";
+    private static final String KEY_FS_MENU = "fullscreen_menu";
     private com.google.android.material.card.MaterialCardView btnExclude;
     private com.google.android.material.card.MaterialCardView btnRestudy;
     private TextView btnExcludeText;
@@ -187,13 +188,17 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
     /** 打开全屏看图并记录留存状态；弹窗关闭时清掉打开标记 */
     private void openFullscreenFromDetail(int index) {
-        openFullscreenFromDetail(index, null);
+        openFullscreenFromDetail(index, null, false);
     }
 
     private void openFullscreenFromDetail(int index, float[] supp) {
+        openFullscreenFromDetail(index, supp, false);
+    }
+
+    private void openFullscreenFromDetail(int index, float[] supp, boolean menuOpen) {
         fullscreenOpen = true;
         fullscreenIndex = index;
-        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false, supp);
+        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false, supp, menuOpen);
     }
 
     /** 旋转重建后重弹之前打开的全屏看图；仅系统重建（savedInstanceState 非空）时执行 */
@@ -204,7 +209,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
         fullscreenPaths.clear();
         fullscreenPaths.addAll(paths);
         fullscreenIndex = savedInstanceState.getInt(KEY_FS_INDEX, 0);
-        openFullscreenFromDetail(fullscreenIndex, savedInstanceState.getFloatArray(KEY_FS_SUPP));
+        boolean menuOpen = savedInstanceState.getBoolean(KEY_FS_MENU, false);
+        openFullscreenFromDetail(fullscreenIndex, savedInstanceState.getFloatArray(KEY_FS_SUPP), menuOpen);
     }
 
     @Override
@@ -214,6 +220,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
             outState.putStringArrayList(KEY_FS_PATHS, new ArrayList<>(fullscreenPaths));
             outState.putInt(KEY_FS_INDEX, fullscreenIndex);
             outState.putFloatArray(KEY_FS_SUPP, ImageLoader.captureSuppMatrix());
+            outState.putBoolean(KEY_FS_MENU, ImageLoader.captureSaveMenuOpen());
         }
     }
 }

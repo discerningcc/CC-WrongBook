@@ -77,6 +77,10 @@ public final class ImageLoader {
     private static ViewPager2 sActivePager;
     private static PhotoPagerAdapter sActiveAdapter;
 
+    /** 当前打开中的保存菜单及其展开态；看图关闭时一并收起 */
+    private static AlertDialog sSaveMenu;
+    private static boolean sSaveMenuOpen;
+
     private ImageLoader() {
     }
 
@@ -118,18 +122,18 @@ public final class ImageLoader {
     public static void openFullscreen(final Activity activity, String path) {
         List<String> paths = new ArrayList<>(1);
         paths.add(path);
-        openFullscreen(activity, paths, 0, null, null);
+        openFullscreen(activity, paths, 0, null, null, false);
     }
 
     /** 多图翻页入口（无关闭回调）。 */
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex) {
-        openFullscreen(activity, paths, startIndex, null, null);
+        openFullscreen(activity, paths, startIndex, null, null, false);
     }
 
     /** 多图翻页入口（无缩放状态恢复）。 */
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
                                       final Runnable onDismiss) {
-        openFullscreen(activity, paths, startIndex, onDismiss, null);
+        openFullscreen(activity, paths, startIndex, onDismiss, null, false);
     }
 
     /**
@@ -148,14 +152,21 @@ public final class ImageLoader {
         return values;
     }
 
+    /** 采集保存菜单是否展开；供调用方在 onSaveInstanceState 中留存，旋转重建后重显。 */
+    public static boolean captureSaveMenuOpen() {
+        return sSaveMenuOpen;
+    }
+
     /**
      * 全屏看图：同题图片左右翻页，顶部显示 当前/总数 页码；点按图片或周围黑边关闭。
      * 每张图采样到屏幕最长边以内后交给 PhotoView 缩放查看；文件缺失或解码失败该页留空。
      * 弹窗关闭时回调 onDismiss（可为空），供调用方清理「看图打开中」的留存状态。
      * restoreSupp 为旋转重建后需要回贴的缩放/平移矩阵（9 个值，可为空），仅作用于起始页。
+     * restoreSaveMenu 为旋转重建后是否需要重新展开保存菜单。
      */
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
-                                      final Runnable onDismiss, final float[] restoreSupp) {
+                                      final Runnable onDismiss, final float[] restoreSupp,
+                                      final boolean restoreSaveMenu) {
         if (activity == null || activity.isFinishing()) return;
         if (paths == null || paths.isEmpty()) {
             Toast.makeText(activity, "图片已不存在", Toast.LENGTH_SHORT).show();
@@ -174,6 +185,10 @@ public final class ImageLoader {
         final LinearLayout dots = view.findViewById(R.id.photo_dots);
 
         dialog.setOnDismissListener(d -> {
+            // 看图关闭时一并收起仍展开的保存菜单
+            if (sSaveMenu != null) {
+                sSaveMenu.dismiss();
+            }
             sActivePager = null;
             sActiveAdapter = null;
             if (onDismiss != null) onDismiss.run();
@@ -241,6 +256,11 @@ public final class ImageLoader {
         sActiveAdapter = adapter;
 
         dialog.show();
+
+        // 旋转重建后按留存标识重显保存菜单；等视图布局完成后再弹，避免窗口未附着
+        if (restoreSaveMenu) {
+            pager.post(adapter::showSaveMenu);
+        }
     }
 
     /** 按 wantPx 对最长边采样解码；文件不存在、尺寸非法或 OOM 时返回 null。 */
@@ -354,10 +374,16 @@ public final class ImageLoader {
             return views.get(position);
         }
 
-        private void showSaveMenu(View anchor) {
-            new AlertDialog.Builder(dialog.getContext())
+        void showSaveMenu() {
+            AlertDialog menu = new AlertDialog.Builder(dialog.getContext())
+                    .setOnDismissListener(d -> {
+                        sSaveMenuOpen = false;
+                        sSaveMenu = null;
+                    })
                     .setItems(new CharSequence[]{"保存到本地"}, (d, which) -> saveCurrentImage())
                     .show();
+            sSaveMenu = menu;
+            sSaveMenuOpen = true;
         }
 
         private void saveCurrentImage() {
@@ -396,7 +422,7 @@ public final class ImageLoader {
             photoView.setOnViewTapListener((v, x, y) -> dialog.dismiss());
             // 长按弹出操作菜单，当前项「保存到本地」
             photoView.setOnLongClickListener(v -> {
-                showSaveMenu(photoView);
+                showSaveMenu();
                 return true;
             });
 

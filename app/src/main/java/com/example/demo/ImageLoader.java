@@ -191,7 +191,8 @@ public final class ImageLoader {
             PhotoView photoView = new PhotoView(parent.getContext());
             photoView.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            photoView.setOnPhotoTapListener((v, x, y) -> dialog.dismiss());
+            // 点按视图任意位置（含图片两侧黑边）都关闭弹窗
+            photoView.setOnViewTapListener((v, x, y) -> dialog.dismiss());
             return new VH(photoView);
         }
 

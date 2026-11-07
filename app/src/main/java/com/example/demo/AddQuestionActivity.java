@@ -506,7 +506,15 @@ public class AddQuestionActivity extends AppCompatActivity {
                 .setOnDismissListener(d -> discardConfirmOpen = false)
                 .setPositiveButton("放弃", (dialog, which) -> {
                     discarding = true;
+                    // 本次新选、未保存进题库的图片随草稿一并删除，避免残留孤儿文件；基线既有图不在此列
+                    List<String> unsaved = new ArrayList<>();
+                    for (String p : combinedPaths()) {
+                        if (!initContentImgs.contains(p) && !initAnswerImgs.contains(p)) unsaved.add(p);
+                    }
                     clearDraft();
+                    for (String p : unsaved) {
+                        QuestionStorage.deletePrivateImageIfUnused(this, p);
+                    }
                     finish();
                 })
                 .setNegativeButton("继续编辑", null)

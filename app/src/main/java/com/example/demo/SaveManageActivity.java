@@ -13,6 +13,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -31,10 +33,15 @@ import java.util.Locale;
  */
 public class SaveManageActivity extends AppCompatActivity implements TaskHolderFragment.Host {
 
-    private static final int REQ_IMPORT = 2001;
-    private static final int REQ_EXPORT = 2002;
     private static final String TAG_TASK_HOLDER = "task_holder";
     private static final String KEY_PENDING_EXPORT = "pending_export_bank_id";
+
+    private final ActivityResultLauncher<Intent> importLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onImportResult(result.getResultCode(), result.getData()));
+    private final ActivityResultLauncher<Intent> exportLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onExportResult(result.getResultCode(), result.getData()));
 
     private RecyclerView recycler;
     private BankAdapter adapter;
@@ -134,7 +141,7 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        startActivityForResult(intent, REQ_IMPORT);
+        importLauncher.launch(intent);
     }
 
     private void exportBank(QuestionStorage.BankInfo info) {
@@ -143,7 +150,7 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
         intent.setType("application/zip");
         intent.putExtra(Intent.EXTRA_TITLE, info.name + ".zip");
         pendingExportBankId = info.id;
-        startActivityForResult(intent, REQ_EXPORT);
+        exportLauncher.launch(intent);
     }
 
     private void showBankActions(QuestionStorage.BankInfo info) {
@@ -206,17 +213,15 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
         return sdf.format(new Date(t));
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    private void onImportResult(int resultCode, Intent data) {
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        holder.startImport(getApplicationContext(), data.getData());
+    }
 
-        if (requestCode == REQ_IMPORT) {
-            holder.startImport(getApplicationContext(), data.getData());
-        } else if (requestCode == REQ_EXPORT) {
-            if (pendingExportBankId == null) return;
-            holder.startExport(getApplicationContext(), pendingExportBankId, data.getData());
-        }
+    private void onExportResult(int resultCode, Intent data) {
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        if (pendingExportBankId == null) return;
+        holder.startExport(getApplicationContext(), pendingExportBankId, data.getData());
     }
 
     // ==================== TaskHolderFragment.Host 回调（主线程） ====================

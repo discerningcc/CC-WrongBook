@@ -2,6 +2,7 @@ package com.example.demo;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -24,6 +25,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     private Switch switchCheckin;
     private TextView tvCheckinHint;
+    private TextView tvCheckinTitle;
+    private TextView tvCheckinTag;
+    private View checkinGuide;
     /** 程序化刷新开关时屏蔽监听回写，避免禁用态误落盘 */
     private boolean refreshingCheckin = false;
 
@@ -47,6 +51,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         switchCheckin = findViewById(R.id.switch_checkin);
         tvCheckinHint = findViewById(R.id.tv_checkin_hint);
+        tvCheckinTitle = findViewById(R.id.tv_checkin_title);
+        tvCheckinTag = findViewById(R.id.tv_checkin_tag);
+        checkinGuide = findViewById(R.id.view_checkin_guide);
         refreshCheckinRow();
         switchCheckin.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (refreshingCheckin || !switchCheckin.isEnabled()) return;
@@ -82,11 +89,17 @@ public class SettingsActivity extends AppCompatActivity {
 
         applySwitchState(switchCheckin, checked, naturalOn);
         if (naturalOn) {
+            tvCheckinTitle.setTextColor(getColor(R.color.home_text_primary));
+            tvCheckinTag.setVisibility(View.VISIBLE);
             tvCheckinHint.setText("完成今日目标后可在主页打卡，历史记录可在日历中查看");
             tvCheckinHint.setTextColor(getColor(R.color.home_text_secondary));
+            checkinGuide.setBackgroundColor(getColor(R.color.home_stroke));
         } else {
+            tvCheckinTitle.setTextColor(getColor(R.color.home_text_secondary));
+            tvCheckinTag.setVisibility(View.INVISIBLE);
             tvCheckinHint.setText("24 小时模式无固定日界，打卡功能不可用；历史记录仍保留");
             tvCheckinHint.setTextColor(getColor(R.color.detail_warn));
+            checkinGuide.setBackgroundColor(getColor(R.color.home_stroke));
         }
     }
 

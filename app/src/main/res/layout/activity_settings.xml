@@ -1,58 +1,223 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:gravity="top|center_horizontal">
+    android:background="@color/home_bg"
+    android:fillViewport="true">
 
-    <Switch
-        android:id="@+id/switch_natural_day"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="自然日模式（0点算新一天）"
-        android:textSize="18sp"
-        android:layout_marginTop="30dp"
-        android:thumbTint="@color/switch_thumb"
-        android:trackTint="@color/switch_track"/>
-
-    <Switch
-        android:id="@+id/switch_checkin"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="日历打卡（完成今日目标后记录当日打卡）"
-        android:textSize="18sp"
-        android:layout_marginTop="24dp"
-        android:thumbTint="@color/switch_thumb"
-        android:trackTint="@color/switch_track"/>
-
-    <TextView
-        android:id="@+id/tv_checkin_hint"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textColor="@color/home_text_secondary"
-        android:layout_marginTop="4dp"
-        android:layout_marginStart="8dp"/>
+        android:orientation="vertical"
+        android:padding="@dimen/home_padding"
+        android:gravity="top|center_horizontal">
 
-    <Switch
-        android:id="@+id/switch_timer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="复习计时（页头显示总时长与本题用时）"
-        android:textSize="18sp"
-        android:layout_marginTop="30dp"
-        android:thumbTint="@color/switch_thumb"
-        android:trackTint="@color/switch_track"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="设置"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/home_text_primary"
+            android:layout_marginBottom="12dp" />
 
-    <TextView
-        android:id="@+id/tv_budget_row"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="每日复习量：50 题/天"
-        android:textSize="18sp"
-        android:layout_marginTop="30dp"
-        android:padding="8dp"/>
+        <!-- 卡片：复习节奏与打卡（自然日为主项，日历打卡为从属项） -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/home_card"
+            app:cardCornerRadius="@dimen/home_card_corner"
+            android:layout_marginBottom="@dimen/home_card_margin">
 
-</LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/home_info_padding">
+
+                <!-- 主项：自然日模式 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="自然日模式"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/home_text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="以每日 0 点划分新一天；关闭后按 24 小时滚动间隔"
+                            android:textSize="12sp"
+                            android:textColor="@color/home_text_secondary"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/switch_natural_day"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:thumbTint="@color/switch_thumb"
+                        android:trackTint="@color/switch_track" />
+                </LinearLayout>
+
+                <!-- 从属项：日历打卡（缩进 + 左侧引导线，跟随自然日模式） -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="16dp">
+
+                    <View
+                        android:id="@+id/view_checkin_guide"
+                        android:layout_width="2dp"
+                        android:layout_height="match_parent"
+                        android:background="@color/home_stroke"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="14dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:id="@+id/tv_checkin_title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="日历打卡"
+                                android:textSize="15sp"
+                                android:textColor="@color/home_text_primary" />
+
+                            <TextView
+                                android:id="@+id/tv_checkin_tag"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="依赖自然日模式"
+                                android:textSize="11sp"
+                                android:textColor="@color/detail_primary"
+                                android:background="@drawable/bg_settings_tag"
+                                android:paddingStart="6dp"
+                                android:paddingEnd="6dp"
+                                android:paddingTop="2dp"
+                                android:paddingBottom="2dp"
+                                android:layout_marginStart="8dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_checkin_hint"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="12sp"
+                            android:textColor="@color/home_text_secondary"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/switch_checkin"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:thumbTint="@color/switch_thumb"
+                        android:trackTint="@color/switch_track" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 卡片：复习辅助 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/home_card"
+            app:cardCornerRadius="@dimen/home_card_corner"
+            android:layout_marginBottom="@dimen/home_card_margin">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/home_info_padding">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="复习计时"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/home_text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="页头显示总时长与本题用时"
+                            android:textSize="12sp"
+                            android:textColor="@color/home_text_secondary"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <Switch
+                        android:id="@+id/switch_timer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:thumbTint="@color/switch_thumb"
+                        android:trackTint="@color/switch_track" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- 卡片：每日复习量 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/home_card"
+            app:cardCornerRadius="@dimen/home_card_corner">
+
+            <TextView
+                android:id="@+id/tv_budget_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="每日复习量：50 题/天"
+                android:textSize="16sp"
+                android:textColor="@color/home_text_primary"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="@dimen/home_info_padding" />
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>

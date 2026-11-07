@@ -14,6 +14,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private boolean bankEmpty = false;
+    /** 复习量弹窗：与设置页共用同一控制器，变更后回刷今日进度行 */
+    private final BudgetDialogController budgetController = new BudgetDialogController();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +26,16 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> QuestionStorage.sweepOrphanImages(this), "orphan-sweep").start();
 
         refreshHome();
+
+        // 今日完成行：点击弹出与设置页一致的复习量选择弹窗，变更后回刷进度
+        View todayRow = findViewById(R.id.tv_today_main);
+        View todaySub = findViewById(R.id.tv_today_sub);
+        Runnable openBudget = () ->
+                budgetController.showBudgetDialog(this, this::refreshHome);
+        todayRow.setOnClickListener(v -> openBudget.run());
+        todaySub.setOnClickListener(v -> openBudget.run());
+
+        budgetController.restore(savedInstanceState, this, this::refreshHome);
 
         findViewById(R.id.btn_help).setOnClickListener(v -> {
             String helpContent =
@@ -182,5 +194,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshHome();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        budgetController.saveInstanceState(outState);
     }
 }

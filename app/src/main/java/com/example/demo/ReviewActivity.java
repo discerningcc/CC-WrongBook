@@ -27,6 +27,7 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +48,7 @@ public class ReviewActivity extends AppCompatActivity {
 
     private ReviewSession session;
     private Question currentQ;
+    private final List<String> fullscreenPaths = new ArrayList<>();
     private String bankId;
     private String bankName;
     private boolean finished;
@@ -398,14 +400,17 @@ public class ReviewActivity extends AppCompatActivity {
         answerLayout.setVisibility(session.answerShown ? View.VISIBLE : View.GONE);
         syncAnswerButton();
 
+        rebuildFullscreenPaths(q);
+
+        int idx = 0;
         reviewImageLayout.removeAllViews();
         if (q.contentImages != null) {
-            for (String path : q.contentImages) addImage(reviewImageLayout, path);
+            for (String path : q.contentImages) if (path != null && !path.isEmpty()) addImage(reviewImageLayout, path, idx++);
         }
 
         answerImageLayout.removeAllViews();
         if (q.answerImages != null) {
-            for (String path : q.answerImages) addImage(answerImageLayout, path);
+            for (String path : q.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++);
         }
 
         enableButtons(true);
@@ -693,14 +698,14 @@ public class ReviewActivity extends AppCompatActivity {
         return SessionStorage.formatDuration(ms);
     }
 
-    private void addImage(LinearLayout parent, String path) {
+    private void addImage(LinearLayout parent, String path, int index) {
         ImageView iv = new ImageView(this);
         int size = (int) (280 * getResources().getDisplayMetrics().density);
         iv.setLayoutParams(new LinearLayout.LayoutParams(size, LinearLayout.LayoutParams.WRAP_CONTENT));
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
         iv.setAdjustViewBounds(true);
         ImageLoader.bindThumb(this, iv, path, size);
-        iv.setOnClickListener(v -> ImageLoader.openFullscreen(this, path));
+        iv.setOnClickListener(v -> ImageLoader.openFullscreen(this, fullscreenPaths, index));
         parent.addView(iv);
     }
 
@@ -997,8 +1002,23 @@ public class ReviewActivity extends AppCompatActivity {
             answerLayout.setVisibility(View.VISIBLE);
             session.answerShown = true;
         }
+        rebuildFullscreenPaths(currentQ);
         persistSession();
         syncAnswerButton();
+    }
+
+    /**
+     * 组装当前题全屏翻页列表：题干图在前；答案未揭晓时不纳入答案图，避免提前露出。
+     */
+    private void rebuildFullscreenPaths(Question q) {
+        fullscreenPaths.clear();
+        if (q == null) return;
+        if (q.contentImages != null) {
+            for (String p : q.contentImages) if (p != null && !p.isEmpty()) fullscreenPaths.add(p);
+        }
+        if (session.answerShown && q.answerImages != null) {
+            for (String p : q.answerImages) if (p != null && !p.isEmpty()) fullscreenPaths.add(p);
+        }
     }
 
     private void syncAnswerButton() {

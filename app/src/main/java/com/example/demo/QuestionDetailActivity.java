@@ -8,12 +8,15 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import java.util.ArrayList;
+import java.util.List;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
     private TextView tvQuestion, tvAnswer;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
     private Question currentQuestion;
+    private final List<String> fullscreenPaths = new ArrayList<>();
     private String currentQid; // 保存ID，用于刷新
     private com.google.android.material.card.MaterialCardView btnExclude;
     private com.google.android.material.card.MaterialCardView btnRestudy;
@@ -144,25 +147,34 @@ public class QuestionDetailActivity extends AppCompatActivity {
         }
 
         // 刷新图片
+        fullscreenPaths.clear();
+        if (currentQuestion.contentImages != null) {
+            for (String p : currentQuestion.contentImages) if (p != null && !p.isEmpty()) fullscreenPaths.add(p);
+        }
+        if (currentQuestion.answerImages != null) {
+            for (String p : currentQuestion.answerImages) if (p != null && !p.isEmpty()) fullscreenPaths.add(p);
+        }
+
+        int idx = 0;
         reviewImageLayout.removeAllViews();
-        for (String path : currentQuestion.contentImages) {
-            addImage(reviewImageLayout, path);
+        if (currentQuestion.contentImages != null) {
+            for (String path : currentQuestion.contentImages) if (path != null && !path.isEmpty()) addImage(reviewImageLayout, path, idx++);
         }
 
         answerImageLayout.removeAllViews();
-        for (String path : currentQuestion.answerImages) {
-            addImage(answerImageLayout, path);
+        if (currentQuestion.answerImages != null) {
+            for (String path : currentQuestion.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++);
         }
     }
 
-    private void addImage(LinearLayout parent, String path) {
+    private void addImage(LinearLayout parent, String path, int index) {
         ImageView iv = new ImageView(this);
         int size = (int) (280 * getResources().getDisplayMetrics().density);
         iv.setLayoutParams(new LinearLayout.LayoutParams(size, LinearLayout.LayoutParams.WRAP_CONTENT));
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
         iv.setAdjustViewBounds(true);
         ImageLoader.bindThumb(this, iv, path, size);
-        iv.setOnClickListener(v -> ImageLoader.openFullscreen(this, path));
+        iv.setOnClickListener(v -> ImageLoader.openFullscreen(this, fullscreenPaths, index));
         parent.addView(iv);
     }
 }

@@ -49,6 +49,9 @@ public class ReviewActivity extends AppCompatActivity {
     private ReviewSession session;
     private Question currentQ;
     private final List<String> fullscreenPaths = new ArrayList<>();
+    /** 全屏看图是否打开中；旋转重建后据此重弹 */
+    private boolean fullscreenOpen;
+    private int fullscreenIndex = -1;
     private String bankId;
     private String bankName;
     private boolean finished;
@@ -99,6 +102,8 @@ public class ReviewActivity extends AppCompatActivity {
     private static final String KEY_BANNER_REMAINING = "banner_remaining_ms";
     private static final String KEY_MENU_OPEN = "menu_open";
     private static final String KEY_DWELL_BASE = "dwell_base_ms";
+    private static final String KEY_FS_PATHS = "fullscreen_paths";
+    private static final String KEY_FS_INDEX = "fullscreen_index";
     private String restoreDialog;
     /** 跨日弹窗已选择「继续上次」；重建后静默恢复，不再重复询问 */
     private boolean crossdayResumed;
@@ -153,6 +158,7 @@ public class ReviewActivity extends AppCompatActivity {
         }
         restoreSavedDialog(savedInstanceState);
         restoreBannerAndMenu(savedInstanceState);
+        restoreFullscreen(savedInstanceState);
     }
 
     @Override
@@ -167,6 +173,28 @@ public class ReviewActivity extends AppCompatActivity {
         outState.putBoolean(KEY_MENU_OPEN, menuOpen);
         outState.putLong(KEY_DWELL_BASE, dwellBaseMs);
         outState.putBoolean(KEY_CROSSDAY_RESUMED, crossdayResumed);
+        if (fullscreenOpen) {
+            outState.putStringArrayList(KEY_FS_PATHS, new ArrayList<>(fullscreenPaths));
+            outState.putInt(KEY_FS_INDEX, fullscreenIndex);
+        }
+    }
+
+    /** 打开全屏看图并记录留存状态；弹窗关闭时清掉打开标记 */
+    private void openFullscreenFromReview(int index) {
+        fullscreenOpen = true;
+        fullscreenIndex = index;
+        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false);
+    }
+
+    /** 旋转重建后重弹之前打开的全屏看图；仅系统重建（savedInstanceState 非空）时执行 */
+    private void restoreFullscreen(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        ArrayList<String> paths = savedInstanceState.getStringArrayList(KEY_FS_PATHS);
+        if (paths == null || paths.isEmpty()) return;
+        fullscreenPaths.clear();
+        fullscreenPaths.addAll(paths);
+        fullscreenIndex = savedInstanceState.getInt(KEY_FS_INDEX, 0);
+        openFullscreenFromReview(fullscreenIndex);
     }
 
     /** 重建后恢复顶部提示条（文案/重启按钮/剩余秒数）与右上角菜单展开态 */
@@ -705,7 +733,7 @@ public class ReviewActivity extends AppCompatActivity {
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
         iv.setAdjustViewBounds(true);
         ImageLoader.bindThumb(this, iv, path, size);
-        iv.setOnClickListener(v -> ImageLoader.openFullscreen(this, fullscreenPaths, index));
+        iv.setOnClickListener(v -> openFullscreenFromReview(index));
         parent.addView(iv);
     }
 

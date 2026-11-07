@@ -95,24 +95,36 @@ public final class ImageLoader {
     public static void openFullscreen(final Activity activity, String path) {
         List<String> paths = new ArrayList<>(1);
         paths.add(path);
-        openFullscreen(activity, paths, 0);
+        openFullscreen(activity, paths, 0, null);
+    }
+
+    /** 多图翻页入口（无关闭回调）。 */
+    public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex) {
+        openFullscreen(activity, paths, startIndex, null);
     }
 
     /**
-     * 全屏看图：同题图片左右翻页，顶部显示 当前/总数 页码；点按图片关闭。
+     * 全屏看图：同题图片左右翻页，顶部显示 当前/总数 页码；点按图片或周围黑边关闭。
      * 每张图采样到屏幕最长边以内后交给 PhotoView 缩放查看；文件缺失或解码失败该页留空。
+     * 弹窗关闭时回调 onDismiss（可为空），供调用方清理「看图打开中」的留存状态。
      */
-    public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex) {
+    public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
+                                      final Runnable onDismiss) {
         if (activity == null || activity.isFinishing()) return;
         if (paths == null || paths.isEmpty()) {
             Toast.makeText(activity, "图片已不存在", Toast.LENGTH_SHORT).show();
             return;
         }
-        final int size = paths.size();
+        // 拷贝一份快照，避免调用方后续重建清空列表影响已打开的看图
+        final List<String> snapshot = new ArrayList<>(paths);
+        final int size = snapshot.size();
         final int start = Math.max(0, Math.min(startIndex, size - 1));
 
         Dialog dialog = new Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setOnDismissListener(d -> {
+            if (onDismiss != null) onDismiss.run();
+        });
 
         View view = activity.getLayoutInflater().inflate(R.layout.dialog_photo_view, null);
         final ViewPager2 pager = view.findViewById(R.id.photo_pager);
@@ -141,7 +153,7 @@ public final class ImageLoader {
                 counter.setText((position + 1) + "/" + size);
             }
         });
-        pager.setAdapter(new PhotoPagerAdapter(dialog, paths, screenMax));
+        pager.setAdapter(new PhotoPagerAdapter(dialog, snapshot, screenMax));
         pager.setCurrentItem(start, false);
 
         dialog.show();

@@ -17,7 +17,12 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
     private Question currentQuestion;
     private final List<String> fullscreenPaths = new ArrayList<>();
+    /** 全屏看图是否打开中；旋转重建后据此重弹 */
+    private boolean fullscreenOpen;
+    private int fullscreenIndex = -1;
     private String currentQid; // 保存ID，用于刷新
+    private static final String KEY_FS_PATHS = "fullscreen_paths";
+    private static final String KEY_FS_INDEX = "fullscreen_index";
     private com.google.android.material.card.MaterialCardView btnExclude;
     private com.google.android.material.card.MaterialCardView btnRestudy;
     private TextView btnExcludeText;
@@ -39,6 +44,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         // 拿到ID并保存
         currentQid = getIntent().getStringExtra("qid");
         loadQuestionData(); // 加载题目
+        restoreFullscreen(savedInstanceState);
 
 
         // 修改本题
@@ -174,7 +180,34 @@ public class QuestionDetailActivity extends AppCompatActivity {
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
         iv.setAdjustViewBounds(true);
         ImageLoader.bindThumb(this, iv, path, size);
-        iv.setOnClickListener(v -> ImageLoader.openFullscreen(this, fullscreenPaths, index));
+        iv.setOnClickListener(v -> openFullscreenFromDetail(index));
         parent.addView(iv);
+    }
+
+    /** 打开全屏看图并记录留存状态；弹窗关闭时清掉打开标记 */
+    private void openFullscreenFromDetail(int index) {
+        fullscreenOpen = true;
+        fullscreenIndex = index;
+        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false);
+    }
+
+    /** 旋转重建后重弹之前打开的全屏看图；仅系统重建（savedInstanceState 非空）时执行 */
+    private void restoreFullscreen(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        ArrayList<String> paths = savedInstanceState.getStringArrayList(KEY_FS_PATHS);
+        if (paths == null || paths.isEmpty()) return;
+        fullscreenPaths.clear();
+        fullscreenPaths.addAll(paths);
+        fullscreenIndex = savedInstanceState.getInt(KEY_FS_INDEX, 0);
+        openFullscreenFromDetail(fullscreenIndex);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (fullscreenOpen) {
+            outState.putStringArrayList(KEY_FS_PATHS, new ArrayList<>(fullscreenPaths));
+            outState.putInt(KEY_FS_INDEX, fullscreenIndex);
+        }
     }
 }

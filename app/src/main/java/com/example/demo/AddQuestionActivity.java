@@ -1,11 +1,13 @@
 package com.example.demo;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.MotionEvent;
@@ -89,12 +91,28 @@ public class AddQuestionActivity extends AppCompatActivity {
     });
     private final Handler MAIN = new Handler(Looper.getMainLooper());
 
-    /** 相册取图：题干图 */
-    private final ActivityResultLauncher<String> pickContent = registerForActivityResult(
-            new ActivityResultContracts.GetContent(), uri -> onPicked(GROUP_CONTENT, uri));
+    /** 相册取图：题干图（ACTION_PICK 直接进相册，而非文件管理器） */
+    private final ActivityResultLauncher<Intent> pickContent = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onPicked(GROUP_CONTENT, result.getData() != null ? result.getData().getData() : null));
     /** 相册取图：答案图 */
-    private final ActivityResultLauncher<String> pickAnswer = registerForActivityResult(
-            new ActivityResultContracts.GetContent(), uri -> onPicked(GROUP_ANSWER, uri));
+    private final ActivityResultLauncher<Intent> pickAnswer = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onPicked(GROUP_ANSWER, result.getData() != null ? result.getData().getData() : null));
+
+    /** 构造系统相册选图 Intent；无可用相册时返回 null 由调用方兜底提示。 */
+    private Intent galleryIntent() {
+        Intent i = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        return i;
+    }
+
+    private void launchGallery(ActivityResultLauncher<Intent> launcher) {
+        try {
+            launcher.launch(galleryIntent());
+        } catch (Exception e) {
+            Toast.makeText(this, "无法打开相册", Toast.LENGTH_SHORT).show();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,8 +134,8 @@ public class AddQuestionActivity extends AppCompatActivity {
         rvAnswer.setLayoutManager(new GridLayoutManager(this, spanCount));
 
         findViewById(R.id.btn_back).setOnClickListener(v -> onBackPressed());
-        findViewById(R.id.btn_add_content_img).setOnClickListener(v -> pickContent.launch("image/*"));
-        findViewById(R.id.btn_add_answer_img).setOnClickListener(v -> pickAnswer.launch("image/*"));
+        findViewById(R.id.btn_add_content_img).setOnClickListener(v -> launchGallery(pickContent));
+        findViewById(R.id.btn_add_answer_img).setOnClickListener(v -> launchGallery(pickAnswer));
         findViewById(R.id.btn_save).setOnClickListener(v -> save(false));
         btnSaveContinue.setOnClickListener(v -> save(true));
 

@@ -176,7 +176,7 @@
                 android:id="@+id/tv_encounter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginBottom="15dp"
                 android:textSize="12sp"
                 android:textColor="#999999"
                 android:visibility="gone" />

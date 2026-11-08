@@ -25,6 +25,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
     /** 全屏看图是否打开中；旋转重建后据此重弹 */
     private boolean fullscreenOpen;
     private int fullscreenIndex = -1;
+    /** 内联缩略图长按菜单当前作用的图片路径；旋转重建后据此重弹，null 表示无 */
+    private String inlineMenuPath;
     private String currentQid; // 保存ID，用于刷新
     /** 操作弹窗打开期间防重复点击 */
     private boolean actionBusy;
@@ -35,6 +37,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private static final String KEY_FS_SUPP = "fullscreen_supp";
     private static final String KEY_FS_MENU = "fullscreen_menu";
     private static final String KEY_DIALOG = "action_dialog";
+    private static final String KEY_INLINE_MENU_PATH = "inline_menu_path";
     private static final String DIALOG_RESTUDY = "restudy";
     private static final String DIALOG_EXCLUDE = "exclude";
     private static final String DIALOG_RESTORE = "restore";
@@ -66,6 +69,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         loadQuestionData(); // 加载题目
         restoreFullscreen(savedInstanceState);
         restoreActionDialog(savedInstanceState);
+        restoreInlineMenu(savedInstanceState);
 
         // 修改本题
         findViewById(R.id.btn_edit).setOnClickListener(v -> {
@@ -278,6 +282,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         ImageLoader.bindThumb(this, iv, path, size);
         iv.setOnClickListener(v -> openFullscreenFromDetail(index));
         iv.setOnLongClickListener(v -> {
+            inlineMenuPath = path;
             ImageLoader.showImageMenu(this, path, null);
             return true;
         });
@@ -311,6 +316,17 @@ public class QuestionDetailActivity extends AppCompatActivity {
         openFullscreenFromDetail(fullscreenIndex, savedInstanceState.getFloatArray(KEY_FS_SUPP), menuOpen);
     }
 
+    /** 旋转重建后重显内联缩略图长按菜单；仅系统重建（savedInstanceState 非空）时执行，避免同一次 onCreate 叠弹 */
+    private void restoreInlineMenu(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        String p = savedInstanceState.getString(KEY_INLINE_MENU_PATH);
+        if (p == null) return;
+        inlineMenuPath = p;
+        findViewById(android.R.id.content).post(() -> {
+            if (!isFinishing()) ImageLoader.showImageMenu(this, p, null);
+        });
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -320,6 +336,9 @@ public class QuestionDetailActivity extends AppCompatActivity {
             outState.putInt(KEY_FS_INDEX, fullscreenIndex);
             outState.putFloatArray(KEY_FS_SUPP, ImageLoader.captureSuppMatrix());
             outState.putBoolean(KEY_FS_MENU, ImageLoader.captureSaveMenuOpen());
+        }
+        if (inlineMenuPath != null && ImageLoader.captureSaveMenuOpen()) {
+            outState.putString(KEY_INLINE_MENU_PATH, inlineMenuPath);
         }
     }
 }

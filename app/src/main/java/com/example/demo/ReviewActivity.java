@@ -53,6 +53,8 @@ public class ReviewActivity extends AppCompatActivity {
     /** 全屏看图是否打开中；旋转重建后据此重弹 */
     private boolean fullscreenOpen;
     private int fullscreenIndex = -1;
+    /** 内联缩略图长按菜单当前作用的图片路径；旋转重建后据此重弹，null 表示无 */
+    private String inlineMenuPath;
     private String bankId;
     private String bankName;
     private boolean finished;
@@ -107,6 +109,7 @@ public class ReviewActivity extends AppCompatActivity {
     private static final String KEY_FS_INDEX = "fullscreen_index";
     private static final String KEY_FS_SUPP = "fullscreen_supp";
     private static final String KEY_FS_MENU = "fullscreen_menu";
+    private static final String KEY_INLINE_MENU_PATH = "inline_menu_path";
     private String restoreDialog;
     /** 跨日弹窗已选择「继续上次」；重建后静默恢复，不再重复询问 */
     private boolean crossdayResumed;
@@ -162,6 +165,7 @@ public class ReviewActivity extends AppCompatActivity {
         restoreSavedDialog(savedInstanceState);
         restoreBannerAndMenu(savedInstanceState);
         restoreFullscreen(savedInstanceState);
+        restoreInlineMenu(savedInstanceState);
     }
 
     @Override
@@ -181,6 +185,9 @@ public class ReviewActivity extends AppCompatActivity {
             outState.putInt(KEY_FS_INDEX, fullscreenIndex);
             outState.putFloatArray(KEY_FS_SUPP, ImageLoader.captureSuppMatrix());
             outState.putBoolean(KEY_FS_MENU, ImageLoader.captureSaveMenuOpen());
+        }
+        if (inlineMenuPath != null && ImageLoader.captureSaveMenuOpen()) {
+            outState.putString(KEY_INLINE_MENU_PATH, inlineMenuPath);
         }
     }
 
@@ -209,6 +216,17 @@ public class ReviewActivity extends AppCompatActivity {
         fullscreenIndex = savedInstanceState.getInt(KEY_FS_INDEX, 0);
         boolean menuOpen = savedInstanceState.getBoolean(KEY_FS_MENU, false);
         openFullscreenFromReview(fullscreenIndex, savedInstanceState.getFloatArray(KEY_FS_SUPP), menuOpen);
+    }
+
+    /** 旋转重建后重显内联缩略图长按菜单；仅系统重建（savedInstanceState 非空）时执行，避免同一次 onCreate 叠弹 */
+    private void restoreInlineMenu(Bundle savedInstanceState) {
+        if (savedInstanceState == null) return;
+        String p = savedInstanceState.getString(KEY_INLINE_MENU_PATH);
+        if (p == null) return;
+        inlineMenuPath = p;
+        findViewById(android.R.id.content).post(() -> {
+            if (!isFinishing()) ImageLoader.showImageMenu(this, p, null);
+        });
     }
 
     /** 重建后恢复顶部提示条（文案/重启按钮/剩余秒数）与右上角菜单展开态 */
@@ -760,6 +778,7 @@ public class ReviewActivity extends AppCompatActivity {
         ImageLoader.bindThumb(this, iv, path, size);
         iv.setOnClickListener(v -> openFullscreenFromReview(index));
         iv.setOnLongClickListener(v -> {
+            inlineMenuPath = path;
             ImageLoader.showImageMenu(this, path, null);
             return true;
         });

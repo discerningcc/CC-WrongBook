@@ -49,6 +49,8 @@ public class AddQuestionActivity extends AppCompatActivity {
     private static final String KEY_FS_INDEX = "fs_index";
     private static final String KEY_FS_SUPP = "fs_supp";
     private static final String KEY_FS_MENU = "fs_menu";
+    private static final String KEY_INLINE_MENU_PATH = "inline_menu_path";
+    private static final String KEY_INLINE_MENU_GROUP = "inline_menu_group";
     /** 每组图片上限 */
     private static final int MAX_IMAGES = 9;
     /** 图片分组：0 题干图，1 答案图 */
@@ -81,6 +83,9 @@ public class AddQuestionActivity extends AppCompatActivity {
     private boolean fullscreenOpen;
     private int fsGroup = -1;
     private int fsIndex = -1;
+    /** 网格内联长按菜单当前作用的图片路径与所属组；旋转重建后据此重弹 */
+    private String inlineMenuPath;
+    private int inlineMenuGroup = -1;
     /** 用户确认放弃后置位，抑制 onPause 兜底再次落草稿 */
     private boolean discarding = false;
     /** 新题保存并退出后置位，抑制 onPause 兜底把已落库表单回写成草稿 */
@@ -161,6 +166,8 @@ public class AddQuestionActivity extends AppCompatActivity {
             fullscreenOpen = savedInstanceState.getBoolean(KEY_FS_OPEN, false);
             fsGroup = savedInstanceState.getInt(KEY_FS_GROUP, -1);
             fsIndex = savedInstanceState.getInt(KEY_FS_INDEX, -1);
+            inlineMenuPath = savedInstanceState.getString(KEY_INLINE_MENU_PATH);
+            inlineMenuGroup = savedInstanceState.getInt(KEY_INLINE_MENU_GROUP, -1);
         } else if (editQid != null) {
             editQuestion = QuestionStorage.findById(this, editQid);
             if (editQuestion != null) {
@@ -212,6 +219,13 @@ public class AddQuestionActivity extends AppCompatActivity {
             boolean menuOpen = savedInstanceState.getBoolean(KEY_FS_MENU, false);
             openPreview(fsGroup, fsIndex, list, supp, menuOpen);
         }
+        if (inlineMenuPath != null) {
+            final String p = inlineMenuPath;
+            final int g = inlineMenuGroup;
+            findViewById(android.R.id.content).post(() -> {
+                if (!isFinishing()) ImageLoader.showImageMenu(AddQuestionActivity.this, p, x -> confirmDelete(g, x));
+            });
+        }
     }
 
     @Override
@@ -228,6 +242,10 @@ public class AddQuestionActivity extends AppCompatActivity {
         if (fullscreenOpen) {
             outState.putFloatArray(KEY_FS_SUPP, ImageLoader.captureSuppMatrix());
             outState.putBoolean(KEY_FS_MENU, ImageLoader.captureSaveMenuOpen());
+        }
+        if (inlineMenuPath != null && ImageLoader.captureSaveMenuOpen()) {
+            outState.putString(KEY_INLINE_MENU_PATH, inlineMenuPath);
+            outState.putInt(KEY_INLINE_MENU_GROUP, inlineMenuGroup);
         }
     }
 
@@ -585,6 +603,8 @@ public class AddQuestionActivity extends AppCompatActivity {
                 int idx = holder.getAdapterPosition();
                 if (idx < 0) return true;
                 String target = paths.get(idx);
+                inlineMenuPath = target;
+                inlineMenuGroup = group;
                 ImageLoader.showImageMenu(AddQuestionActivity.this, target, p -> confirmDelete(group, p));
                 return true;
             });

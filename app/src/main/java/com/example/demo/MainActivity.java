@@ -87,10 +87,8 @@ public class MainActivity extends AppCompatActivity {
         List<Question> all = QuestionStorage.loadAll(this);
         int total = all.size();
         int due = 0;
-        int fav = 0;
         for (Question q : all) {
             if (QuestionStorage.isDue(this, q)) due++;
-            if (q.favorite) fav++;
         }
         int queued = QuestionStorage.buildTodayQueue(this).size();
         int budget = QuestionStorage.getDailyBudget(this);
@@ -124,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         reviewSub.setText("到期 " + due + " 道");
-        ((TextView) findViewById(R.id.tv_bank_sub)).setText("收藏 " + fav);
         emptyHint.setVisibility(bankEmpty ? View.VISIBLE : View.GONE);
         findViewById(R.id.btn_review).setAlpha(bankEmpty ? 0.5f : 1f);
 

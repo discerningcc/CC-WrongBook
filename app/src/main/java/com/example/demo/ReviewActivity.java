@@ -42,6 +42,7 @@ public class ReviewActivity extends AppCompatActivity {
 
     private TextView tvQuestion, tvAnswer, tvBanner, btnBannerNew, btnAnswerText;
     private TextView tvLevelBadge, tvProgress;
+    private ImageView btnFavorite;
     private LinearLayout metaRow;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
     private LinearLayout bannerContainer;
@@ -257,6 +258,7 @@ public class ReviewActivity extends AppCompatActivity {
         ivTimerState = findViewById(R.id.iv_timer_state);
         tvLevelBadge = findViewById(R.id.tv_level_badge);
         tvProgress = findViewById(R.id.tv_progress);
+        btnFavorite = findViewById(R.id.btn_favorite);
         metaRow = findViewById(R.id.meta_row);
     }
 
@@ -280,6 +282,12 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_banner_close).setOnClickListener(v -> hideBanner());
         findViewById(R.id.btn_banner_new).setOnClickListener(v -> confirmRestart());
         timerRow.setOnClickListener(v -> onTimerRowClick());
+        btnFavorite.setOnClickListener(v -> {
+            if (currentQ == null || finished) return;
+            QuestionStorage.toggleFavorite(this, currentQ);
+            Toast.makeText(this, currentQ.favorite ? "已收藏" : "已取消收藏", Toast.LENGTH_SHORT).show();
+            refreshFavoriteIcon();
+        });
     }
 
     private void bindBackPressed() {
@@ -437,6 +445,7 @@ public class ReviewActivity extends AppCompatActivity {
         tvLevelBadge.setText(level);
         tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(levelColor(level)));
         tvProgress.setText("已完成 " + done + " / " + total + " 题");
+        refreshFavoriteIcon();
         tvQuestion.setText(q.content);
         tvAnswer.setText(q.answer);
         answerLayout.setVisibility(session.answerShown ? View.VISIBLE : View.GONE);
@@ -470,6 +479,7 @@ public class ReviewActivity extends AppCompatActivity {
         hideBanner();
         enableButtons(false);
         if (metaRow != null) metaRow.setVisibility(View.GONE);
+        if (btnFavorite != null) btnFavorite.setVisibility(View.GONE);
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);
             tvTimer.setVisibility(View.GONE);
@@ -603,6 +613,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_forget).setEnabled(enabled);
         findViewById(R.id.btn_answer).setEnabled(enabled);
         findViewById(R.id.btn_menu).setEnabled(enabled);
+        if (btnFavorite != null) btnFavorite.setEnabled(enabled);
     }
 
     // ==================== 计时实现 ====================
@@ -1069,6 +1080,14 @@ public class ReviewActivity extends AppCompatActivity {
         }
     }
 
+    /** 按当前题收藏位刷新星标；无当前题时隐藏 */
+    private void refreshFavoriteIcon() {
+        if (btnFavorite == null) return;
+        boolean fav = currentQ != null && currentQ.favorite;
+        btnFavorite.setImageResource(fav ? R.drawable.ic_star_filled : R.drawable.ic_star_outline);
+        btnFavorite.setContentDescription(fav ? "取消收藏" : "收藏");
+    }
+
     // ==================== 收尾 ====================
 
     /** 满足打卡资格时返回提醒文案（带前导换行）；否则返回空串。打卡动作仍在主页手动完成。 */
@@ -1123,6 +1142,7 @@ public class ReviewActivity extends AppCompatActivity {
         stopTicker();
         currentQ = null;
         if (metaRow != null) metaRow.setVisibility(View.GONE);
+        if (btnFavorite != null) btnFavorite.setVisibility(View.GONE);
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);
             tvTimer.setVisibility(View.GONE);

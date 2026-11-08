@@ -154,6 +154,22 @@
                     android:layout_marginStart="10dp"
                     android:textSize="12sp"
                     android:textColor="#999999" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <ImageView
+                    android:id="@+id/btn_favorite"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:padding="2dp"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:src="@drawable/ic_star_outline"
+                    android:contentDescription="收藏" />
             </LinearLayout>
 
             <TextView

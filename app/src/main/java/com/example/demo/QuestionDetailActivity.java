@@ -221,8 +221,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvQuestionId.setVisibility(View.VISIBLE);
         tvQuestionId.setText(currentQuestion.id == null ? "" : currentQuestion.id);
 
-        // S 级长期题：展示累计抽查次数；非 S 档或尚未被作答过则隐藏
-        if ("S".equals(status) && currentQuestion.encounterCount > 0) {
+        // S 级长期题：展示累计抽查次数（0 次也显示）；非 S 档隐藏
+        if ("S".equals(status)) {
             tvEncounter.setVisibility(View.VISIBLE);
             tvEncounter.setText("抽查 " + currentQuestion.encounterCount + " 次");
         } else {

@@ -277,6 +277,10 @@ public class QuestionDetailActivity extends AppCompatActivity {
         iv.setAdjustViewBounds(true);
         ImageLoader.bindThumb(this, iv, path, size);
         iv.setOnClickListener(v -> openFullscreenFromDetail(index));
+        iv.setOnLongClickListener(v -> {
+            ImageLoader.showImageMenu(this, path, null);
+            return true;
+        });
         parent.addView(iv);
     }
 

@@ -377,6 +377,60 @@ public final class ImageLoader {
     }
 
     /**
+     * 图片操作菜单：固定「保存到本地」；deleteListener 非空时追加「删除当前图」。
+     * 大图长按与内联缩略图长按共用同一套文案、动作与 Toast 口径。
+     */
+    public static void showImageMenu(Context context, String path, OnImageDeleteListener deleteListener) {
+        if (context == null) return;
+        if (path == null || path.isEmpty()) {
+            Toast.makeText(context, "图片已不存在", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        List<CharSequence> items = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+        items.add("保存到本地");
+        actions.add(() -> saveImage(context.getApplicationContext(), path));
+        if (deleteListener != null) {
+            items.add("删除当前图");
+            actions.add(() -> deleteListener.onDeleteRequested(path));
+        }
+        AlertDialog menu = new AlertDialog.Builder(context)
+                .setOnDismissListener(d -> {
+                    sSaveMenuOpen = false;
+                    sSaveMenu = null;
+                })
+                .setItems(items.toArray(new CharSequence[0]), (d, which) -> actions.get(which).run())
+                .show();
+        sSaveMenu = menu;
+        sSaveMenuOpen = true;
+    }
+
+    /** 后台线程把指定图片写入系统相册，主线程回 Toast；路径/文件无效时提示「图片已不存在」。 */
+    private static void saveImage(Context appContext, String path) {
+        if (path == null || path.isEmpty()) {
+            MAIN.post(() -> Toast.makeText(appContext, "图片已不存在", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        final File src = new File(path);
+        if (!src.isFile()) {
+            MAIN.post(() -> Toast.makeText(appContext, "图片已不存在", Toast.LENGTH_SHORT).show());
+            return;
+        }
+        POOL.execute(() -> {
+            String msg;
+            try {
+                boolean ok = saveImageToGallery(appContext, src);
+                msg = ok ? "已保存到相册" : "保存失败";
+            } catch (Exception e) {
+                Log.w(TAG, "save image to gallery failed: " + path, e);
+                msg = "保存失败";
+            }
+            final String out = msg;
+            MAIN.post(() -> Toast.makeText(appContext, out, Toast.LENGTH_SHORT).show());
+        });
+    }
+
+    /**
      * 全屏看图：同题图片左右翻页，顶部显示 当前/总数 页码；点按图片或周围黑边关闭。
      * 每张图采样到屏幕最长边以内后交给 PhotoView 缩放查看；文件缺失或解码失败该页留空。
      * 弹窗关闭时回调 onDismiss（可为空），供调用方清理「看图打开中」的留存状态。
@@ -483,7 +537,7 @@ public final class ImageLoader {
             });
         }
         PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp,
-                activity.getApplicationContext(), () -> snapshot.get(pager.getCurrentItem()), deleteListener);
+                () -> snapshot.get(pager.getCurrentItem()), deleteListener);
         pager.setAdapter(adapter);
         adapter.attachPager(pager);
         pager.setCurrentItem(start, false);
@@ -589,7 +643,6 @@ public final class ImageLoader {
         private final int screenMax;
         private final int restorePosition;
         private final float[] restoreSupp;
-        private final Context appContext;
         private final Supplier<String> currentPath;
         private final OnImageDeleteListener deleteListener;
         private final SparseArray<PhotoView> views = new SparseArray<>();
@@ -597,14 +650,13 @@ public final class ImageLoader {
 
         PhotoPagerAdapter(Dialog dialog, List<String> paths, int screenMax,
                           int restorePosition, float[] restoreSupp,
-                          Context appContext, Supplier<String> currentPath,
+                          Supplier<String> currentPath,
                           OnImageDeleteListener deleteListener) {
             this.dialog = dialog;
             this.paths = paths;
             this.screenMax = screenMax;
             this.restorePosition = restorePosition;
             this.restoreSupp = restoreSupp;
-            this.appContext = appContext;
             this.currentPath = currentPath;
             this.deleteListener = deleteListener;
         }
@@ -618,26 +670,7 @@ public final class ImageLoader {
         }
 
         void showSaveMenu() {
-            List<CharSequence> items = new ArrayList<>();
-            List<Runnable> actions = new ArrayList<>();
-            items.add("保存到本地");
-            actions.add(this::saveCurrentImage);
-            if (deleteListener != null) {
-                items.add("删除当前图");
-                actions.add(() -> {
-                    String p = currentPath.get();
-                    if (p != null && !p.isEmpty()) deleteListener.onDeleteRequested(p);
-                });
-            }
-            AlertDialog menu = new AlertDialog.Builder(dialog.getContext())
-                    .setOnDismissListener(d -> {
-                        sSaveMenuOpen = false;
-                        sSaveMenu = null;
-                    })
-                    .setItems(items.toArray(new CharSequence[0]), (d, which) -> actions.get(which).run())
-                    .show();
-            sSaveMenu = menu;
-            sSaveMenuOpen = true;
+            showImageMenu(dialog.getContext(), currentPath.get(), deleteListener);
         }
 
         /** 移除当前页；组内清空则关闭看图。 */
@@ -652,31 +685,6 @@ public final class ImageLoader {
             } else if (pos >= paths.size()) {
                 pager.setCurrentItem(paths.size() - 1, false);
             }
-        }
-
-        private void saveCurrentImage() {
-            String path = currentPath.get();
-            if (path == null || path.isEmpty()) {
-                MAIN.post(() -> Toast.makeText(appContext, "图片已不存在", Toast.LENGTH_SHORT).show());
-                return;
-            }
-            final File src = new File(path);
-            if (!src.isFile()) {
-                MAIN.post(() -> Toast.makeText(appContext, "图片已不存在", Toast.LENGTH_SHORT).show());
-                return;
-            }
-            POOL.execute(() -> {
-                String msg;
-                try {
-                    boolean ok = saveImageToGallery(appContext, src);
-                    msg = ok ? "已保存到相册" : "保存失败";
-                } catch (Exception e) {
-                    Log.w(TAG, "save image to gallery failed: " + path, e);
-                    msg = "保存失败";
-                }
-                final String out = msg;
-                MAIN.post(() -> Toast.makeText(appContext, out, Toast.LENGTH_SHORT).show());
-            });
         }
 
         @Override

@@ -74,15 +74,17 @@ public class SessionStorageTest {
     @Test
     public void isSameDay_sameDayDifferentHour_true() {
         long now = System.currentTimeMillis();
-        long later = now + 3_600_000; // +1 小时
-        assertTrue(SessionStorage.isSameDay(now, later));
+        long base = SessionStorage.dayStart(now) + 12L * 3600_000; // 当天正午，避开午夜边界
+        long later = base + 3_600_000; // +1 小时
+        assertTrue(SessionStorage.isSameDay(base, later));
     }
 
     @Test
     public void isSameDay_nextDay_false() {
         long now = System.currentTimeMillis();
-        long nextDay = now - 26L * 3600 * 1000; // 退 26 小时，跨自然日
-        assertFalse(SessionStorage.isSameDay(now, nextDay));
+        long base = SessionStorage.dayStart(now) + 12L * 3600_000;
+        long nextDay = base - 26L * 3600 * 1000; // 退 26 小时，跨自然日
+        assertFalse(SessionStorage.isSameDay(base, nextDay));
     }
 
     @Test

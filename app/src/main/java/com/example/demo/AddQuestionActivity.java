@@ -584,7 +584,8 @@ public class AddQuestionActivity extends AppCompatActivity {
             holder.itemView.setOnLongClickListener(v -> {
                 int idx = holder.getAdapterPosition();
                 if (idx < 0) return true;
-                confirmDelete(group, paths.get(idx));
+                String target = paths.get(idx);
+                ImageLoader.showImageMenu(AddQuestionActivity.this, target, p -> confirmDelete(group, p));
                 return true;
             });
             attachDirectDrag(holder);

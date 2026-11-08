@@ -41,7 +41,7 @@ import java.util.Set;
 public class ReviewActivity extends AppCompatActivity {
 
     private TextView tvQuestion, tvAnswer, tvBanner, btnBannerNew, btnAnswerText;
-    private TextView tvLevelBadge, tvProgress;
+    private TextView tvLevelBadge, tvProgress, tvEncounter;
     private ImageView btnFavorite;
     private LinearLayout metaRow;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
@@ -58,6 +58,8 @@ public class ReviewActivity extends AppCompatActivity {
     private String bankId;
     private String bankName;
     private boolean finished;
+    /** S 药丸点击后是否展开抽查次数行；旋转重建后据此恢复 */
+    private boolean encounterExpanded;
 
     /** 顶部提示条自动消失的秒数 */
     private static final int BANNER_SECONDS = 8;
@@ -110,6 +112,7 @@ public class ReviewActivity extends AppCompatActivity {
     private static final String KEY_FS_SUPP = "fullscreen_supp";
     private static final String KEY_FS_MENU = "fullscreen_menu";
     private static final String KEY_INLINE_MENU_PATH = "inline_menu_path";
+    private static final String KEY_ENCOUNTER_EXPANDED = "encounter_expanded";
     private String restoreDialog;
     /** 跨日弹窗已选择「继续上次」；重建后静默恢复，不再重复询问 */
     private boolean crossdayResumed;
@@ -143,6 +146,8 @@ public class ReviewActivity extends AppCompatActivity {
                 ? savedInstanceState.getLong(KEY_DWELL_BASE, 0) : 0;
         crossdayResumed = savedInstanceState != null
                 && savedInstanceState.getBoolean(KEY_CROSSDAY_RESUMED, false);
+        encounterExpanded = savedInstanceState != null
+                && savedInstanceState.getBoolean(KEY_ENCOUNTER_EXPANDED, false);
         // 重新进入复习时自动恢复计时：暂停态只在本次停留（含旋转重建）内保留，退出后重进不再保持暂停
         if (savedInstanceState == null && active != null) {
             active.timerPaused = false;
@@ -180,6 +185,7 @@ public class ReviewActivity extends AppCompatActivity {
         outState.putBoolean(KEY_MENU_OPEN, menuOpen);
         outState.putLong(KEY_DWELL_BASE, dwellBaseMs);
         outState.putBoolean(KEY_CROSSDAY_RESUMED, crossdayResumed);
+        outState.putBoolean(KEY_ENCOUNTER_EXPANDED, encounterExpanded);
         if (fullscreenOpen) {
             outState.putStringArrayList(KEY_FS_PATHS, new ArrayList<>(fullscreenPaths));
             outState.putInt(KEY_FS_INDEX, fullscreenIndex);
@@ -278,6 +284,7 @@ public class ReviewActivity extends AppCompatActivity {
         tvProgress = findViewById(R.id.tv_progress);
         btnFavorite = findViewById(R.id.btn_favorite);
         metaRow = findViewById(R.id.meta_row);
+        tvEncounter = findViewById(R.id.tv_encounter);
     }
 
     private void bindActions() {
@@ -300,6 +307,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_banner_close).setOnClickListener(v -> hideBanner());
         findViewById(R.id.btn_banner_new).setOnClickListener(v -> confirmRestart());
         timerRow.setOnClickListener(v -> onTimerRowClick());
+        tvLevelBadge.setOnClickListener(v -> onLevelBadgeClick());
         btnFavorite.setOnClickListener(v -> {
             if (currentQ == null || finished) return;
             QuestionStorage.toggleFavorite(this, currentQ);
@@ -462,6 +470,7 @@ public class ReviewActivity extends AppCompatActivity {
         String level = q.status == null ? "E" : q.status;
         tvLevelBadge.setText(level);
         tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(levelColor(level)));
+        applyEncounterVisibility(q, level);
         tvProgress.setText("已完成 " + done + " / " + total + " 题");
         refreshFavoriteIcon();
         tvQuestion.setText(q.content);
@@ -486,6 +495,27 @@ public class ReviewActivity extends AppCompatActivity {
         beginQuestionDwell(session.currentIndex);
     }
 
+    /** 药丸点击：所有等级均可展开/收起；S 档显示抽查次数，其它等级暂无信息，后续可按等级补信息分支 */
+    private void onLevelBadgeClick() {
+        Question q = currentQuestion();
+        if (q == null) return;
+        encounterExpanded = !encounterExpanded;
+        applyEncounterVisibility(q, q.status);
+    }
+
+    /** 按展开态刷新信息行：展开时可见；S 档文案为累计抽查次数（0 次也显示），其它等级显示「暂无信息」 */
+    private void applyEncounterVisibility(Question q, String level) {
+        boolean show = encounterExpanded;
+        tvEncounter.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            if ("S".equals(level)) {
+                tvEncounter.setText("抽查 " + q.encounterCount + " 次");
+            } else {
+                tvEncounter.setText("暂无信息");
+            }
+        }
+    }
+
     private void showEmptyState() {
         currentQ = null;
         tvQuestion.setText("🎉 今天没有需要复习的题目！");
@@ -497,6 +527,7 @@ public class ReviewActivity extends AppCompatActivity {
         hideBanner();
         enableButtons(false);
         if (metaRow != null) metaRow.setVisibility(View.GONE);
+        if (tvEncounter != null) tvEncounter.setVisibility(View.GONE);
         if (btnFavorite != null) btnFavorite.setVisibility(View.GONE);
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);
@@ -1166,6 +1197,7 @@ public class ReviewActivity extends AppCompatActivity {
         stopTicker();
         currentQ = null;
         if (metaRow != null) metaRow.setVisibility(View.GONE);
+        if (tvEncounter != null) tvEncounter.setVisibility(View.GONE);
         if (btnFavorite != null) btnFavorite.setVisibility(View.GONE);
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);

@@ -925,6 +925,7 @@ public class ReviewActivity extends AppCompatActivity {
             if (pending.afterStatus != null) q.status = pending.afterStatus;
             if (pending.afterUpdateTime != q.updateTime) q.updateTime = pending.afterUpdateTime;
             if (pending.excludeApplied) q.excluded = true;
+            if (ReviewSession.countsEncounter(pending.result, item.redo)) q.encounterCount++;
             QuestionStorage.update(this);
         }
 

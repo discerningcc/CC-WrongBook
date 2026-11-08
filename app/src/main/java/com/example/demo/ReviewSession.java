@@ -80,6 +80,15 @@ public class ReviewSession implements Serializable {
         return countOfResult(RESULT_SKIP);
     }
 
+    /**
+     * 该次作答是否计入题目累计次数：
+     * 记得 / 模糊 / 不会计入；跳过、斩题不计；答错追加的重做副本不计。
+     */
+    public static boolean countsEncounter(String result, boolean redo) {
+        if (redo) return false;
+        return RESULT_KNOW.equals(result) || RESULT_VAGUE.equals(result) || RESULT_FORGET.equals(result);
+    }
+
     /** 剩余未处理的题数 */
     public int remainingCount() {
         if (items == null) return 0;

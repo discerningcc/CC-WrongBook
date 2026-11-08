@@ -167,6 +167,27 @@ public class ReviewSessionTest {
     }
 
     @Test
+    public void countsEncounter_includesKnowVagueForget() {
+        assertTrue(ReviewSession.countsEncounter(ReviewSession.RESULT_KNOW, false));
+        assertTrue(ReviewSession.countsEncounter(ReviewSession.RESULT_VAGUE, false));
+        assertTrue(ReviewSession.countsEncounter(ReviewSession.RESULT_FORGET, false));
+    }
+
+    @Test
+    public void countsEncounter_excludesSkipExcludedAndNull() {
+        assertFalse(ReviewSession.countsEncounter(ReviewSession.RESULT_SKIP, false));
+        assertFalse(ReviewSession.countsEncounter(ReviewSession.RESULT_EXCLUDED, false));
+        assertFalse(ReviewSession.countsEncounter(null, false));
+    }
+
+    @Test
+    public void countsEncounter_redoCopyNeverCounts() {
+        assertFalse(ReviewSession.countsEncounter(ReviewSession.RESULT_KNOW, true));
+        assertFalse(ReviewSession.countsEncounter(ReviewSession.RESULT_VAGUE, true));
+        assertFalse(ReviewSession.countsEncounter(ReviewSession.RESULT_FORGET, true));
+    }
+
+    @Test
     public void isFinished_onlyFinishedStatusCounts() {
         ReviewSession active = session(item("q1", ReviewSession.RESULT_KNOW, 1));
         active.status = ReviewSession.STATUS_ACTIVE;

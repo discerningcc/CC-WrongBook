@@ -49,6 +49,16 @@
                     android:singleLine="true" />
 
                 <TextView
+                    android:id="@+id/tv_encounter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="@color/detail_text_secondary"
+                    android:textSize="12sp"
+                    android:singleLine="true"
+                    android:visibility="gone" />
+
+                <TextView
                     android:id="@+id/tv_excluded_badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

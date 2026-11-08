@@ -14,7 +14,7 @@ import java.util.List;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
-    private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge, tvQuestionId;
+    private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge, tvQuestionId, tvEncounter;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout, actionGroup;
     private View btnExclude, btnRestudy, btnDelete;
     private TextView btnExcludeText;
@@ -53,6 +53,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvLevelBadge = findViewById(R.id.tv_level_badge);
         tvExcludedBadge = findViewById(R.id.tv_excluded_badge);
         tvQuestionId = findViewById(R.id.tv_question_id);
+        tvEncounter = findViewById(R.id.tv_encounter);
         reviewImageLayout = findViewById(R.id.review_image_layout);
         answerLayout = findViewById(R.id.answer_layout);
         answerImageLayout = findViewById(R.id.answer_image_layout);
@@ -219,6 +220,14 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
         tvQuestionId.setVisibility(View.VISIBLE);
         tvQuestionId.setText(currentQuestion.id == null ? "" : currentQuestion.id);
+
+        // S 级长期题：展示累计抽查次数；非 S 档或尚未被作答过则隐藏
+        if ("S".equals(status) && currentQuestion.encounterCount > 0) {
+            tvEncounter.setVisibility(View.VISIBLE);
+            tvEncounter.setText("抽查 " + currentQuestion.encounterCount + " 次");
+        } else {
+            tvEncounter.setVisibility(View.GONE);
+        }
 
         btnFavorite.setVisibility(View.VISIBLE);
         btnFavorite.setImageResource(currentQuestion.favorite

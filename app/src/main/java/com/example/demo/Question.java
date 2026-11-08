@@ -16,6 +16,8 @@ public class Question implements Serializable {
     public boolean excluded = false;
     /** 收藏：星标标记，仅作高亮与筛选，不影响复习队列、到期判断与打卡资格 */
     public boolean favorite = false;
+    /** 生命周期内累计被作答/抽查次数；旧题库缺字段默认 0，降级、重学都不清零 */
+    public int encounterCount = 0;
 
     public Question(String content, String answer) {
         // 原来的代码
@@ -52,6 +54,7 @@ public class Question implements Serializable {
         c.updateTime = updateTime;
         c.excluded = excluded;
         c.favorite = favorite;
+        c.encounterCount = encounterCount;
         c.contentImages = contentImages == null ? null : new ArrayList<>(contentImages);
         c.answerImages = answerImages == null ? null : new ArrayList<>(answerImages);
         return c;

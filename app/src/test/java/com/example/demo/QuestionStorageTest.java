@@ -72,12 +72,16 @@ public class QuestionStorageTest {
 
         q.favorite = true;
         q.excluded = true;
+        q.encounterCount = 3;
         Question c = q.copy();
 
         assertTrue(c.favorite);
         assertTrue(c.excluded);
+        assertEquals(3, c.encounterCount);
         // 副本与原对象独立：改副本不回写原对象
         c.favorite = false;
+        c.encounterCount = 0;
         assertTrue(q.favorite);
+        assertEquals(3, q.encounterCount);
     }
 }

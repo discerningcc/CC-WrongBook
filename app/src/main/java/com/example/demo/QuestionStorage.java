@@ -941,6 +941,7 @@ public class QuestionStorage {
         nq.updateTime = q.updateTime;
         nq.excluded = q.excluded;
         nq.favorite = q.favorite;
+        nq.encounterCount = q.encounterCount;
         nq.contentImages = new ArrayList<>();
         if (q.contentImages != null) {
             for (String p : q.contentImages) nq.contentImages.add(toRelativePath(p, imageMap));

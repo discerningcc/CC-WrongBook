@@ -3,7 +3,9 @@ package com.example.demo;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * QuestionStorage 纯静态口径单测：等级间隔、降级顺序、等级颜色。
@@ -60,5 +62,22 @@ public class QuestionStorageTest {
         assertNotEquals(QuestionStorage.statusColor("A"), QuestionStorage.statusColor("B"));
         assertNotEquals(QuestionStorage.statusColor("B"), QuestionStorage.statusColor("C"));
         assertNotEquals(QuestionStorage.statusColor("C"), QuestionStorage.statusColor("D"));
+    }
+
+    @Test
+    public void copy_preservesFavoriteAndExcludedFlags() {
+        Question q = new Question("题干", "答案");
+        assertFalse(q.favorite);
+        assertFalse(q.excluded);
+
+        q.favorite = true;
+        q.excluded = true;
+        Question c = q.copy();
+
+        assertTrue(c.favorite);
+        assertTrue(c.excluded);
+        // 副本与原对象独立：改副本不回写原对象
+        c.favorite = false;
+        assertTrue(q.favorite);
     }
 }

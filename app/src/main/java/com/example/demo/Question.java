@@ -14,6 +14,8 @@ public class Question implements Serializable {
     public long updateTime;
     /** 已斩：软标记，退出复习队列与长期抽查，可在列表/详情恢复；不删除题目本体 */
     public boolean excluded = false;
+    /** 收藏：星标标记，仅作高亮与筛选，不影响复习队列、到期判断与打卡资格 */
+    public boolean favorite = false;
 
     public Question(String content, String answer) {
         // 原来的代码
@@ -49,6 +51,7 @@ public class Question implements Serializable {
         c.status = status;
         c.updateTime = updateTime;
         c.excluded = excluded;
+        c.favorite = favorite;
         c.contentImages = contentImages == null ? null : new ArrayList<>(contentImages);
         c.answerImages = answerImages == null ? null : new ArrayList<>(answerImages);
         return c;

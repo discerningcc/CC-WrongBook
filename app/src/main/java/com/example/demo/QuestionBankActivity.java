@@ -36,8 +36,9 @@ public class QuestionBankActivity extends AppCompatActivity {
     private static final int FILTER_IMAGE = 2;
     private static final int FILTER_TEXT = 3;
     private static final int FILTER_EXCLUDED = 4;
+    private static final int FILTER_FAVORITE = 5;
 
-    private static final String[] FILTER_LABELS = {"全部", "今日到期", "只有图片", "有文本", "已斩"};
+    private static final String[] FILTER_LABELS = {"全部", "今日到期", "只有图片", "有文本", "已斩", "收藏"};
     private static final String[] LEVEL_LABELS = {"S", "A", "B", "C", "D", "E"};
     private static final long SEARCH_DEBOUNCE_MS = 250;
     private static final String STATE_FILTER = "list_filter";
@@ -295,6 +296,9 @@ public class QuestionBankActivity extends AppCompatActivity {
             case FILTER_EXCLUDED:
                 categoryPass = q.excluded;
                 break;
+            case FILTER_FAVORITE:
+                categoryPass = q.favorite;
+                break;
             case FILTER_TODAY:
                 categoryPass = !q.excluded && QuestionStorage.isDue(this, q);
                 break;
@@ -339,10 +343,11 @@ public class QuestionBankActivity extends AppCompatActivity {
 
     /** 统计条：题库规模、到期数、图片/文本构成、等级分布；有筛选时带「显示 M / 共 N」 */
     private void updateStats() {
-        int due = 0, withImg = 0, withText = 0, excluded = 0;
+        int due = 0, withImg = 0, withText = 0, excluded = 0, favorite = 0;
         int[] level = new int[6]; // S A B C D E
         for (Question q : allQuestions) {
             if (q.excluded) excluded++;
+            if (q.favorite) favorite++;
             if (QuestionStorage.isDue(this, q)) due++;
             if (q.contentImages != null && !q.contentImages.isEmpty()) withImg++;
             if (q.content != null && !q.content.trim().isEmpty()) withText++;
@@ -352,7 +357,7 @@ public class QuestionBankActivity extends AppCompatActivity {
 
         String head = "共 " + allQuestions.size() + " 题 · 今日到期 " + due
                 + " · 有图 " + withImg + " · 有文本 " + withText
-                + " · 已斩 " + excluded;
+                + " · 已斩 " + excluded + " · 收藏 " + favorite;
         String levels = " · S" + level[0] + " A" + level[1] + " B" + level[2]
                 + " C" + level[3] + " D" + level[4] + " E" + level[5];
         String prefix = (filter != FILTER_ALL || levelFilter >= 0 || !tokens.isEmpty())
@@ -429,6 +434,11 @@ public class QuestionBankActivity extends AppCompatActivity {
                 intent.putExtra("qid", q.id);
                 v.getContext().startActivity(intent);
             });
+
+            holder.star.setOnClickListener(v -> {
+                QuestionStorage.toggleFavorite(v.getContext(), q);
+                applyFilter();
+            });
         }
 
         @Override
@@ -448,6 +458,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             final TextView text;
             final TextView badge;
             final TextView meta;
+            final ImageView star;
 
             public ViewHolder(View itemView) {
                 super(itemView);
@@ -455,6 +466,7 @@ public class QuestionBankActivity extends AppCompatActivity {
                 text = itemView.findViewById(R.id.text);
                 badge = itemView.findViewById(R.id.tv_badge);
                 meta = itemView.findViewById(R.id.tv_meta);
+                star = itemView.findViewById(R.id.iv_star);
             }
 
             void bind(Question q, int imgCount, boolean hasText) {
@@ -504,6 +516,10 @@ public class QuestionBankActivity extends AppCompatActivity {
                 }
 
                 meta.setText(sb.toString());
+
+                // 星标：已收藏金色实心，未收藏灰色描边
+                star.setImageResource(q.favorite ? R.drawable.ic_star_filled : R.drawable.ic_star_outline);
+                star.setContentDescription(q.favorite ? "取消收藏" : "收藏");
             }
         }
 

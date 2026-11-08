@@ -223,6 +223,14 @@ public class QuestionStorage {
         write(context);
     }
 
+    /** 收藏 / 取消收藏：仅翻转星标，不影响等级、斩题与复习队列 */
+    public static void toggleFavorite(Context context, Question q) {
+        ensureBankExists(context);
+        if (q == null) return;
+        q.favorite = !q.favorite;
+        write(context);
+    }
+
     /** 等级徽章颜色：E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红 */
     public static int statusColor(String status) {
         switch (status == null ? "E" : status) {
@@ -932,6 +940,7 @@ public class QuestionStorage {
         nq.status = q.status;
         nq.updateTime = q.updateTime;
         nq.excluded = q.excluded;
+        nq.favorite = q.favorite;
         nq.contentImages = new ArrayList<>();
         if (q.contentImages != null) {
             for (String p : q.contentImages) nq.contentImages.add(toRelativePath(p, imageMap));

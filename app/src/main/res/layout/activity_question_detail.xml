@@ -20,9 +20,9 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- 头部徽章行：等级 + 题目ID + 已斩标记，与题干正文分离 -->
+            <!-- 头部徽章行：等级 + 题目ID + 已斩标记，右侧星标收藏 -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
@@ -61,6 +61,22 @@
                     android:textStyle="bold"
                     android:text="已斩"
                     android:visibility="gone" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <ImageView
+                    android:id="@+id/btn_favorite"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:padding="2dp"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:src="@drawable/ic_star_outline"
+                    android:contentDescription="收藏" />
             </LinearLayout>
 
             <TextView

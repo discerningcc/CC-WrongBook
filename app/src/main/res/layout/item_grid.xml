@@ -63,5 +63,17 @@
                 android:maxLines="1"
                 android:ellipsize="end"/>
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/iv_star"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginStart="8dp"
+            android:padding="2dp"
+            android:foreground="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:src="@drawable/ic_star_outline"
+            android:contentDescription="收藏"/>
     </LinearLayout>
 </LinearLayout>

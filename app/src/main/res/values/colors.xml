@@ -16,6 +16,7 @@
     <color name="detail_divider">#E0E0E0</color>
     <color name="detail_text_primary">#333333</color>
     <color name="detail_text_secondary">#616161</color>
+    <color name="favorite_gold">#FFB300</color>
 
     <!-- 主页 -->
     <color name="home_primary">#5D9CEC</color>

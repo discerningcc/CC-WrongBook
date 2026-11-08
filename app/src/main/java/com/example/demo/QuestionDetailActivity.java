@@ -19,6 +19,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private View btnExclude, btnRestudy, btnDelete;
     private TextView btnExcludeText;
     private ImageView btnExcludeIcon;
+    private ImageView btnFavorite;
     private Question currentQuestion;
     private final List<String> fullscreenPaths = new ArrayList<>();
     /** 全屏看图是否打开中；旋转重建后据此重弹 */
@@ -58,6 +59,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         btnExcludeIcon = findViewById(R.id.btn_exclude_icon);
         btnRestudy = findViewById(R.id.btn_restudy);
         btnDelete = findViewById(R.id.btn_delete);
+        btnFavorite = findViewById(R.id.btn_favorite);
 
         // 拿到ID并保存
         currentQid = getIntent().getStringExtra("qid");
@@ -93,6 +95,14 @@ public class QuestionDetailActivity extends AppCompatActivity {
         btnDelete.setOnClickListener(v -> {
             if (currentQuestion == null || actionBusy) return;
             showActionDialog(DIALOG_DELETE, "确认删除", "确定要删除这道题吗？\n本题引用的图片将一并清理，删除后无法恢复！", "删除", this::confirmDelete);
+        });
+
+        // 收藏 / 取消收藏：即时翻转并落盘，不弹确认
+        btnFavorite.setOnClickListener(v -> {
+            if (currentQuestion == null || actionBusy) return;
+            QuestionStorage.toggleFavorite(this, currentQuestion);
+            Toast.makeText(this, currentQuestion.favorite ? "已收藏" : "已取消收藏", Toast.LENGTH_SHORT).show();
+            loadQuestionData();
         });
     }
 
@@ -186,6 +196,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
             tvExcludedBadge.setVisibility(View.GONE);
             tvQuestionId.setVisibility(View.GONE);
             tvQuestionId.setText("");
+            btnFavorite.setVisibility(View.GONE);
             answerLayout.setVisibility(View.GONE);
             actionGroup.setVisibility(View.GONE);
             reviewImageLayout.removeAllViews();
@@ -204,6 +215,11 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
         tvQuestionId.setVisibility(View.VISIBLE);
         tvQuestionId.setText(currentQuestion.id == null ? "" : currentQuestion.id);
+
+        btnFavorite.setVisibility(View.VISIBLE);
+        btnFavorite.setImageResource(currentQuestion.favorite
+                ? R.drawable.ic_star_filled : R.drawable.ic_star_outline);
+        btnFavorite.setContentDescription(currentQuestion.favorite ? "取消收藏" : "收藏");
 
         tvQuestion.setText(currentQuestion.content == null ? "" : currentQuestion.content);
         tvAnswer.setText(currentQuestion.answer == null ? "" : currentQuestion.answer);

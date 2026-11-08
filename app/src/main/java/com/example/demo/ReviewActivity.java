@@ -1081,7 +1081,7 @@ public class ReviewActivity extends AppCompatActivity {
                 QuestionStorage.isNaturalDayEnabled(this),
                 QuestionStorage.isCheckinEnabled(this),
                 false, budget, done, dueAll, already);
-        return eligible ? "\n今日目标已完成，可回主页打卡" : "";
+        return eligible ? "\n今日复习已完成，可回主页打卡" : "";
     }
 
     private void finishSession() {

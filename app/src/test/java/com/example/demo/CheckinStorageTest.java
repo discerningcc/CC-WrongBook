@@ -55,6 +55,12 @@ public class CheckinStorageTest {
     }
 
     @Test
+    public void eligible_finite_budgetNotReachedButNoDue_true() {
+        assertTrue(CheckinStorage.isEligible(true, true, false, 50, 49, 0, false));
+        assertTrue(CheckinStorage.isEligible(true, true, false, 30, 0, 0, false));
+    }
+
+    @Test
     public void eligible_unlimited_noDue_true() {
         assertTrue(CheckinStorage.isEligible(true, true, false, 0, 3, 0, false));
         assertTrue(CheckinStorage.isEligible(true, true, false, -1, 0, 0, false));

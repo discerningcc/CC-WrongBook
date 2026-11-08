@@ -44,12 +44,13 @@ public class CheckinStorage {
     /**
      * 今日是否可打卡。
      * 门禁：自然日模式开启、打卡总开关开启、题库非空、今日尚未打卡；
-     * 有限量：done >= budget；不限量（budget<=0）：今日无待复习（dueCount<=0）视为达成。
+     * 达成条件（二选一）：完成今日目标（done >= budget），或题库已无到期题目（dueCount <= 0）。
+     * 不限量（budget<=0）无目标口径，仅以无到期题目视为达成。
      */
     public static boolean isEligible(boolean naturalDayOn, boolean checkinEnabled, boolean bankEmpty,
                                      int budget, int done, int dueCount, boolean alreadyChecked) {
         if (!naturalDayOn || !checkinEnabled || bankEmpty || alreadyChecked) return false;
-        if (budget > 0) return done >= budget;
+        if (budget > 0) return done >= budget || dueCount <= 0;
         return dueCount <= 0;
     }
 

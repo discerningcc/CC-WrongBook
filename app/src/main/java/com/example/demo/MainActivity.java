@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
             tv.setTextColor(getColor(R.color.detail_primary));
             tv.setClickable(true);
         } else {
-            tv.setText("完成今日目标后可打卡");
+            tv.setText("完成目标或无到期题目后可打卡");
             tv.setTextColor(getColor(R.color.home_text_secondary));
             tv.setClickable(false);
         }

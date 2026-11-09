@@ -30,6 +30,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private String currentQid; // 保存ID，用于刷新
     /** 操作弹窗打开期间防重复点击 */
     private boolean actionBusy;
+    /** 药丸信息行是否展开；详情页进入默认展开，旋转重建后据此恢复 */
+    private boolean encounterExpanded = true;
     /** 打开中的操作弹窗类型；旋转重建后据此重显，null 表示无弹窗 */
     private String pendingDialog;
     private static final String KEY_FS_PATHS = "fullscreen_paths";
@@ -38,6 +40,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private static final String KEY_FS_MENU = "fullscreen_menu";
     private static final String KEY_DIALOG = "action_dialog";
     private static final String KEY_INLINE_MENU_PATH = "inline_menu_path";
+    private static final String KEY_ENCOUNTER_EXPANDED = "encounter_expanded";
     private static final String DIALOG_RESTUDY = "restudy";
     private static final String DIALOG_EXCLUDE = "exclude";
     private static final String DIALOG_RESTORE = "restore";
@@ -67,6 +70,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
         // 拿到ID并保存
         currentQid = getIntent().getStringExtra("qid");
+        encounterExpanded = savedInstanceState == null
+                || savedInstanceState.getBoolean(KEY_ENCOUNTER_EXPANDED, true);
         loadQuestionData(); // 加载题目
         restoreFullscreen(savedInstanceState);
         restoreActionDialog(savedInstanceState);
@@ -109,6 +114,9 @@ public class QuestionDetailActivity extends AppCompatActivity {
             Toast.makeText(this, currentQuestion.favorite ? "已收藏" : "已取消收藏", Toast.LENGTH_SHORT).show();
             loadQuestionData();
         });
+
+        // 等级药丸：点击展开 / 收起题目信息行
+        tvLevelBadge.setOnClickListener(v -> onLevelBadgeClick());
     }
 
     private void confirmRestudy() {
@@ -201,6 +209,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
             tvExcludedBadge.setVisibility(View.GONE);
             tvQuestionId.setVisibility(View.GONE);
             tvQuestionId.setText("");
+            tvEncounter.setVisibility(View.GONE);
             btnFavorite.setVisibility(View.GONE);
             answerLayout.setVisibility(View.GONE);
             actionGroup.setVisibility(View.GONE);
@@ -221,13 +230,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvQuestionId.setVisibility(View.VISIBLE);
         tvQuestionId.setText(currentQuestion.id == null ? "" : currentQuestion.id);
 
-        // S 级长期题：展示累计抽查次数（0 次也显示）；非 S 档隐藏
-        if ("S".equals(status)) {
-            tvEncounter.setVisibility(View.VISIBLE);
-            tvEncounter.setText("抽查 " + currentQuestion.encounterCount + " 次");
-        } else {
-            tvEncounter.setVisibility(View.GONE);
-        }
+        applyEncounterVisibility(currentQuestion, status);
 
         btnFavorite.setVisibility(View.VISIBLE);
         btnFavorite.setImageResource(currentQuestion.favorite
@@ -279,6 +282,26 @@ public class QuestionDetailActivity extends AppCompatActivity {
         answerImageLayout.removeAllViews();
         if (currentQuestion.answerImages != null) {
             for (String path : currentQuestion.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++);
+        }
+    }
+
+    /** 药丸点击：切换信息行展开 / 收起 */
+    private void onLevelBadgeClick() {
+        if (currentQuestion == null) return;
+        encounterExpanded = !encounterExpanded;
+        applyEncounterVisibility(currentQuestion, currentQuestion.status);
+    }
+
+    /** 按展开态刷新信息行：展开时可见；S 档文案为累计抽查次数（0 次也显示），其它等级显示「暂无信息」 */
+    private void applyEncounterVisibility(Question q, String level) {
+        boolean show = encounterExpanded;
+        tvEncounter.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            if ("S".equals(level)) {
+                tvEncounter.setText("抽查 " + q.encounterCount + " 次");
+            } else {
+                tvEncounter.setText("暂无信息");
+            }
         }
     }
 
@@ -340,6 +363,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(KEY_DIALOG, pendingDialog);
+        outState.putBoolean(KEY_ENCOUNTER_EXPANDED, encounterExpanded);
         if (fullscreenOpen) {
             outState.putStringArrayList(KEY_FS_PATHS, new ArrayList<>(fullscreenPaths));
             outState.putInt(KEY_FS_INDEX, fullscreenIndex);

@@ -172,14 +172,53 @@
                     android:contentDescription="收藏" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_encounter"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/encounter_block"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:layout_marginBottom="15dp"
-                android:textSize="12sp"
-                android:textColor="#999999"
-                android:visibility="gone" />
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_enc_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textColor="#999999"
+                    android:singleLine="true"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:contentDescription="复制本题ID" />
+
+                <TextView
+                    android:id="@+id/tv_enc_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="12sp"
+                    android:textColor="#999999"
+                    android:singleLine="true" />
+
+                <TextView
+                    android:id="@+id/tv_enc_result"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="12sp"
+                    android:textColor="#999999"
+                    android:singleLine="true" />
+
+                <TextView
+                    android:id="@+id/tv_enc_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="12sp"
+                    android:textColor="#999999"
+                    android:singleLine="true" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tv_question"

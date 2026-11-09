@@ -41,7 +41,9 @@ import java.util.Set;
 public class ReviewActivity extends AppCompatActivity {
 
     private TextView tvQuestion, tvAnswer, tvBanner, btnBannerNew, btnAnswerText;
-    private TextView tvLevelBadge, tvProgress, tvEncounter;
+    private TextView tvLevelBadge, tvProgress;
+    private LinearLayout encounterBlock;
+    private TextView tvEncId, tvEncCount, tvEncResult, tvEncTime;
     private ImageView btnFavorite;
     private LinearLayout metaRow;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
@@ -284,7 +286,11 @@ public class ReviewActivity extends AppCompatActivity {
         tvProgress = findViewById(R.id.tv_progress);
         btnFavorite = findViewById(R.id.btn_favorite);
         metaRow = findViewById(R.id.meta_row);
-        tvEncounter = findViewById(R.id.tv_encounter);
+        encounterBlock = findViewById(R.id.encounter_block);
+        tvEncId = findViewById(R.id.tv_enc_id);
+        tvEncCount = findViewById(R.id.tv_enc_count);
+        tvEncResult = findViewById(R.id.tv_enc_result);
+        tvEncTime = findViewById(R.id.tv_enc_time);
     }
 
     private void bindActions() {
@@ -308,6 +314,7 @@ public class ReviewActivity extends AppCompatActivity {
         findViewById(R.id.btn_banner_new).setOnClickListener(v -> confirmRestart());
         timerRow.setOnClickListener(v -> onTimerRowClick());
         tvLevelBadge.setOnClickListener(v -> onLevelBadgeClick());
+        tvEncId.setOnClickListener(v -> copyCurrentQuestionId());
         btnFavorite.setOnClickListener(v -> {
             if (currentQ == null || finished) return;
             QuestionStorage.toggleFavorite(this, currentQ);
@@ -495,7 +502,7 @@ public class ReviewActivity extends AppCompatActivity {
         beginQuestionDwell(session.currentIndex);
     }
 
-    /** 药丸点击：所有等级均可展开/收起；S 档显示抽查次数，其它等级暂无信息，后续可按等级补信息分支 */
+    /** 药丸点击：所有等级均可展开/收起折叠信息行，旋转重建后按 encounterExpanded 恢复 */
     private void onLevelBadgeClick() {
         Question q = currentQuestion();
         if (q == null) return;
@@ -503,17 +510,52 @@ public class ReviewActivity extends AppCompatActivity {
         applyEncounterVisibility(q, q.status);
     }
 
-    /** 按展开态刷新信息行：展开时可见；S 档文案为累计抽查次数（0 次也显示），其它等级显示「暂无信息」 */
+    /** 按展开态刷新折叠信息行：展开时可见，分四行展示 ID / 累计次数 / 上次结果 / 更新时间 */
     private void applyEncounterVisibility(Question q, String level) {
         boolean show = encounterExpanded;
-        tvEncounter.setVisibility(show ? View.VISIBLE : View.GONE);
-        if (show) {
-            if ("S".equals(level)) {
-                tvEncounter.setText("抽查 " + q.encounterCount + " 次");
-            } else {
-                tvEncounter.setText("暂无信息");
+        encounterBlock.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (!show) return;
+        tvEncId.setText(q.id == null ? "" : q.id);
+        if ("S".equals(level)) {
+            tvEncCount.setText("抽查 " + q.encounterCount + " 次");
+        } else {
+            tvEncCount.setText("复习 " + q.encounterCount + " 次");
+        }
+        tvEncResult.setText("上次：" + lastResultText(q));
+        long days = QuestionStorage.daysSince(this, q);
+        tvEncTime.setText(days <= 0 ? "今天更新" : days + " 天前更新");
+    }
+
+    /** 当前会话内同题最近一次已提交作答结果；无记录返回「首次复习」 */
+    private String lastResultText(Question q) {
+        if (session == null || q == null || q.id == null) return "首次复习";
+        String latest = null;
+        long latestAt = 0;
+        for (ReviewSession.Item it : session.items) {
+            if (q.id.equals(it.questionId) && it.result != null && it.answeredAt > 0
+                    && it.answeredAt > latestAt) {
+                latest = it.result;
+                latestAt = it.answeredAt;
             }
         }
+        if (latest == null) return "首次复习";
+        switch (latest) {
+            case ReviewSession.RESULT_KNOW: return "记得";
+            case ReviewSession.RESULT_VAGUE: return "模糊";
+            case ReviewSession.RESULT_FORGET: return "不会";
+            case ReviewSession.RESULT_SKIP: return "跳过";
+            case ReviewSession.RESULT_EXCLUDED: return "斩题";
+            default: return "首次复习";
+        }
+    }
+
+    /** 复制本题 ID 到剪贴板并提示 */
+    private void copyCurrentQuestionId() {
+        Question q = currentQuestion();
+        if (q == null || q.id == null) return;
+        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("题目ID", q.id));
+        Toast.makeText(this, "本题 ID：" + q.id, Toast.LENGTH_LONG).show();
     }
 
     private void showEmptyState() {
@@ -527,7 +569,7 @@ public class ReviewActivity extends AppCompatActivity {
         hideBanner();
         enableButtons(false);
         if (metaRow != null) metaRow.setVisibility(View.GONE);
-        if (tvEncounter != null) tvEncounter.setVisibility(View.GONE);
+        if (encounterBlock != null) encounterBlock.setVisibility(View.GONE);
         if (btnFavorite != null) btnFavorite.setVisibility(View.GONE);
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);
@@ -1037,10 +1079,9 @@ public class ReviewActivity extends AppCompatActivity {
         // 无待提交缓冲时「上一题」不可用
         popup.getMenu().findItem(R.id.menu_previous)
                 .setEnabled(pending != null && !finished);
-        // 当前题已被删/已收尾时「管理本题」「本题 ID」不可用
+        // 当前题已被删/已收尾时「管理本题」不可用
         boolean questionAvailable = currentQuestion() != null && !finished;
         popup.getMenu().findItem(R.id.menu_manage).setEnabled(questionAvailable);
-        popup.getMenu().findItem(R.id.menu_id).setEnabled(questionAvailable);
         popup.setOnDismissListener(p -> menuOpen = false);
         popup.setOnMenuItemClickListener((MenuItem item) -> {
             int id = item.getItemId();
@@ -1062,14 +1103,6 @@ public class ReviewActivity extends AppCompatActivity {
                 Intent detail = new Intent(this, QuestionDetailActivity.class);
                 detail.putExtra("qid", q.id);
                 startActivity(detail);
-                return true;
-            }
-            if (id == R.id.menu_id) {
-                Question q = currentQuestion();
-                if (q == null) return true;
-                ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("题目ID", q.id));
-                Toast.makeText(this, "本题 ID：" + q.id, Toast.LENGTH_LONG).show();
                 return true;
             }
             return false;
@@ -1197,7 +1230,7 @@ public class ReviewActivity extends AppCompatActivity {
         stopTicker();
         currentQ = null;
         if (metaRow != null) metaRow.setVisibility(View.GONE);
-        if (tvEncounter != null) tvEncounter.setVisibility(View.GONE);
+        if (encounterBlock != null) encounterBlock.setVisibility(View.GONE);
         if (btnFavorite != null) btnFavorite.setVisibility(View.GONE);
         if (timerRow != null && tvTimer != null) {
             timerRow.setClickable(false);

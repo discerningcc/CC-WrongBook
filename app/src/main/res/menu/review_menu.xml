@@ -12,7 +12,4 @@
     <item
         android:id="@+id/menu_manage"
         android:title="管理本题" />
-    <item
-        android:id="@+id/menu_id"
-        android:title="本题 ID" />
 </menu>

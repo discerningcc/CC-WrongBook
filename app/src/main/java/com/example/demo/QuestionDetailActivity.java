@@ -1,6 +1,8 @@
 package com.example.demo;
 import android.widget.Toast;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
@@ -14,8 +16,9 @@ import java.util.List;
 
 public class QuestionDetailActivity extends AppCompatActivity {
 
-    private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge, tvQuestionId, tvEncounter;
-    private LinearLayout reviewImageLayout, answerImageLayout, answerLayout, actionGroup;
+    private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge;
+    private TextView tvEncId, tvEncCount, tvEncTime;
+    private LinearLayout encounterBlock, reviewImageLayout, answerImageLayout, answerLayout, actionGroup;
     private View btnExclude, btnRestudy, btnDelete;
     private TextView btnExcludeText;
     private ImageView btnExcludeIcon;
@@ -55,8 +58,10 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvAnswer = findViewById(R.id.tv_answer);
         tvLevelBadge = findViewById(R.id.tv_level_badge);
         tvExcludedBadge = findViewById(R.id.tv_excluded_badge);
-        tvQuestionId = findViewById(R.id.tv_question_id);
-        tvEncounter = findViewById(R.id.tv_encounter);
+        encounterBlock = findViewById(R.id.encounter_block);
+        tvEncId = findViewById(R.id.tv_enc_id);
+        tvEncCount = findViewById(R.id.tv_enc_count);
+        tvEncTime = findViewById(R.id.tv_enc_time);
         reviewImageLayout = findViewById(R.id.review_image_layout);
         answerLayout = findViewById(R.id.answer_layout);
         answerImageLayout = findViewById(R.id.answer_image_layout);
@@ -117,6 +122,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
         // 等级药丸：点击展开 / 收起题目信息行
         tvLevelBadge.setOnClickListener(v -> onLevelBadgeClick());
+        tvEncId.setOnClickListener(v -> copyCurrentQuestionId());
     }
 
     private void confirmRestudy() {
@@ -207,9 +213,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
             tvAnswer.setText("");
             tvLevelBadge.setVisibility(View.GONE);
             tvExcludedBadge.setVisibility(View.GONE);
-            tvQuestionId.setVisibility(View.GONE);
-            tvQuestionId.setText("");
-            tvEncounter.setVisibility(View.GONE);
+            encounterBlock.setVisibility(View.GONE);
             btnFavorite.setVisibility(View.GONE);
             answerLayout.setVisibility(View.GONE);
             actionGroup.setVisibility(View.GONE);
@@ -227,8 +231,6 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(QuestionStorage.statusColor(status)));
         tvExcludedBadge.setVisibility(currentQuestion.excluded ? View.VISIBLE : View.GONE);
         tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
-        tvQuestionId.setVisibility(View.VISIBLE);
-        tvQuestionId.setText(currentQuestion.id == null ? "" : currentQuestion.id);
 
         applyEncounterVisibility(currentQuestion, status);
 
@@ -292,17 +294,27 @@ public class QuestionDetailActivity extends AppCompatActivity {
         applyEncounterVisibility(currentQuestion, currentQuestion.status);
     }
 
-    /** 按展开态刷新信息行：展开时可见；S 档文案为累计抽查次数（0 次也显示），其它等级显示「暂无信息」 */
+    /** 按展开态刷新折叠信息行：展开时可见，分三行展示 ID / 累计次数 / 更新时间 */
     private void applyEncounterVisibility(Question q, String level) {
         boolean show = encounterExpanded;
-        tvEncounter.setVisibility(show ? View.VISIBLE : View.GONE);
-        if (show) {
-            if ("S".equals(level)) {
-                tvEncounter.setText("抽查 " + q.encounterCount + " 次");
-            } else {
-                tvEncounter.setText("暂无信息");
-            }
+        encounterBlock.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (!show) return;
+        tvEncId.setText(q.id == null ? "" : q.id);
+        if ("S".equals(level)) {
+            tvEncCount.setText("抽查 " + q.encounterCount + " 次");
+        } else {
+            tvEncCount.setText("复习 " + q.encounterCount + " 次");
         }
+        long days = QuestionStorage.daysSince(this, q);
+        tvEncTime.setText(days <= 0 ? "今天更新" : days + " 天前更新");
+    }
+
+    /** 复制本题 ID 到剪贴板并提示 */
+    private void copyCurrentQuestionId() {
+        if (currentQuestion == null || currentQuestion.id == null) return;
+        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("题目ID", currentQuestion.id));
+        Toast.makeText(this, "本题 ID：" + currentQuestion.id, Toast.LENGTH_LONG).show();
     }
 
     private void addImage(LinearLayout parent, String path, int index) {

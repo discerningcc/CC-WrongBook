@@ -757,19 +757,29 @@ public final class ImageLoader {
     /**
      * 页面包裹层：协调 PhotoView 与翻页器的触摸归属。
      * 多指落下时阻止内部 RecyclerView 抢触摸，保证双指捏合完整到达 PhotoView；
-     * 单指时按手势主轴与图片边界决定归属：纵向滑动不翻页；放大后图片仍可往该方向
-     * 平移时横滑留给图片，拖到左右边界再交还翻页器左右翻页。
+     * 单指时先按角度死区锁定本次手势主轴：纵向手势整段不翻页；横向手势在放大后
+     * 图片仍可平移时留给图片，拖到左右边界再交还翻页器左右翻页。
      */
     private static final class TouchGuardFrame extends FrameLayout {
 
+        private static final float AXIS_K = 1.5f;
+        private static final int AXIS_UNDECIDED = 0;
+        private static final int AXIS_VERTICAL = 1;
+        private static final int AXIS_HORIZONTAL = 2;
+
         private PhotoView pv;
+        private ViewPager2 pager;
         private final int slop;
+        private final int confirmDist;
         private float downX, downY;
         private boolean disallow;
+        private boolean pagerEnabled = true;
+        private int axis;
 
         TouchGuardFrame(Context context) {
             super(context);
             slop = ViewConfiguration.get(context).getScaledTouchSlop();
+            confirmDist = slop * 2;
         }
 
         void attach(PhotoView photoView) {
@@ -791,20 +801,44 @@ public final class ImageLoader {
                     downX = ev.getX();
                     downY = ev.getY();
                     disallow = false;
+                    axis = AXIS_UNDECIDED;
+                    setPagerEnabled(true);
                     break;
                 case MotionEvent.ACTION_MOVE:
                     if (ev.getPointerCount() >= 2) {
+                        // 多指捏合：阻止翻页器抢触摸，保证缩放完整到达 PhotoView
                         setDisallow(true);
                         break;
                     }
                     float dx = ev.getX() - downX;
                     float dy = ev.getY() - downY;
                     if (Math.abs(dx) < slop && Math.abs(dy) < slop) break;
-                    setDisallow(shouldOwnGesture(dx, dy));
+                    if (axis == AXIS_UNDECIDED) {
+                        if (Math.abs(dy) >= AXIS_K * Math.abs(dx)) {
+                            axis = AXIS_VERTICAL;
+                        } else if (Math.abs(dx) >= confirmDist
+                                && Math.abs(dx) >= AXIS_K * Math.abs(dy)) {
+                            axis = AXIS_HORIZONTAL;
+                        }
+                    }
+                    boolean own;
+                    if (axis == AXIS_VERTICAL) {
+                        own = true;
+                    } else if (axis == AXIS_HORIZONTAL) {
+                        own = ownHorizontal(dx);
+                    } else {
+                        // 接近 45° 的灰区：保守处理，不翻页
+                        own = true;
+                    }
+                    // 图片自身消费（纵向 / 待平移 / 灰区）时关闭翻页器输入；
+                    // 明确可交翻页器时恢复。disallow 对单指横滑不生效，翻页开关走 pager。
+                    setPagerEnabled(!own);
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     disallow = false;
+                    axis = AXIS_UNDECIDED;
+                    setPagerEnabled(true);
                     break;
             }
             return super.dispatchTouchEvent(ev);
@@ -817,13 +851,27 @@ public final class ImageLoader {
             if (parent != null) parent.requestDisallowInterceptTouchEvent(own);
         }
 
+        private void setPagerEnabled(boolean enabled) {
+            if (enabled == pagerEnabled) return;
+            pagerEnabled = enabled;
+            if (pager == null) pager = findPager();
+            if (pager != null) pager.setUserInputEnabled(enabled);
+        }
+
+        private ViewPager2 findPager() {
+            ViewParent p = getParent();
+            while (p instanceof View) {
+                if (p instanceof ViewPager2) return (ViewPager2) p;
+                p = p.getParent();
+            }
+            return null;
+        }
+
         /**
-         * 该手势应由图片自身消费、不交还翻页器：
-         * 纵向为主的滑动不翻页；放大后图片还能往滑动方向平移时横滑留给图片，到边界才允许翻页。
+         * 横向手势是否应由图片自身消费：放大后图片还能往该方向平移时横滑留给图片，
+         * 拖到左右边界才允许翻页；未放大时横滑交给翻页器。
          */
-        private boolean shouldOwnGesture(float dx, float dy) {
-            // 纵向占优：上下 / 斜向滑动不触发翻页
-            if (Math.abs(dy) > Math.abs(dx)) return true;
+        private boolean ownHorizontal(float dx) {
             if (pv == null || pv.getAttacher() == null) return false;
 
             float scale = pv.getAttacher().getScale();

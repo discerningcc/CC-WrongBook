@@ -154,7 +154,15 @@ public class QuestionBankActivity extends AppCompatActivity {
             chip.setLayoutParams(lp);
 
             chip.setOnClickListener(v -> {
-                if (filter == index) return;
+                if (filter == index) {
+                    // 再点已选中的非「全部」标签：取消该筛选，回到全部
+                    if (filter != FILTER_ALL) {
+                        filter = FILTER_ALL;
+                        styleChips();
+                        applyFilter();
+                    }
+                    return;
+                }
                 filter = index;
                 styleChips();
                 applyFilter();
@@ -209,7 +217,15 @@ public class QuestionBankActivity extends AppCompatActivity {
     }
 
     private void selectLevel(int level) {
-        if (levelFilter == level) return;
+        if (levelFilter == level) {
+            // 再点已选中的等级：取消等级筛选，回到全部等级
+            if (levelFilter != -1) {
+                levelFilter = -1;
+                styleLevelChips();
+                applyFilter();
+            }
+            return;
+        }
         levelFilter = level;
         styleLevelChips();
         applyFilter();

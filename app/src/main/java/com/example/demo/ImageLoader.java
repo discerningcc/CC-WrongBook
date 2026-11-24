@@ -8,6 +8,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -20,6 +21,7 @@ import android.util.LruCache;
 import android.util.SparseArray;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.Window;
@@ -753,17 +755,26 @@ public final class ImageLoader {
     }
 
     /**
-     * 页面包裹层：多指落下时阻止内部 RecyclerView 抢触摸，保证双指捏合缩放完整到达 PhotoView；
-     * 翻页器输入始终保持可用，放大后仍可左右翻页。
+     * 页面包裹层：协调 PhotoView 与翻页器的触摸归属。
+     * 多指落下时阻止内部 RecyclerView 抢触摸，保证双指捏合完整到达 PhotoView；
+     * 单指时按手势主轴与图片边界决定归属：纵向滑动不翻页；放大后图片仍可往该方向
+     * 平移时横滑留给图片，拖到左右边界再交还翻页器左右翻页。
      */
     private static final class TouchGuardFrame extends FrameLayout {
 
+        private PhotoView pv;
+        private final int slop;
+        private float downX, downY;
+        private boolean disallow;
+
         TouchGuardFrame(Context context) {
             super(context);
+            slop = ViewConfiguration.get(context).getScaledTouchSlop();
         }
 
-        void attach(PhotoView pv) {
-            addView(pv, new FrameLayout.LayoutParams(
+        void attach(PhotoView photoView) {
+            this.pv = photoView;
+            addView(photoView, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
@@ -775,11 +786,62 @@ public final class ImageLoader {
 
         @Override
         public boolean dispatchTouchEvent(MotionEvent ev) {
-            if (ev.getPointerCount() >= 2) {
-                ViewParent parent = getParent();
-                if (parent != null) parent.requestDisallowInterceptTouchEvent(true);
+            switch (ev.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    downX = ev.getX();
+                    downY = ev.getY();
+                    disallow = false;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (ev.getPointerCount() >= 2) {
+                        setDisallow(true);
+                        break;
+                    }
+                    float dx = ev.getX() - downX;
+                    float dy = ev.getY() - downY;
+                    if (Math.abs(dx) < slop && Math.abs(dy) < slop) break;
+                    setDisallow(shouldOwnGesture(dx, dy));
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    disallow = false;
+                    break;
             }
             return super.dispatchTouchEvent(ev);
+        }
+
+        private void setDisallow(boolean own) {
+            if (own == disallow) return;
+            disallow = own;
+            ViewParent parent = getParent();
+            if (parent != null) parent.requestDisallowInterceptTouchEvent(own);
+        }
+
+        /**
+         * 该手势应由图片自身消费、不交还翻页器：
+         * 纵向为主的滑动不翻页；放大后图片还能往滑动方向平移时横滑留给图片，到边界才允许翻页。
+         */
+        private boolean shouldOwnGesture(float dx, float dy) {
+            // 纵向占优：上下 / 斜向滑动不触发翻页
+            if (Math.abs(dy) > Math.abs(dx)) return true;
+            if (pv == null || pv.getAttacher() == null) return false;
+
+            float scale = pv.getAttacher().getScale();
+            float minScale = pv.getAttacher().getMinimumScale();
+            // 未放大：图片适配屏幕，横向滑动交给翻页器翻页
+            if (scale <= minScale + 0.01f) return false;
+
+            RectF rect = pv.getAttacher().getDisplayRect();
+            if (rect == null) return false;
+            final float eps = 1f;
+            if (dx < 0) {
+                // 手指左滑看右侧：左缘未贴边，说明还能继续平移，留给图片
+                return rect.left < -eps;
+            } else if (dx > 0) {
+                // 手指右滑看左侧：右缘未贴边，说明还能继续平移，留给图片
+                return rect.right > getWidth() + eps;
+            }
+            return false;
         }
     }
 }

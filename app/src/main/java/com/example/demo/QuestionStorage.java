@@ -292,11 +292,19 @@ public class QuestionStorage {
     public static void incTodayDone(Context context) {
         SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         long today = getDayNumberLocal(System.currentTimeMillis());
-        SharedPreferences.Editor e = sp.edit();
-        if (sp.getLong(KEY_PROGRESS_DATE, -1) != today) {
-            e.putLong(KEY_PROGRESS_DATE, today).putInt(KEY_PROGRESS_DONE, 0);
-        }
-        e.putInt(KEY_PROGRESS_DONE, sp.getInt(KEY_PROGRESS_DONE, 0) + 1).apply();
+        // 先用读到的旧值判断是否同一天；跨日直接从 1 起算，不携带昨日残留。
+        // 注意不能在 Editor 已 put(0) 后再 sp.getInt 累加：apply 前内存缓存不会回写，仍读到旧值。
+        int next = nextTodayDone(sp.getLong(KEY_PROGRESS_DATE, -1),
+                sp.getInt(KEY_PROGRESS_DONE, 0), today);
+        sp.edit().putLong(KEY_PROGRESS_DATE, today).putInt(KEY_PROGRESS_DONE, next).apply();
+    }
+
+    /**
+     * 今日计数推进结果：同一天在已完成数上累加；跨自然日从 1 重新起算。
+     * 抽成纯函数便于宿主机单测，不依赖 Context / SharedPreferences。
+     */
+    static int nextTodayDone(long storedDay, int storedDone, long today) {
+        return storedDay == today ? storedDone + 1 : 1;
     }
 
     /** 今日目标还剩多少额度；不限量（budget<=0）返回很大的数 */

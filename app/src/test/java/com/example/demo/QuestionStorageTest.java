@@ -84,4 +84,18 @@ public class QuestionStorageTest {
         assertTrue(q.favorite);
         assertEquals(3, q.encounterCount);
     }
+
+    @Test
+    public void nextTodayDone_sameDayAccumulates() {
+        assertEquals(6, QuestionStorage.nextTodayDone(100, 5, 100));
+        assertEquals(1, QuestionStorage.nextTodayDone(100, 0, 100));
+    }
+
+    @Test
+    public void nextTodayDone_crossDayResetsToOne() {
+        // 跨自然日：昨日残留不计入，从 1 重新起算
+        assertEquals(1, QuestionStorage.nextTodayDone(99, 32, 100));
+        // 首次使用（无记录日戳 -1）同样从 1 起算
+        assertEquals(1, QuestionStorage.nextTodayDone(-1, 0, 100));
+    }
 }

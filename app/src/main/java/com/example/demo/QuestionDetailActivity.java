@@ -317,6 +317,35 @@ public class QuestionDetailActivity extends AppCompatActivity {
         Toast.makeText(this, "本题 ID：" + currentQuestion.id, Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * 旋转某张图并立即落库：详情页没有草稿态，改完即生效。
+     * 旧文件不在这里删——写盘是异步的，交给孤儿图清扫按真实文件内容回收更安全。
+     */
+    private void rotateImage(String path) {
+        ImageLoader.rotateImageAsync(this, path, newPath -> {
+            if (isFinishing() || currentQuestion == null) return;
+            if (newPath == null) {
+                Toast.makeText(this, "旋转失败", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            boolean replaced = replacePath(currentQuestion.contentImages, path, newPath)
+                    || replacePath(currentQuestion.answerImages, path, newPath);
+            if (!replaced) return;
+            QuestionStorage.update(this);
+            loadQuestionData();
+            Toast.makeText(this, "已旋转", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    /** 把列表里的旧路径换成新路径；没找到返回 false */
+    private static boolean replacePath(List<String> paths, String oldPath, String newPath) {
+        if (paths == null) return false;
+        int idx = paths.indexOf(oldPath);
+        if (idx < 0) return false;
+        paths.set(idx, newPath);
+        return true;
+    }
+
     private void addImage(LinearLayout parent, String path, int index) {
         ImageView iv = new ImageView(this);
         int size = (int) (280 * getResources().getDisplayMetrics().density);
@@ -327,7 +356,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         iv.setOnClickListener(v -> openFullscreenFromDetail(index));
         iv.setOnLongClickListener(v -> {
             inlineMenuPath = path;
-            ImageLoader.showImageMenu(this, path, null);
+            ImageLoader.showImageMenu(this, path, null, this::rotateImage);
             return true;
         });
         parent.addView(iv);
@@ -367,7 +396,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         if (p == null) return;
         inlineMenuPath = p;
         findViewById(android.R.id.content).post(() -> {
-            if (!isFinishing()) ImageLoader.showImageMenu(this, p, null);
+            if (!isFinishing()) ImageLoader.showImageMenu(this, p, null, this::rotateImage);
         });
     }
 

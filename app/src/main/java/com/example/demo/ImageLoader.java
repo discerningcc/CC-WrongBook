@@ -95,6 +95,16 @@ public final class ImageLoader {
         void onDeleteRequested(String path);
     }
 
+    /** 旋转回调：非空时菜单出现「旋转 90°」；菜单只负责转出新的正向文件，路径写回由调用方决定 */
+    public interface OnImageRotateListener {
+        void onRotateRequested(String path);
+    }
+
+    /** 旋转完成回调：主线程执行，newPath 为 null 表示失败 */
+    public interface OnRotateFinish {
+        void onRotateFinish(String newPath);
+    }
+
     private ImageLoader() {
     }
 
@@ -383,6 +393,15 @@ public final class ImageLoader {
      * 大图长按与内联缩略图长按共用同一套文案、动作与 Toast 口径。
      */
     public static void showImageMenu(Context context, String path, OnImageDeleteListener deleteListener) {
+        showImageMenu(context, path, deleteListener, null);
+    }
+
+    /**
+     * 同上，额外支持「旋转 90°」：rotateListener 非空时菜单多一项，交由调用方把新路径写回到自己的数据里。
+     * 旋转走后台线程转出新文件，菜单本身不碰任何题库数据。
+     */
+    public static void showImageMenu(Context context, String path, OnImageDeleteListener deleteListener,
+                                     OnImageRotateListener rotateListener) {
         if (context == null) return;
         if (path == null || path.isEmpty()) {
             Toast.makeText(context, "图片已不存在", Toast.LENGTH_SHORT).show();
@@ -392,6 +411,10 @@ public final class ImageLoader {
         List<Runnable> actions = new ArrayList<>();
         items.add("保存到本地");
         actions.add(() -> saveImage(context.getApplicationContext(), path));
+        if (rotateListener != null) {
+            items.add("旋转 90°");
+            actions.add(() -> rotateListener.onRotateRequested(path));
+        }
         if (deleteListener != null) {
             items.add("删除当前图");
             actions.add(() -> deleteListener.onDeleteRequested(path));
@@ -405,6 +428,28 @@ public final class ImageLoader {
                 .show();
         sSaveMenu = menu;
         sSaveMenuOpen = true;
+    }
+
+    /**
+     * 后台把指定图片顺时针旋转 90°，转出的新文件路径在主线程回传。
+     * 只新写文件、不改任何引用：调用方拿到新路径后自行替换并触发落盘。
+     */
+    public static void rotateImageAsync(Context context, String path, OnRotateFinish callback) {
+        if (context == null || path == null || path.isEmpty()) {
+            if (callback != null) callback.onRotateFinish(null);
+            return;
+        }
+        final Context app = context.getApplicationContext();
+        POOL.execute(() -> {
+            String newPath = null;
+            try {
+                newPath = ImageUtils.rotate90(app, path);
+            } catch (Exception e) {
+                Log.w(TAG, "rotate image failed: " + path, e);
+            }
+            final String out = newPath;
+            if (callback != null) MAIN.post(() -> callback.onRotateFinish(out));
+        });
     }
 
     /** 后台线程把指定图片写入系统相册，主线程回 Toast；路径/文件无效时提示「图片已不存在」。 */

@@ -225,7 +225,7 @@ public class AddQuestionActivity extends AppCompatActivity {
             final String p = inlineMenuPath;
             final int g = inlineMenuGroup;
             findViewById(android.R.id.content).post(() -> {
-                if (!isFinishing()) ImageLoader.showImageMenu(AddQuestionActivity.this, p, x -> confirmDelete(g, x));
+                if (!isFinishing()) ImageLoader.showImageMenu(AddQuestionActivity.this, p, x -> confirmDelete(g, x), x -> rotateImage(g, x));
             });
         }
     }
@@ -361,6 +361,32 @@ public class AddQuestionActivity extends AppCompatActivity {
         }
         // 若从大图内触发删除，同步把看图当前页移除；组内清空由组件关闭看图
         if (fullscreenOpen) ImageLoader.removeCurrentViewerImage();
+    }
+
+    /**
+     * 旋转当前组的某张图：后台转出新的正向文件，回到主线程替换组内路径。
+     * 基线（initContentImgs/initAnswerImgs）刻意保持原样，让旋转沿用现有语义：
+     * 保存时旧路径被比对出来清理，放弃时新图按未保存内容删除、旧图原样保留。
+     */
+    private void rotateImage(int group, String path) {
+        ArrayList<String> target = group == GROUP_CONTENT ? contentPaths : answerPaths;
+        if (path == null || !target.contains(path)) return;
+        ImageLoader.rotateImageAsync(this, path, newPath -> {
+            if (isFinishing()) return;
+            if (newPath == null) {
+                Toast.makeText(this, "旋转失败", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // 后台期间列表可能被拖动改序、图也可能已被删，统一按路径重新定位
+            int idx = target.indexOf(path);
+            if (idx < 0) return;
+            target.set(idx, newPath);
+            adapterOf(group).notifyItemChanged(idx);
+            refreshCounts();
+            saveDraft();
+            if (inlineMenuPath != null && inlineMenuPath.equals(path)) inlineMenuPath = newPath;
+            Toast.makeText(this, "已旋转", Toast.LENGTH_SHORT).show();
+        });
     }
 
     /** 大图内「删除当前图」回调：复用本组删图确认口径 */
@@ -648,7 +674,7 @@ public class AddQuestionActivity extends AppCompatActivity {
                 String target = paths.get(idx);
                 inlineMenuPath = target;
                 inlineMenuGroup = group;
-                ImageLoader.showImageMenu(AddQuestionActivity.this, target, p -> confirmDelete(group, p));
+                ImageLoader.showImageMenu(AddQuestionActivity.this, target, p -> confirmDelete(group, p), p -> rotateImage(group, p));
                 return true;
             });
             attachDirectDrag(holder);

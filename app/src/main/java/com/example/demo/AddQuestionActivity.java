@@ -576,8 +576,26 @@ public class AddQuestionActivity extends AppCompatActivity {
 
             @Override
             public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder from, RecyclerView.ViewHolder to) {
-                adapter.swap(from.getAdapterPosition(), to.getAdapterPosition());
-                return true;
+                // 只有真的改了数据才回报成功：位置无效或原地不动一律 false。
+                // 恒返回 true 时，框架会认为移动成功、照常播动画，并继续用已错位的位置回调，
+                // 导致画面与数据进一步分叉。
+                return adapter.move(from.getAdapterPosition(), to.getAdapterPosition());
+            }
+
+            @Override
+            public void onSelectedChanged(RecyclerView.ViewHolder holder, int actionState) {
+                super.onSelectedChanged(holder, actionState);
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && holder != null) {
+                    // 拖拽中轻微放大 + 半透明，明确标出正在拖的是哪一张
+                    holder.itemView.animate().scaleX(1.03f).scaleY(1.03f)
+                            .alpha(0.9f).setDuration(120).start();
+                }
+            }
+
+            @Override
+            public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder holder) {
+                super.clearView(recyclerView, holder);
+                holder.itemView.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start();
             }
 
             @Override
@@ -637,11 +655,22 @@ public class AddQuestionActivity extends AppCompatActivity {
             return paths.size();
         }
 
-        void swap(int from, int to) {
-            if (from < 0 || to < 0 || from >= paths.size() || to >= paths.size()) return;
-            Collections.swap(paths, from, to);
+        /**
+         * 把 from 处的图片取出、插入到 to 位置，其余图片顺移一位。
+         * 与 notifyItemMoved 的“插入式移动”语义保持一致：跨格拖动时画面里看到的顺移，
+         * 数据里也会同样顺移。原实现用 Collections.swap 只互换两项，
+         * 跨格拖动会把被换下去的那张甩到很远，造成“画面顺序对、存下来的顺序错”。
+         *
+         * @return 数据是否真的发生变化（供 onMove 如实回报）
+         */
+        boolean move(int from, int to) {
+            if (from < 0 || to < 0 || from >= paths.size() || to >= paths.size() || from == to) {
+                return false;
+            }
+            paths.add(to, paths.remove(from));
             notifyItemMoved(from, to);
             saveDraft();
+            return true;
         }
 
         private void attachDirectDrag(VH holder) {

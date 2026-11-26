@@ -9,4 +9,7 @@
     <dimen name="home_inner_margin">5dp</dimen>
     <dimen name="home_info_padding">16dp</dimen>
     <dimen name="home_progress_height">8dp</dimen>
+
+    <!-- 加题/改题页图片缩略网格：单格高度（网格总高按行数 × 该值显式计算） -->
+    <dimen name="thumb_item_height">120dp</dimen>
 </resources>

@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -69,6 +70,8 @@ public class AddQuestionActivity extends AppCompatActivity {
 
     private ThumbAdapter adapterContent, adapterAnswer;
     private ItemTouchHelper helperContent, helperAnswer;
+    /** 图片网格列数：横屏 4 列、竖屏 3 列（网格高度按它算行数） */
+    private int spanCount;
 
     private TextView titleBar;
 
@@ -137,8 +140,7 @@ public class AddQuestionActivity extends AppCompatActivity {
         tvAnswerCount = findViewById(R.id.tv_answer_count);
         btnSaveContinue = findViewById(R.id.btn_save_continue);
 
-        boolean landscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-        int spanCount = landscape ? 4 : 3;
+        spanCount = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE ? 4 : 3;
         rvContent.setLayoutManager(new GridLayoutManager(this, spanCount));
         rvAnswer.setLayoutManager(new GridLayoutManager(this, spanCount));
 
@@ -275,6 +277,25 @@ public class AddQuestionActivity extends AppCompatActivity {
     private void refreshCounts() {
         tvContentCount.setText(contentPaths.size() + "/" + MAX_IMAGES);
         tvAnswerCount.setText(answerPaths.size() + "/" + MAX_IMAGES);
+        syncGridHeight(rvContent, contentPaths.size());
+        syncGridHeight(rvAnswer, answerPaths.size());
+    }
+
+    /**
+     * 按「行数 × 单格高度」显式设定图片网格高度。
+     * 背景：网格在 ScrollView 内用 wrap_content，一旦视口剩余高度放不下全部行，
+     * RecyclerView 的自动测量只会按能塞下的那一行完成布局并回报一行高度，
+     * 多出来的图既不显示也不产生滚动（横屏 4 列 8 张时只剩第一行 1~4）。
+     * 显式给高度后，网格不再受剩余空间约束，第二行起正常显示并参与整页滚动。
+     */
+    private void syncGridHeight(RecyclerView rv, int count) {
+        if (rv == null || spanCount <= 0) return;
+        int rows = count == 0 ? 0 : (count + spanCount - 1) / spanCount;
+        int heightPx = rows * getResources().getDimensionPixelSize(R.dimen.thumb_item_height);
+        ViewGroup.LayoutParams lp = rv.getLayoutParams();
+        if (lp == null || lp.height == heightPx) return;
+        lp.height = heightPx;
+        rv.setLayoutParams(lp);
     }
 
     private ThumbAdapter adapterOf(int group) {

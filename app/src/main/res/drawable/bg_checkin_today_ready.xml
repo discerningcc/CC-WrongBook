@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 日历今天且可打卡：白底 + 加粗主色描边，提示可直接点击打卡 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="12dp" />
+    <solid android:color="@color/home_card" />
+    <stroke android:width="2dp" android:color="@color/home_primary" />
+</shape>

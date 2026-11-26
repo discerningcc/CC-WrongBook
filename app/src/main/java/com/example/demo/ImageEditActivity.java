@@ -110,6 +110,9 @@ public class ImageEditActivity extends AppCompatActivity {
         btnCropCancel = findViewById(R.id.act_crop_cancel);
         btnCropConfirm = findViewById(R.id.act_crop_confirm);
 
+        // 用户拖选框时同步到本地字段：重建（横竖屏旋转）存的就是这一份，否则会退回进入裁剪时的默认框
+        overlay.setOnCropChangedListener(rect -> crop = rect);
+
         findViewById(R.id.edit_cancel).setOnClickListener(v -> onCancel());
         btnDone.setOnClickListener(v -> onDone());
         btnRotateLeft.setOnClickListener(v -> rotateBy(-90));
@@ -498,7 +501,8 @@ public class ImageEditActivity extends AppCompatActivity {
         outState.putString(KEY_SOURCE_PATH, sourcePath);
         outState.putString(KEY_PENDING, pendingPath);
         outState.putInt(KEY_ANGLE, angle);
-        outState.putFloatArray(KEY_CROP, crop);
+        // 裁剪态直接取浮层当前框：拖动可能发生在最后一次同步之后（如拖动中被打断），这里兜底
+        outState.putFloatArray(KEY_CROP, cropping ? overlay.getCrop() : crop);
         outState.putBoolean(KEY_CROPPING, cropping);
     }
 

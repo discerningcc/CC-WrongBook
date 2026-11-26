@@ -16,6 +16,11 @@ import android.view.View;
  */
 public class CropOverlayView extends View {
 
+    /** 选框被用户拖动后回调，Activity 据此同步自己的 crop，跨重建才不会退回默认 */
+    interface OnCropChangedListener {
+        void onCropChanged(float[] crop);
+    }
+
     private static final int MODE_NONE = 0;
     private static final int MODE_MOVE = 1;
     private static final int MODE_LEFT = 2;
@@ -46,6 +51,7 @@ public class CropOverlayView extends View {
     private boolean editable = false;
     private int mode = MODE_NONE;
     private float downX, downY;
+    private OnCropChangedListener cropChangedListener;
 
     private final float touchTolerance;
     private final float cornerLength;
@@ -106,6 +112,11 @@ public class CropOverlayView extends View {
     /** 取当前选框的副本 */
     float[] getCrop() {
         return new float[]{crop[0], crop[1], crop[2], crop[3]};
+    }
+
+    /** 拖动选框时通知外部，保证 Activity 手里的框始终是用户看到的那一份 */
+    void setOnCropChangedListener(OnCropChangedListener listener) {
+        cropChangedListener = listener;
     }
 
     /** 是否允许拖动；关掉后浮层不画也不响应触摸 */
@@ -270,6 +281,7 @@ public class CropOverlayView extends View {
                 return;
         }
         invalidate();
+        if (cropChangedListener != null) cropChangedListener.onCropChanged(getCrop());
     }
 
     /** 归一化选框 → 视图坐标 */

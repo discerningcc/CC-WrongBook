@@ -7,28 +7,39 @@
 
     <style name="Theme.Demo" parent="Base.Theme.Demo" />
 
-    <!-- 图片编辑页：纯黑底，状态栏与导航栏同色，免得黑底上压两条浅色条 -->
+    <!-- 图片编辑页：与详情页同一套浅底，状态栏与导航栏同色、图标转深色 -->
     <style name="Theme.Demo.ImageEdit" parent="Theme.Demo">
-        <item name="android:windowBackground">@color/black</item>
-        <item name="android:statusBarColor">@color/black</item>
-        <item name="android:navigationBarColor">@color/black</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/edit_bg</item>
+        <item name="android:statusBarColor">@color/edit_bg</item>
+        <item name="android:navigationBarColor">@color/edit_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
-    <!-- 图片编辑页底部工具条按钮：等分、垂直居中、白字 -->
+    <!-- 编辑页工具条按钮：三格等分、46dp 高、图标配文字（沿用详情页按钮的尺寸与圆角） -->
     <style name="ImageEditBarButton">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_height">46dp</item>
         <item name="android:layout_weight">1</item>
+        <item name="android:orientation">horizontal</item>
         <item name="android:gravity">center</item>
-        <item name="android:background">?attr/selectableItemBackground</item>
-        <item name="android:letterSpacing">0.06</item>
-        <item name="android:textColor">#FFFFFF</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
     </style>
 
-    <!-- 次要动作（重置、退出裁剪）降一档明度，避免和主操作抢眼 -->
-    <style name="ImageEditBarButton.Secondary">
-        <item name="android:textColor">#99FFFFFF</item>
+    <!-- 工具条按钮里的图标：20dp，与文字间距 8dp -->
+    <style name="ImageEditBarIcon">
+        <item name="android:layout_width">20dp</item>
+        <item name="android:layout_height">20dp</item>
+        <item name="android:layout_marginEnd">8dp</item>
+    </style>
+
+    <!-- 工具条按钮里的文字：16sp，颜色在布局里按主/次分别指定 -->
+    <style name="ImageEditBarText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0.02</item>
     </style>
 </resources>

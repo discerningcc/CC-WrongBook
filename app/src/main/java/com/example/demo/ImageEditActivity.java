@@ -10,7 +10,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -52,7 +51,7 @@ public class ImageEditActivity extends AppCompatActivity {
     private CropOverlayView overlay;
     private ProgressBar loading;
     private View editBar, cropBar;
-    private TextView btnDone, btnRotateLeft, btnRotateRight, btnCrop,
+    private View btnDone, btnRotateLeft, btnRotateRight, btnCrop,
             btnCropReset, btnCropCancel, btnCropConfirm;
 
     /** 原图路径：取消编辑时原图完全不动，靠的就是只读它 */

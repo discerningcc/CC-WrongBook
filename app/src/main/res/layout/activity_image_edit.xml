@@ -2,48 +2,95 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black"
-    android:orientation="vertical">
+    android:background="@color/edit_bg"
+    android:orientation="vertical"
+    android:padding="16dp">
 
-    <!-- 顶栏：左取消，右完成 -->
+    <!-- 顶栏卡片：左取消，中标题，右完成 -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp">
+        android:layout_height="56dp"
+        android:background="@drawable/bg_edit_header">
 
-        <TextView
+        <LinearLayout
             android:id="@+id/edit_cancel"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_gravity="start"
+            android:layout_gravity="start|center_vertical"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
-            android:paddingStart="22dp"
-            android:paddingEnd="22dp"
-            android:text="取消"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="取消"
+                android:src="@drawable/ic_edit_close"
+                android:tint="@color/detail_text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:letterSpacing="0.02"
+                android:text="取消"
+                android:textColor="@color/detail_text_secondary"
+                android:textSize="15sp" />
+        </LinearLayout>
 
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="编辑图片"
+            android:textColor="@color/detail_text_primary"
+            android:textSize="16sp" />
+
+        <LinearLayout
             android:id="@+id/edit_done"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_gravity="end"
+            android:layout_gravity="end|center_vertical"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
-            android:paddingStart="22dp"
-            android:paddingEnd="22dp"
-            android:text="完成"
-            android:textColor="@color/home_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="完成"
+                android:src="@drawable/ic_edit_check"
+                android:tint="@color/detail_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:letterSpacing="0.02"
+                android:text="完成"
+                android:textColor="@color/detail_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </FrameLayout>
 
-    <!-- 舞台：图片按 FIT 显示，裁剪浮层叠在上面 -->
+    <!-- 舞台：深色圆角卡，图片按 FIT 显示，裁剪浮层叠在上面 -->
     <FrameLayout
         android:id="@+id/edit_stage"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_marginTop="12dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_edit_stage"
+        android:clipToOutline="true">
 
         <ImageView
             android:id="@+id/edit_image"
@@ -62,57 +109,131 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_gravity="center"
-            android:indeterminateTint="#FFFFFF" />
+            android:indeterminateTint="@color/home_primary" />
     </FrameLayout>
 
     <!-- 编辑工具条：旋转两个方向 + 裁剪（裁剪会按设置自动去白边） -->
     <LinearLayout
         android:id="@+id/edit_bar"
         android:layout_width="match_parent"
-        android:layout_height="96dp"
-        android:orientation="horizontal"
-        android:paddingTop="8dp"
-        android:paddingBottom="12dp">
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
 
-        <TextView
+        <LinearLayout
             android:id="@+id/act_rotate_left"
             style="@style/ImageEditBarButton"
-            android:text="左转" />
+            android:background="@drawable/bg_detail_outline_gray">
 
-        <TextView
+            <ImageView
+                style="@style/ImageEditBarIcon"
+                android:contentDescription="左转"
+                android:src="@drawable/ic_edit_rotate_left"
+                android:tint="@color/detail_text_secondary" />
+
+            <TextView
+                style="@style/ImageEditBarText"
+                android:text="左转"
+                android:textColor="@color/detail_text_secondary" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/act_rotate_right"
             style="@style/ImageEditBarButton"
-            android:text="右转" />
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_detail_outline_gray">
 
-        <TextView
+            <ImageView
+                style="@style/ImageEditBarIcon"
+                android:contentDescription="右转"
+                android:src="@drawable/ic_edit_rotate_right"
+                android:tint="@color/detail_text_secondary" />
+
+            <TextView
+                style="@style/ImageEditBarText"
+                android:text="右转"
+                android:textColor="@color/detail_text_secondary" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/act_crop"
             style="@style/ImageEditBarButton"
-            android:text="裁剪" />
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_detail_primary">
+
+            <ImageView
+                style="@style/ImageEditBarIcon"
+                android:contentDescription="裁剪"
+                android:src="@drawable/ic_edit_crop"
+                android:tint="@android:color/white" />
+
+            <TextView
+                style="@style/ImageEditBarText"
+                android:text="裁剪"
+                android:textColor="@android:color/white" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- 裁剪工具条：重置选框 / 退出裁剪 / 确认裁剪 -->
     <LinearLayout
         android:id="@+id/crop_bar"
         android:layout_width="match_parent"
-        android:layout_height="96dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
         android:orientation="horizontal"
-        android:paddingTop="8dp"
-        android:paddingBottom="12dp"
         android:visibility="gone">
 
-        <TextView
+        <LinearLayout
             android:id="@+id/act_crop_reset"
-            style="@style/ImageEditBarButton.Secondary"
-            android:text="重置" />
+            style="@style/ImageEditBarButton"
+            android:background="@drawable/bg_detail_outline_gray">
 
-        <TextView
+            <ImageView
+                style="@style/ImageEditBarIcon"
+                android:contentDescription="重置"
+                android:src="@drawable/ic_edit_reset"
+                android:tint="@color/detail_text_secondary" />
+
+            <TextView
+                style="@style/ImageEditBarText"
+                android:text="重置"
+                android:textColor="@color/detail_text_secondary" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/act_crop_cancel"
-            style="@style/ImageEditBarButton.Secondary"
-            android:text="取消裁剪" />
+            style="@style/ImageEditBarButton"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_detail_outline_gray">
 
-        <TextView
+            <ImageView
+                style="@style/ImageEditBarIcon"
+                android:contentDescription="取消裁剪"
+                android:src="@drawable/ic_edit_close"
+                android:tint="@color/detail_text_secondary" />
+
+            <TextView
+                style="@style/ImageEditBarText"
+                android:text="取消裁剪"
+                android:textColor="@color/detail_text_secondary" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/act_crop_confirm"
             style="@style/ImageEditBarButton"
-            android:text="确定" />
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_detail_primary">
+
+            <ImageView
+                style="@style/ImageEditBarIcon"
+                android:contentDescription="确定"
+                android:src="@drawable/ic_edit_check"
+                android:tint="@android:color/white" />
+
+            <TextView
+                style="@style/ImageEditBarText"
+                android:text="确定"
+                android:textColor="@android:color/white" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

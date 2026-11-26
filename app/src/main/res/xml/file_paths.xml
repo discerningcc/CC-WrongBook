@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider 只放拍照临时目录：相机把原图写进 cache/camera，
+     App 读回落盘后即删除，不向相机暴露题库私有图片 -->
+<paths>
+    <cache-path name="camera_shot" path="camera/" />
+</paths>

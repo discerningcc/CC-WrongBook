@@ -1,6 +1,8 @@
 package com.example.demo;
 
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
@@ -23,6 +25,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,6 +38,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -52,6 +56,7 @@ public class AddQuestionActivity extends AppCompatActivity {
     private static final String KEY_FS_MENU = "fs_menu";
     private static final String KEY_INLINE_MENU_PATH = "inline_menu_path";
     private static final String KEY_INLINE_MENU_GROUP = "inline_menu_group";
+    private static final String KEY_PENDING_CAMERA = "pending_camera_path";
     /** 每组图片上限 */
     private static final int MAX_IMAGES = 9;
     /** 图片分组：0 题干图，1 答案图 */
@@ -95,6 +100,8 @@ public class AddQuestionActivity extends AppCompatActivity {
     private boolean savedFinishing = false;
     /** 是否由上次草稿回填进入（回填内容按未保存改动处理，返回需确认放弃） */
     private boolean draftRestored = false;
+    /** 拍照临时文件路径：相机写完后回来读它；跨重建留存，避免结果回来时找不到文件 */
+    private String pendingCameraPath;
 
     private final ExecutorService BG = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "add-question-bg");
@@ -112,6 +119,15 @@ public class AddQuestionActivity extends AppCompatActivity {
             new ActivityResultContracts.StartActivityForResult(),
             result -> onPicked(GROUP_ANSWER, result.getData() != null ? result.getData().getData() : null));
 
+    /** 拍照取图：题干图 */
+    private final ActivityResultLauncher<Intent> takeContent = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onCameraResult(GROUP_CONTENT, result.getResultCode()));
+    /** 拍照取图：答案图 */
+    private final ActivityResultLauncher<Intent> takeAnswer = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onCameraResult(GROUP_ANSWER, result.getResultCode()));
+
     /** 构造系统相册选图 Intent；无可用相册时返回 null 由调用方兜底提示。 */
     private Intent galleryIntent() {
         Intent i = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -124,6 +140,95 @@ public class AddQuestionActivity extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, "无法打开相册", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    // ==================== 拍照取图（系统相机 + FileProvider） ====================
+
+    /** FileProvider authority，须与 AndroidManifest 中的 ${applicationId}.fileprovider 一致。 */
+    private String fileProviderAuthority() {
+        return getPackageName() + ".fileprovider";
+    }
+
+    /** 清掉上一次没走完回调的拍照残留（例如拍照途中 App 被杀），别让缓存堆半成品。 */
+    private void pruneCameraCache(File dir) {
+        File[] olds = dir.listFiles();
+        if (olds == null) return;
+        for (File f : olds) {
+            if (pendingCameraPath != null && pendingCameraPath.equals(f.getAbsolutePath())) continue;
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
+        }
+    }
+
+    /**
+     * 点「添加图片」条最右侧的相机图标：直接进系统相机。
+     * 输出文件写在 cache/camera 下，经 FileProvider 授权给相机写入；拍完再读回落进私有图片目录。
+     */
+    private void launchCamera(int group) {
+        ArrayList<String> target = group == GROUP_CONTENT ? contentPaths : answerPaths;
+        if (target.size() >= MAX_IMAGES) {
+            Toast.makeText(this, "每组最多 " + MAX_IMAGES + " 张图片", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        File dir = new File(getCacheDir(), "camera");
+        if (!dir.isDirectory() && !dir.mkdirs()) {
+            Toast.makeText(this, "拍照失败：临时目录不可用", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        pruneCameraCache(dir);
+        File shot = new File(dir, UUID.randomUUID().toString() + ".jpg");
+        Uri output;
+        try {
+            output = FileProvider.getUriForFile(this, fileProviderAuthority(), shot);
+        } catch (Exception e) {
+            Log.w(TAG, "拍照输出 Uri 构造失败", e);
+            Toast.makeText(this, "没有可用相机", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, output);
+        // 少数机型的相机只看 ClipData 不看 flag，两处都给
+        intent.setClipData(ClipData.newRawUri("", output));
+        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        pendingCameraPath = shot.getAbsolutePath();
+        try {
+            (group == GROUP_CONTENT ? takeContent : takeAnswer).launch(intent);
+        } catch (ActivityNotFoundException e) {
+            pendingCameraPath = null;
+            shot.delete();
+            Toast.makeText(this, "没有可用相机", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            pendingCameraPath = null;
+            shot.delete();
+            Log.w(TAG, "启动相机失败", e);
+            Toast.makeText(this, "无法打开相机", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 相机返回：先校验文件确实写进来了再落库。
+     * 部分厂商相机「取消」也会回 RESULT_OK，只看 resultCode 会插入一张空图。
+     */    private void onCameraResult(int group, int resultCode) {
+        String shotPath = pendingCameraPath;
+        pendingCameraPath = null;
+        if (shotPath == null) return;
+        File shot = new File(shotPath);
+        boolean written = resultCode == RESULT_OK && shot.isFile() && shot.length() > 0;
+        if (!written) {
+            shot.delete();
+            return;
+        }
+        Uri uri;
+        try {
+            uri = FileProvider.getUriForFile(this, fileProviderAuthority(), shot);
+        } catch (Exception e) {
+            Log.w(TAG, "拍照结果 Uri 构造失败", e);
+            shot.delete();
+            Toast.makeText(this, "拍照保存失败", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // 临时文件要等后台读完才删，交给 onPicked 收尾
+        onPicked(group, uri, shot.getAbsolutePath());
     }
 
     @Override
@@ -147,6 +252,8 @@ public class AddQuestionActivity extends AppCompatActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> onBackPressed());
         findViewById(R.id.btn_add_content_img).setOnClickListener(v -> launchGallery(pickContent));
         findViewById(R.id.btn_add_answer_img).setOnClickListener(v -> launchGallery(pickAnswer));
+        findViewById(R.id.btn_camera_content).setOnClickListener(v -> launchCamera(GROUP_CONTENT));
+        findViewById(R.id.btn_camera_answer).setOnClickListener(v -> launchCamera(GROUP_ANSWER));
         findViewById(R.id.btn_save).setOnClickListener(v -> save(false));
         btnSaveContinue.setOnClickListener(v -> save(true));
 
@@ -170,6 +277,7 @@ public class AddQuestionActivity extends AppCompatActivity {
             fsIndex = savedInstanceState.getInt(KEY_FS_INDEX, -1);
             inlineMenuPath = savedInstanceState.getString(KEY_INLINE_MENU_PATH);
             inlineMenuGroup = savedInstanceState.getInt(KEY_INLINE_MENU_GROUP, -1);
+            pendingCameraPath = savedInstanceState.getString(KEY_PENDING_CAMERA);
         } else if (editQid != null) {
             editQuestion = QuestionStorage.findById(this, editQid);
             if (editQuestion != null) {
@@ -241,6 +349,7 @@ public class AddQuestionActivity extends AppCompatActivity {
         outState.putBoolean(KEY_FS_OPEN, fullscreenOpen);
         outState.putInt(KEY_FS_GROUP, fsGroup);
         outState.putInt(KEY_FS_INDEX, fsIndex);
+        outState.putString(KEY_PENDING_CAMERA, pendingCameraPath);
         if (fullscreenOpen) {
             outState.putFloatArray(KEY_FS_SUPP, ImageLoader.captureSuppMatrix());
             outState.putBoolean(KEY_FS_MENU, ImageLoader.captureSaveMenuOpen());
@@ -305,10 +414,22 @@ public class AddQuestionActivity extends AppCompatActivity {
     // ==================== 相册取图（Activity Result API） ====================
 
     private void onPicked(int group, Uri uri) {
-        if (uri == null) return;
+        onPicked(group, uri, null);
+    }
+
+    /**
+     * 相册与拍照合流的落盘点。
+     * cleanupPath 不为空时表示这是拍照的临时文件，必须在后台读完源流之后再删，不能提前删。
+     */
+    private void onPicked(int group, Uri uri, String cleanupPath) {
+        if (uri == null) {
+            deleteQuietly(cleanupPath);
+            return;
+        }
         ArrayList<String> target = group == GROUP_CONTENT ? contentPaths : answerPaths;
         if (target.size() >= MAX_IMAGES) {
             Toast.makeText(this, "每组最多 " + MAX_IMAGES + " 张图片", Toast.LENGTH_SHORT).show();
+            deleteQuietly(cleanupPath);
             return;
         }
         BG.execute(() -> {
@@ -316,9 +437,11 @@ public class AddQuestionActivity extends AppCompatActivity {
             try {
                 path = ImageUtils.saveImageToPrivate(this, uri);
             } catch (Exception e) {
+                deleteQuietly(cleanupPath);
                 MAIN.post(() -> Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show());
                 return;
             }
+            deleteQuietly(cleanupPath);
             MAIN.post(() -> {
                 target.add(path);
                 adapterOf(group).notifyItemInserted(target.size() - 1);
@@ -326,6 +449,16 @@ public class AddQuestionActivity extends AppCompatActivity {
                 saveDraft();
             });
         });
+    }
+
+    /** 删除拍照临时文件；仅用于 cache/camera 下的中间产物，失败不影响主流程。 */
+    private void deleteQuietly(String path) {
+        if (path == null) return;
+        try {
+            new File(path).delete();
+        } catch (Exception ignored) {
+            // 临时文件删不掉只是留个垃圾，缓存目录系统会回收
+        }
     }
 
     // ==================== 删除 ====================

@@ -92,14 +92,40 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="10dp" />
 
-            <TextView
+            <!-- 添加题目图片：整条点进相册，最右侧图标单独点进相机 -->
+            <FrameLayout
                 android:id="@+id/btn_add_content_img"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:background="@drawable/bg_add_button"
-                android:text="添加题目图片"
-                android:textColor="#1f6aa5"
-                android:gravity="center" />
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="添加题目图片"
+                    android:textColor="#1f6aa5"
+                    android:gravity="center" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="52dp"
+                    android:background="#d5dbe4" />
+
+                <ImageView
+                    android:id="@+id/btn_camera_content"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="end"
+                    android:src="@drawable/ic_camera"
+                    android:scaleType="centerInside"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="拍照添加题目图片" />
+            </FrameLayout>
 
             <!-- 答案内容 -->
             <LinearLayout
@@ -147,14 +173,40 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="10dp" />
 
-            <TextView
+            <!-- 添加答案图片：整条点进相册，最右侧图标单独点进相机 -->
+            <FrameLayout
                 android:id="@+id/btn_add_answer_img"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
                 android:background="@drawable/bg_add_button"
-                android:text="添加答案图片"
-                android:textColor="#1f6aa5"
-                android:gravity="center" />
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="添加答案图片"
+                    android:textColor="#1f6aa5"
+                    android:gravity="center" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="52dp"
+                    android:background="#d5dbe4" />
+
+                <ImageView
+                    android:id="@+id/btn_camera_answer"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="end"
+                    android:src="@drawable/ic_camera"
+                    android:scaleType="centerInside"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="拍照添加答案图片" />
+            </FrameLayout>
 
             <!-- 保存按钮：主操作 + 保存并继续（仅新增态显示） -->
             <LinearLayout

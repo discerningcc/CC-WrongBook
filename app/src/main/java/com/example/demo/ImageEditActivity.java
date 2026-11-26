@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * 图片编辑页：左转 / 右转各 90°、去白边，以及裁剪。
+ * 图片编辑页：左转 / 右转各 90°，以及裁剪；裁剪会按设置自动去白边（默认开）。
  *
  * 几个刻意定下的口径：
  * 1. 位图只解码一次；旋转不改像素，只记角度并用 ImageView 的矩阵显示，所以连转多少次都不掉画质。
@@ -52,8 +52,8 @@ public class ImageEditActivity extends AppCompatActivity {
     private CropOverlayView overlay;
     private ProgressBar loading;
     private View editBar, cropBar;
-    private TextView btnDone, btnRotateLeft, btnRotateRight, btnAutoTrim, btnCrop,
-            btnCropReset, btnCropAuto, btnCropCancel, btnCropConfirm;
+    private TextView btnDone, btnRotateLeft, btnRotateRight, btnCrop,
+            btnCropReset, btnCropCancel, btnCropConfirm;
 
     /** 原图路径：取消编辑时原图完全不动，靠的就是只读它 */
     private String sourcePath;
@@ -106,10 +106,8 @@ public class ImageEditActivity extends AppCompatActivity {
         btnDone = findViewById(R.id.edit_done);
         btnRotateLeft = findViewById(R.id.act_rotate_left);
         btnRotateRight = findViewById(R.id.act_rotate_right);
-        btnAutoTrim = findViewById(R.id.act_auto_trim);
         btnCrop = findViewById(R.id.act_crop);
         btnCropReset = findViewById(R.id.act_crop_reset);
-        btnCropAuto = findViewById(R.id.act_crop_auto);
         btnCropCancel = findViewById(R.id.act_crop_cancel);
         btnCropConfirm = findViewById(R.id.act_crop_confirm);
 
@@ -117,10 +115,8 @@ public class ImageEditActivity extends AppCompatActivity {
         btnDone.setOnClickListener(v -> onDone());
         btnRotateLeft.setOnClickListener(v -> rotateBy(-90));
         btnRotateRight.setOnClickListener(v -> rotateBy(90));
-        btnAutoTrim.setOnClickListener(v -> autoTrim());
         btnCrop.setOnClickListener(v -> enterCrop());
         btnCropReset.setOnClickListener(v -> onCropReset());
-        btnCropAuto.setOnClickListener(v -> autoTrim());
         btnCropCancel.setOnClickListener(v -> exitCropMode(true));
         btnCropConfirm.setOnClickListener(v -> onCropConfirm());
 
@@ -233,38 +229,22 @@ public class ImageEditActivity extends AppCompatActivity {
 
     // ==================== 裁剪 ====================
 
+    /**
+     * 进裁剪。设置里「图片自动去白边」开着（默认开）时，先在后台按当前显示方向分析像素，
+     * 把选框收紧到内容上再进裁剪态；关掉就直接给四边内缩的初始框。
+     * 白边本来就少（内容已占 92% 以上）或整图全白时，退回内缩框，不打断、不提示。
+     */
     private void enterCrop() {
         if (source == null || busy || cropping) return;
-        enterCropWith(ImageEditGeometry.insetRect(CROP_INSET));
-    }
-
-    /** 以给定选框进裁剪态；已在裁剪态时只更新框，不重记快照 */
-    private void enterCropWith(float[] rect) {
-        if (source == null || busy) return;
-        if (!cropping) {
-            // 记下进入前的选框：取消裁剪要原样还原（选框此刻恒为整图，留一份是为了语义清楚）
-            cropSnapshot = new float[]{crop[0], crop[1], crop[2], crop[3]};
+        if (!SettingsActivity.isAutoTrimEnabled(this)) {
+            enterCropWith(ImageEditGeometry.insetRect(CROP_INSET));
+            return;
         }
-        cropping = true;
-        crop = ImageEditGeometry.clamp(new float[]{rect[0], rect[1], rect[2], rect[3]},
-                ImageEditGeometry.MIN_SIDE, true, true);
-        overlay.setCrop(crop);
-        overlay.setEditable(true);
-        switchBars();
-    }
-
-    /**
-     * 去白边：后台按当前显示方向找内容外接框，然后把选框收紧到内容上并进裁剪态。
-     * 只改选框不动像素，真正切图仍然发生在裁剪条点「确定」时，所以不满意可以直接取消。
-     * 白边太少（内容已占 92% 以上）或整图全白时不进裁剪，免得给一次没意义的确认。
-     */
-    private void autoTrim() {
-        if (source == null || busy) return;
         final Bitmap src = source;
         final int a = angle;
         setBusy(true);
         BG.execute(() -> {
-            AutoTrim.Result res = null;
+            float[] trimmed = null;
             Bitmap small = null;
             Bitmap oriented = null;
             try {
@@ -285,7 +265,8 @@ public class ImageEditActivity extends AppCompatActivity {
                 int oh = oriented.getHeight();
                 int[] px = new int[ow * oh];
                 oriented.getPixels(px, 0, ow, 0, 0, ow, oh);
-                res = AutoTrim.find(px, ow, oh);
+                AutoTrim.Result res = AutoTrim.find(px, ow, oh);
+                if (res.changed) trimmed = res.toCrop();
             } catch (Exception e) {
                 Log.w(TAG, "去白边分析失败", e);
             } catch (OutOfMemoryError e) {
@@ -295,27 +276,28 @@ public class ImageEditActivity extends AppCompatActivity {
                 if (small != null && small != src) small.recycle();
             }
 
-            final AutoTrim.Result result = res;
+            final float[] box = trimmed;
             runOnUiThread(() -> {
                 setBusy(false);
                 if (isFinishing() || isDestroyed()) return;
-                if (result == null) {
-                    Toast.makeText(this, "分析失败", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (!result.changed) {
-                    Toast.makeText(this, "没找到明显的白边", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                float[] rect = result.toCrop();
-                if (cropping) {
-                    crop = ImageEditGeometry.clamp(rect, ImageEditGeometry.MIN_SIDE, true, true);
-                    overlay.setCrop(crop);
-                } else {
-                    enterCropWith(rect);
-                }
+                enterCropWith(box != null ? box : ImageEditGeometry.insetRect(CROP_INSET));
             });
         });
+    }
+
+    /** 以给定选框进裁剪态；已在裁剪态时只更新框，不重记快照 */
+    private void enterCropWith(float[] rect) {
+        if (source == null || busy) return;
+        if (!cropping) {
+            // 记下进入前的选框：取消裁剪要原样还原（选框此刻恒为整图，留一份是为了语义清楚）
+            cropSnapshot = new float[]{crop[0], crop[1], crop[2], crop[3]};
+        }
+        cropping = true;
+        crop = ImageEditGeometry.clamp(new float[]{rect[0], rect[1], rect[2], rect[3]},
+                ImageEditGeometry.MIN_SIDE, true, true);
+        overlay.setCrop(crop);
+        overlay.setEditable(true);
+        switchBars();
     }
 
     private void onCropReset() {
@@ -505,10 +487,8 @@ public class ImageEditActivity extends AppCompatActivity {
         btnDone.setAlpha((on || cropping) ? 0.35f : 1f);
         btnRotateLeft.setEnabled(!on);
         btnRotateRight.setEnabled(!on);
-        btnAutoTrim.setEnabled(!on);
         btnCrop.setEnabled(!on);
         btnCropReset.setEnabled(!on);
-        btnCropAuto.setEnabled(!on);
         btnCropCancel.setEnabled(!on);
         btnCropConfirm.setEnabled(!on);
     }

@@ -178,6 +178,54 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- 卡片：图片编辑 -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/home_card"
+            app:cardCornerRadius="@dimen/home_card_corner"
+            android:layout_marginBottom="@dimen/home_card_margin">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="@dimen/home_info_padding">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="自动去白边"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/home_text_primary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="点裁剪时自动把选框收紧到题目内容上，仍可手动微调"
+                        android:textSize="12sp"
+                        android:textColor="@color/home_text_secondary"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <Switch
+                    android:id="@+id/switch_auto_trim"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:thumbTint="@color/switch_thumb"
+                    android:trackTint="@color/switch_track" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- 卡片：每日复习量 -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"

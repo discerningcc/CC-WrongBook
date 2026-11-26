@@ -65,7 +65,7 @@
             android:indeterminateTint="#FFFFFF" />
     </FrameLayout>
 
-    <!-- 编辑工具条：旋转两个方向 + 去白边 + 裁剪 -->
+    <!-- 编辑工具条：旋转两个方向 + 裁剪（裁剪会按设置自动去白边） -->
     <LinearLayout
         android:id="@+id/edit_bar"
         android:layout_width="match_parent"
@@ -85,17 +85,12 @@
             android:text="右转" />
 
         <TextView
-            android:id="@+id/act_auto_trim"
-            style="@style/ImageEditBarButton"
-            android:text="去白边" />
-
-        <TextView
             android:id="@+id/act_crop"
             style="@style/ImageEditBarButton"
             android:text="裁剪" />
     </LinearLayout>
 
-    <!-- 裁剪工具条：重置选框 / 再去一次白边 / 退出裁剪 / 确认裁剪 -->
+    <!-- 裁剪工具条：重置选框 / 退出裁剪 / 确认裁剪 -->
     <LinearLayout
         android:id="@+id/crop_bar"
         android:layout_width="match_parent"
@@ -109,11 +104,6 @@
             android:id="@+id/act_crop_reset"
             style="@style/ImageEditBarButton.Secondary"
             android:text="重置" />
-
-        <TextView
-            android:id="@+id/act_crop_auto"
-            style="@style/ImageEditBarButton.Secondary"
-            android:text="去白边" />
 
         <TextView
             android:id="@+id/act_crop_cancel"

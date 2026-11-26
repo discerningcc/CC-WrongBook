@@ -12,6 +12,17 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_TIMER_ENABLED = "timer_enabled";
     /** 打卡总开关（默认开）；关闭自然日模式后该项不可编辑 */
     public static final String KEY_CHECKIN_ENABLED = "checkin_enabled";
+    /** 图片编辑：点裁剪时是否自动把选框收紧到内容上（默认开） */
+    public static final String KEY_AUTO_TRIM = "auto_trim_enabled";
+
+    /** 设置项的存储位置，编辑页等别处读同一份 */
+    private static final String SP_SETTINGS = "settings";
+
+    /** 自动去白边是否开启；编辑页进裁剪前读它决定选框是收紧还是四边内缩 */
+    public static boolean isAutoTrimEnabled(android.content.Context context) {
+        return context.getSharedPreferences(SP_SETTINGS, MODE_PRIVATE)
+                .getBoolean(KEY_AUTO_TRIM, true);
+    }
 
     private Switch switchCheckin;
     private TextView tvCheckinHint;
@@ -59,6 +70,15 @@ public class SettingsActivity extends AppCompatActivity {
         switchTimer.setOnCheckedChangeListener((buttonView, isChecked) -> {
             sp.edit().putBoolean(KEY_TIMER_ENABLED, isChecked).apply();
             applySwitchState(switchTimer, isChecked, true);
+        });
+
+        Switch switchAutoTrim = findViewById(R.id.switch_auto_trim);
+        boolean autoTrim = sp.getBoolean(KEY_AUTO_TRIM, true);
+        switchAutoTrim.setChecked(autoTrim);
+        applySwitchState(switchAutoTrim, autoTrim, true);
+        switchAutoTrim.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            sp.edit().putBoolean(KEY_AUTO_TRIM, isChecked).apply();
+            applySwitchState(switchAutoTrim, isChecked, true);
         });
 
         // 每日复习量：点一下弹「快捷档 + 自定义 + 无限」

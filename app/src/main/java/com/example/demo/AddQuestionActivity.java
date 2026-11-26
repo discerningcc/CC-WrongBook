@@ -579,6 +579,8 @@ public class AddQuestionActivity extends AppCompatActivity {
                 // 只有真的改了数据才回报成功：位置无效或原地不动一律 false。
                 // 恒返回 true 时，框架会认为移动成功、照常播动画，并继续用已错位的位置回调，
                 // 导致画面与数据进一步分叉。
+                // 项目用 recyclerview 1.1.0，没有 getAbsoluteAdapterPosition；
+                // 位置失效（-1）由 move 的越界检查兜住，不会改坏数据。
                 return adapter.move(from.getAdapterPosition(), to.getAdapterPosition());
             }
 
@@ -596,6 +598,8 @@ public class AddQuestionActivity extends AppCompatActivity {
             public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder holder) {
                 super.clearView(recyclerView, holder);
                 holder.itemView.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start();
+                // 一次拖动结束才落草稿：编辑既有题时 saveDraft 内部直接返回，新增态只写一次
+                saveDraft();
             }
 
             @Override
@@ -657,19 +661,15 @@ public class AddQuestionActivity extends AppCompatActivity {
 
         /**
          * 把 from 处的图片取出、插入到 to 位置，其余图片顺移一位。
-         * 与 notifyItemMoved 的“插入式移动”语义保持一致：跨格拖动时画面里看到的顺移，
-         * 数据里也会同样顺移。原实现用 Collections.swap 只互换两项，
-         * 跨格拖动会把被换下去的那张甩到很远，造成“画面顺序对、存下来的顺序错”。
+         * 顺序口径抽在 ImageOrderUtil，与 notifyItemMoved 的“插入式移动”语义保持一致：
+         * 跨格拖动时画面里看到的顺移，数据里也会同样顺移。
+         * 草稿不在这里写——一次拖动会连续回调多次，挪到松手（clearView）时落一次。
          *
          * @return 数据是否真的发生变化（供 onMove 如实回报）
          */
         boolean move(int from, int to) {
-            if (from < 0 || to < 0 || from >= paths.size() || to >= paths.size() || from == to) {
-                return false;
-            }
-            paths.add(to, paths.remove(from));
+            if (!ImageOrderUtil.move(paths, from, to)) return false;
             notifyItemMoved(from, to);
-            saveDraft();
             return true;
         }
 

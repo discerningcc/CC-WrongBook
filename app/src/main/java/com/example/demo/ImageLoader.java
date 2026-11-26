@@ -241,58 +241,28 @@ public final class ImageLoader {
     }
 
     /**
-     * 裁掉四周接近纯白的边。分析图缩到 200px 宽跑一遍像素，找到内容外接框，
-     * 回原图坐标裁回。内容已经占满（白边很少）时原样返回。
+     * 裁掉四周接近纯白的边。口径与编辑页的自动去白边完全一致，都在 {@link AutoTrim} 里，
+     * 这里只负责把分析框换算回原图坐标裁出位图。内容已经占满（白边很少）时原样返回。
      */
     private static Bitmap trimWhite(Bitmap src) {
-        int aw = Math.min(200, src.getWidth());
+        int aw = Math.min(AutoTrim.ANALYSIS_WIDTH, src.getWidth());
         int ah = Math.max(1, src.getHeight() * aw / src.getWidth());
         Bitmap small = Bitmap.createScaledBitmap(src, aw, ah, false);
         int[] px = new int[aw * ah];
         small.getPixels(px, 0, aw, 0, 0, aw, ah);
 
-        int top = ah, bottom = -1, left = aw, right = -1;
-        for (int y = 0; y < ah; y++) {
-            int row = y * aw;
-            for (int x = 0; x < aw; x++) {
-                int p = px[row + x];
-                int r = (p >> 16) & 0xff;
-                int g = (p >> 8) & 0xff;
-                int b = p & 0xff;
-                // 任一分量低于 238 就算有内容（灰文字、浅阴影都算）
-                if (r < 238 || g < 238 || b < 238) {
-                    if (y < top) top = y;
-                    if (y > bottom) bottom = y;
-                    if (x < left) left = x;
-                    if (x > right) right = x;
-                }
-            }
-        }
-
-        if (bottom < 0) {   // 整图都是白的，没法裁
-            if (small != src) small.recycle();
-            return src;
-        }
-
-        int pad = 8;   // 分析图上的留白，约还原 10~20px 原图
-        int l = Math.max(0, left - pad);
-        int t = Math.max(0, top - pad);
-        int r = Math.min(aw - 1, right + pad);
-        int b = Math.min(ah - 1, bottom + pad);
-
-        // 内容框已经占 92% 以上，裁了也没收益
-        float box = (float) ((r - l + 1) * (b - t + 1)) / (aw * ah);
-        if (box >= 0.92f) {
+        AutoTrim.Result res = AutoTrim.find(px, aw, ah);
+        if (!res.changed) {
             if (small != src) small.recycle();
             return src;
         }
 
         float sx = (float) src.getWidth() / aw;
         float sy = (float) src.getHeight() / ah;
-        int ox = Math.round(l * sx);
-        int oy = Math.round(t * sy);
-        int ow = Math.round((r - l + 1) * sx);
-        int oh = Math.round((b - t + 1) * sy);
+        int ox = Math.round(res.left * sx);
+        int oy = Math.round(res.top * sy);
+        int ow = Math.round((res.right - res.left + 1) * sx);
+        int oh = Math.round((res.bottom - res.top + 1) * sy);
         ow = Math.min(ow, src.getWidth() - ox);
         oh = Math.min(oh, src.getHeight() - oy);
 

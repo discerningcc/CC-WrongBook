@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:orientation="vertical">
+
+    <!-- 顶栏：左取消，右完成 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp">
+
+        <TextView
+            android:id="@+id/edit_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:paddingStart="22dp"
+            android:paddingEnd="22dp"
+            android:text="取消"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/edit_done"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:paddingStart="22dp"
+            android:paddingEnd="22dp"
+            android:text="完成"
+            android:textColor="@color/home_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <!-- 舞台：图片按 FIT 显示，裁剪浮层叠在上面 -->
+    <FrameLayout
+        android:id="@+id/edit_stage"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ImageView
+            android:id="@+id/edit_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/app_name"
+            android:scaleType="matrix" />
+
+        <com.example.demo.CropOverlayView
+            android:id="@+id/crop_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ProgressBar
+            android:id="@+id/edit_loading"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="#FFFFFF" />
+    </FrameLayout>
+
+    <!-- 编辑工具条：旋转两个方向 + 裁剪 -->
+    <LinearLayout
+        android:id="@+id/edit_bar"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:orientation="horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:id="@+id/act_rotate_left"
+            style="@style/ImageEditBarButton"
+            android:text="左转" />
+
+        <TextView
+            android:id="@+id/act_rotate_right"
+            style="@style/ImageEditBarButton"
+            android:text="右转" />
+
+        <TextView
+            android:id="@+id/act_crop"
+            style="@style/ImageEditBarButton"
+            android:text="裁剪" />
+    </LinearLayout>
+
+    <!-- 裁剪工具条：重置选框 / 退出裁剪 / 确认裁剪 -->
+    <LinearLayout
+        android:id="@+id/crop_bar"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:orientation="horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/act_crop_reset"
+            style="@style/ImageEditBarButton.Secondary"
+            android:text="重置" />
+
+        <TextView
+            android:id="@+id/act_crop_cancel"
+            style="@style/ImageEditBarButton.Secondary"
+            android:text="取消裁剪" />
+
+        <TextView
+            android:id="@+id/act_crop_confirm"
+            style="@style/ImageEditBarButton"
+            android:text="确定" />
+    </LinearLayout>
+</LinearLayout>

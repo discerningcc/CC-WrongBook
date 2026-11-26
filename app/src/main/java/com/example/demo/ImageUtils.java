@@ -8,6 +8,7 @@ import android.media.ExifInterface;
 import android.net.Uri;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.UUID;
@@ -15,7 +16,7 @@ import java.util.UUID;
 public class ImageUtils {
 
     /** 落盘图片长边上限（px）；超过则等比缩小 */
-    private static final int MAX_LONG_EDGE = 1600;
+    public static final int MAX_LONG_EDGE = 1600;
     /** JPEG 压缩质量 */
     private static final int JPEG_QUALITY = 88;
 
@@ -60,26 +61,81 @@ public class ImageUtils {
     }
 
     /**
-     * 把私有目录里的图片顺时针旋转 90°，输出成一个新的正向文件并返回其路径。
-     * 不原地覆盖：旧图由题库引用比对或孤儿图清扫回收，避免写盘失败时把原图毁掉。
-     * 解码用 ARGB_8888 保留色深，尺寸不超过落盘上限，连续旋转不会一路缩小。
+     * 把已编码好的图片字节直接收进私有图片目录，返回新路径。
+     * 用于「编辑时已裁过一次、之后没再转过」的场景：那份 cache 文件就是最终像素，不必再编码一遍。
      */
-    public static String rotate90(Context context, String srcPath) throws Exception {
-        if (srcPath == null || srcPath.isEmpty()) throw new Exception("图片已不存在");
-        File src = new File(srcPath);
-        if (!src.isFile()) throw new Exception("图片已不存在");
-        Bitmap bmp = decodeFileScaled(src, MAX_LONG_EDGE);
-        if (bmp == null) throw new Exception("图片解码失败");
+    public static String adoptFile(Context context, File src) throws Exception {
+        if (src == null || !src.isFile()) throw new Exception("图片已不存在");
+        File dir = context.getDir("images", Context.MODE_PRIVATE);
+        if (!dir.isDirectory() && !dir.mkdirs()) throw new Exception("图片目录不可用");
+        File outFile = new File(dir, UUID.randomUUID().toString() + ".jpg");
+        try (InputStream is = new FileInputStream(src);
+             FileOutputStream fos = new FileOutputStream(outFile)) {
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = is.read(buf)) != -1) fos.write(buf, 0, len);
+            fos.flush();
+        } catch (Exception e) {
+            //noinspection ResultOfMethodCallIgnored
+            outFile.delete();
+            throw e;
+        }
+        return outFile.getAbsolutePath();
+    }
+
+    /**
+     * 把位图编码成 JPEG 写入 cache 指定子目录，返回文件路径。
+     * 编辑页用它留存「裁剪后」的中间结果，Activity 被重建时据此接着编辑。
+     */
+    public static String writeJpegToCache(Context context, String subDir, Bitmap bmp) throws Exception {
+        if (bmp == null) throw new Exception("图片为空");
+        File dir = new File(context.getCacheDir(), subDir);
+        if (!dir.isDirectory() && !dir.mkdirs()) throw new Exception("缓存目录不可用");
+        File outFile = new File(dir, UUID.randomUUID().toString() + ".jpg");
+        try (FileOutputStream fos = new FileOutputStream(outFile)) {
+            if (!bmp.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, fos)) {
+                throw new Exception("图片编码失败");
+            }
+            fos.flush();
+        } catch (Exception e) {
+            //noinspection ResultOfMethodCallIgnored
+            outFile.delete();
+            throw e;
+        }
+        return outFile.getAbsolutePath();
+    }
+
+    /**
+     * 按「顺时针旋转角度 + 归一化裁剪框」一次生成新图并写盘，返回新文件路径。
+     * 编辑页里所有旋转/裁剪都只在预览层叠加，只有这一步真正动像素：整图解码一次、编码一次，
+     * 所以连转四次和转一次的画质完全相同。旧图不在这里删，由调用方的引用比对或孤儿图清扫回收。
+     *
+     * @param angle 0/90/180/270，相对传入的位图顺时针
+     * @param crop  0..1 归一化选框，坐标系为「旋转后」的图；null 或整图时不裁
+     */
+    public static String applyEdit(Context context, Bitmap src, int angle, float[] crop) throws Exception {
+        if (src == null) throw new Exception("图片为空");
+        int a = ImageEditGeometry.normalizeAngle(angle);
         Bitmap rotated = null;
+        Bitmap cropped = null;
         try {
-            Matrix m = new Matrix();
-            m.postRotate(90);
-            rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
-            if (rotated == null) throw new Exception("旋转失败");
-            return writeJpegToPrivate(context, rotated);
+            Bitmap base = src;
+            if (a != 0) {
+                Matrix m = new Matrix();
+                m.postRotate(a);
+                rotated = Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), m, true);
+                if (rotated == null) throw new Exception("旋转失败");
+                base = rotated;
+            }
+            if (crop != null && !ImageEditGeometry.isFull(crop)) {
+                int[] px = ImageEditGeometry.toPixelRect(crop, base.getWidth(), base.getHeight());
+                cropped = Bitmap.createBitmap(base, px[0], px[1], px[2] - px[0], px[3] - px[1]);
+                if (cropped == null) throw new Exception("裁剪失败");
+            }
+            return writeJpegToPrivate(context, cropped != null ? cropped : base);
         } finally {
-            if (rotated != null && rotated != bmp) rotated.recycle();
-            bmp.recycle();
+            if (cropped != null) cropped.recycle();
+            if (rotated != null && rotated != cropped) rotated.recycle();
         }
     }
 
@@ -177,8 +233,11 @@ public class ImageUtils {
         }
     }
 
-    /** 采样读取私有目录文件，长边控制在 longEdge 内；旋转用，保留 ARGB_8888 色深 */
-    private static Bitmap decodeFileScaled(File src, int longEdge) {
+    /**
+     * 采样读取私有目录文件，长边控制在 longEdge 内；编辑页与写盘都走这里。
+     * 用 ARGB_8888 保留色深，避免一进编辑就先丢一层色彩。
+     */
+    public static Bitmap decodeFileScaled(File src, int longEdge) {
         BitmapFactory.Options bounds = new BitmapFactory.Options();
         bounds.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(src.getAbsolutePath(), bounds);

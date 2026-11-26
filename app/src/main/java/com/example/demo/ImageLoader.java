@@ -95,14 +95,12 @@ public final class ImageLoader {
         void onDeleteRequested(String path);
     }
 
-    /** 旋转回调：非空时菜单出现「旋转 90°」；菜单只负责转出新的正向文件，路径写回由调用方决定 */
-    public interface OnImageRotateListener {
-        void onRotateRequested(String path);
-    }
-
-    /** 旋转完成回调：主线程执行，newPath 为 null 表示失败 */
-    public interface OnRotateFinish {
-        void onRotateFinish(String newPath);
+    /**
+     * 编辑回调：非空时菜单出现「编辑图片」，点击后由调用方打开编辑页。
+     * 菜单本身不碰任何题库数据；编辑结果如何替换路径、如何落库，全由调用方决定。
+     */
+    public interface OnImageEditListener {
+        void onEditRequested(String path);
     }
 
     private ImageLoader() {
@@ -389,6 +387,15 @@ public final class ImageLoader {
     }
 
     /**
+     * 把正在显示的大图从 oldPath 换成 newPath（编辑完成后用）；没打开看图或不在列表里时忽略。
+     * 缩略图那边由调用方自己刷新，这里只管看图里那一页。
+     */
+    public static void replaceViewerPath(String oldPath, String newPath) {
+        if (sActiveAdapter == null || oldPath == null || newPath == null) return;
+        sActiveAdapter.replacePath(oldPath, newPath);
+    }
+
+    /**
      * 图片操作菜单：固定「保存到本地」；deleteListener 非空时追加「删除当前图」。
      * 大图长按与内联缩略图长按共用同一套文案、动作与 Toast 口径。
      */
@@ -397,11 +404,11 @@ public final class ImageLoader {
     }
 
     /**
-     * 同上，额外支持「旋转 90°」：rotateListener 非空时菜单多一项，交由调用方把新路径写回到自己的数据里。
-     * 旋转走后台线程转出新文件，菜单本身不碰任何题库数据。
+     * 同上，额外支持「编辑图片」：editListener 非空时置顶多一项，交由调用方打开编辑页。
+     * 菜单只负责发出「要编辑这张图」这一下信号，旋转裁剪与落盘都在编辑页和调用方那边完成。
      */
     public static void showImageMenu(Context context, String path, OnImageDeleteListener deleteListener,
-                                     OnImageRotateListener rotateListener) {
+                                     OnImageEditListener editListener) {
         if (context == null) return;
         if (path == null || path.isEmpty()) {
             Toast.makeText(context, "图片已不存在", Toast.LENGTH_SHORT).show();
@@ -409,12 +416,12 @@ public final class ImageLoader {
         }
         List<CharSequence> items = new ArrayList<>();
         List<Runnable> actions = new ArrayList<>();
+        if (editListener != null) {
+            items.add("编辑图片");
+            actions.add(() -> editListener.onEditRequested(path));
+        }
         items.add("保存到本地");
         actions.add(() -> saveImage(context.getApplicationContext(), path));
-        if (rotateListener != null) {
-            items.add("旋转 90°");
-            actions.add(() -> rotateListener.onRotateRequested(path));
-        }
         if (deleteListener != null) {
             items.add("删除当前图");
             actions.add(() -> deleteListener.onDeleteRequested(path));
@@ -428,28 +435,6 @@ public final class ImageLoader {
                 .show();
         sSaveMenu = menu;
         sSaveMenuOpen = true;
-    }
-
-    /**
-     * 后台把指定图片顺时针旋转 90°，转出的新文件路径在主线程回传。
-     * 只新写文件、不改任何引用：调用方拿到新路径后自行替换并触发落盘。
-     */
-    public static void rotateImageAsync(Context context, String path, OnRotateFinish callback) {
-        if (context == null || path == null || path.isEmpty()) {
-            if (callback != null) callback.onRotateFinish(null);
-            return;
-        }
-        final Context app = context.getApplicationContext();
-        POOL.execute(() -> {
-            String newPath = null;
-            try {
-                newPath = ImageUtils.rotate90(app, path);
-            } catch (Exception e) {
-                Log.w(TAG, "rotate image failed: " + path, e);
-            }
-            final String out = newPath;
-            if (callback != null) MAIN.post(() -> callback.onRotateFinish(out));
-        });
     }
 
     /** 后台线程把指定图片写入系统相册，主线程回 Toast；路径/文件无效时提示「图片已不存在」。 */
@@ -487,7 +472,7 @@ public final class ImageLoader {
     public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
                                       final Runnable onDismiss, final float[] restoreSupp,
                                       final boolean restoreSaveMenu) {
-        openFullscreen(activity, paths, startIndex, onDismiss, restoreSupp, restoreSaveMenu, null);
+        openFullscreen(activity, paths, startIndex, onDismiss, restoreSupp, restoreSaveMenu, null, null);
     }
 
     /**
@@ -502,6 +487,19 @@ public final class ImageLoader {
                                       final Runnable onDismiss, final float[] restoreSupp,
                                       final boolean restoreSaveMenu,
                                       final OnImageDeleteListener deleteListener) {
+        openFullscreen(activity, paths, startIndex, onDismiss, restoreSupp, restoreSaveMenu,
+                deleteListener, null);
+    }
+
+    /**
+     * 同上，额外支持大图里「编辑图片」：editListener 非空时菜单置顶多一项。
+     * 编辑完成后调用方负责替换路径并落库，再调 {@link #replaceViewerPath} 让正在看的大图跟着换。
+     */
+    public static void openFullscreen(final Activity activity, final List<String> paths, int startIndex,
+                                      final Runnable onDismiss, final float[] restoreSupp,
+                                      final boolean restoreSaveMenu,
+                                      final OnImageDeleteListener deleteListener,
+                                      final OnImageEditListener editListener) {
         if (activity == null || activity.isFinishing()) return;
         if (paths == null || paths.isEmpty()) {
             Toast.makeText(activity, "图片已不存在", Toast.LENGTH_SHORT).show();
@@ -584,7 +582,7 @@ public final class ImageLoader {
             });
         }
         PhotoPagerAdapter adapter = new PhotoPagerAdapter(dialog, snapshot, screenMax, start, restoreSupp,
-                () -> snapshot.get(pager.getCurrentItem()), deleteListener);
+                () -> snapshot.get(pager.getCurrentItem()), deleteListener, editListener);
         pager.setAdapter(adapter);
         adapter.attachPager(pager);
         pager.setCurrentItem(start, false);
@@ -692,13 +690,15 @@ public final class ImageLoader {
         private final float[] restoreSupp;
         private final Supplier<String> currentPath;
         private final OnImageDeleteListener deleteListener;
+        private final OnImageEditListener editListener;
         private final SparseArray<PhotoView> views = new SparseArray<>();
         private ViewPager2 pager;
 
         PhotoPagerAdapter(Dialog dialog, List<String> paths, int screenMax,
                           int restorePosition, float[] restoreSupp,
                           Supplier<String> currentPath,
-                          OnImageDeleteListener deleteListener) {
+                          OnImageDeleteListener deleteListener,
+                          OnImageEditListener editListener) {
             this.dialog = dialog;
             this.paths = paths;
             this.screenMax = screenMax;
@@ -706,6 +706,7 @@ public final class ImageLoader {
             this.restoreSupp = restoreSupp;
             this.currentPath = currentPath;
             this.deleteListener = deleteListener;
+            this.editListener = editListener;
         }
 
         void attachPager(ViewPager2 pager) {
@@ -717,7 +718,19 @@ public final class ImageLoader {
         }
 
         void showSaveMenu() {
-            showImageMenu(dialog.getContext(), currentPath.get(), deleteListener);
+            showImageMenu(dialog.getContext(), currentPath.get(), deleteListener, editListener);
+        }
+
+        /** 某页的路径被编辑替换：换掉数据，并让该页重建，免得 PhotoView 还贴着旧位图和旧缩放 */
+        void replacePath(String oldPath, String newPath) {
+            for (int i = 0; i < paths.size(); i++) {
+                if (oldPath.equals(paths.get(i))) {
+                    paths.set(i, newPath);
+                    views.remove(i);
+                    notifyItemChanged(i);
+                    return;
+                }
+            }
         }
 
         /** 移除当前页；组内清空则关闭看图。 */

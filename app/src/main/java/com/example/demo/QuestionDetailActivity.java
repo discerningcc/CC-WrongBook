@@ -11,6 +11,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,6 +50,11 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private static final String DIALOG_EXCLUDE = "exclude";
     private static final String DIALOG_RESTORE = "restore";
     private static final String DIALOG_DELETE = "delete";
+
+    /** 编辑图片：详情页没有草稿态，编辑结果回来即落库 */
+    private final ActivityResultLauncher<Intent> editLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onEditFinished(result.getResultCode(), result.getData()));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -317,24 +324,36 @@ public class QuestionDetailActivity extends AppCompatActivity {
         Toast.makeText(this, "本题 ID：" + currentQuestion.id, Toast.LENGTH_LONG).show();
     }
 
+    /** 打开图片编辑页：旋转与裁剪都在编辑页里完成，回来再统一落库 */
+    private void openEditor(String path) {
+        if (path == null || path.isEmpty() || currentQuestion == null) return;
+        try {
+            editLauncher.launch(ImageEditActivity.newIntent(this, path));
+        } catch (Exception ignored) {
+            Toast.makeText(this, "无法打开编辑页", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     /**
-     * 旋转某张图并立即落库：详情页没有草稿态，改完即生效。
-     * 旧文件不在这里删——写盘是异步的，交给孤儿图清扫按真实文件内容回收更安全。
+     * 编辑页返回：替换旧路径并立即落库。详情页没有草稿态，改完即生效。
+     * 旧文件不在这里删——写盘在后台线程，交给孤儿图清扫按真实文件内容回收更安全。
      */
-    private void rotateImage(String path) {
-        ImageLoader.rotateImageAsync(this, path, newPath -> {
-            if (isFinishing() || currentQuestion == null) return;
-            if (newPath == null) {
-                Toast.makeText(this, "旋转失败", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            boolean replaced = replacePath(currentQuestion.contentImages, path, newPath)
-                    || replacePath(currentQuestion.answerImages, path, newPath);
-            if (!replaced) return;
-            QuestionStorage.update(this);
-            loadQuestionData();
-            Toast.makeText(this, "已旋转", Toast.LENGTH_SHORT).show();
-        });
+    private void onEditFinished(int resultCode, Intent data) {
+        if (resultCode != RESULT_OK || data == null) return;
+        if (!ImageEditActivity.resultChanged(data)) return;
+        if (isFinishing() || currentQuestion == null) return;
+        String oldPath = data.getStringExtra(ImageEditActivity.EXTRA_RESULT_SOURCE);
+        String newPath = ImageEditActivity.resultPath(data);
+        if (oldPath == null || newPath == null) return;
+        boolean replaced = replacePath(currentQuestion.contentImages, oldPath, newPath)
+                || replacePath(currentQuestion.answerImages, oldPath, newPath);
+        if (!replaced) return;
+        QuestionStorage.update(this);
+        loadQuestionData();
+        if (inlineMenuPath != null && inlineMenuPath.equals(oldPath)) inlineMenuPath = newPath;
+        // 若大图正开着，让看图里那一页也跟着换成新图
+        ImageLoader.replaceViewerPath(oldPath, newPath);
+        Toast.makeText(this, "已编辑", Toast.LENGTH_SHORT).show();
     }
 
     /** 把列表里的旧路径换成新路径；没找到返回 false */
@@ -356,7 +375,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         iv.setOnClickListener(v -> openFullscreenFromDetail(index));
         iv.setOnLongClickListener(v -> {
             inlineMenuPath = path;
-            ImageLoader.showImageMenu(this, path, null, this::rotateImage);
+            ImageLoader.showImageMenu(this, path, null, this::openEditor);
             return true;
         });
         parent.addView(iv);
@@ -374,7 +393,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private void openFullscreenFromDetail(int index, float[] supp, boolean menuOpen) {
         fullscreenOpen = true;
         fullscreenIndex = index;
-        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false, supp, menuOpen);
+        ImageLoader.openFullscreen(this, fullscreenPaths, index, () -> fullscreenOpen = false,
+                supp, menuOpen, null, this::openEditor);
     }
 
     /** 旋转重建后重弹之前打开的全屏看图；仅系统重建（savedInstanceState 非空）时执行 */
@@ -396,7 +416,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         if (p == null) return;
         inlineMenuPath = p;
         findViewById(android.R.id.content).post(() -> {
-            if (!isFinishing()) ImageLoader.showImageMenu(this, p, null, this::rotateImage);
+            if (!isFinishing()) ImageLoader.showImageMenu(this, p, null, this::openEditor);
         });
     }
 

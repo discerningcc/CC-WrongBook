@@ -44,6 +44,12 @@
         <activity android:name=".CheckinCalendarActivity" android:exported="false" />
         <activity android:name=".SaveManageActivity" />
 
+        <!-- 图片编辑（旋转 / 裁剪）：只从应用内的图片长按菜单进入，不对外导出 -->
+        <activity
+            android:name=".ImageEditActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Demo.ImageEdit" />
+
         <!-- 拍照临时文件：只暴露缓存目录下的 camera/，供系统相机按 Uri 写入 -->
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -6,4 +6,29 @@
     </style>
 
     <style name="Theme.Demo" parent="Base.Theme.Demo" />
+
+    <!-- 图片编辑页：纯黑底，状态栏与导航栏同色，免得黑底上压两条浅色条 -->
+    <style name="Theme.Demo.ImageEdit" parent="Theme.Demo">
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- 图片编辑页底部工具条按钮：等分、垂直居中、白字 -->
+    <style name="ImageEditBarButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <!-- 次要动作（重置、退出裁剪）降一档明度，避免和主操作抢眼 -->
+    <style name="ImageEditBarButton.Secondary">
+        <item name="android:textColor">#99FFFFFF</item>
+    </style>
 </resources>

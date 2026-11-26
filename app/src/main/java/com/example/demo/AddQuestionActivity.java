@@ -128,6 +128,15 @@ public class AddQuestionActivity extends AppCompatActivity {
             new ActivityResultContracts.StartActivityForResult(),
             result -> onCameraResult(GROUP_ANSWER, result.getResultCode()));
 
+    /** 编辑图片：题干图 */
+    private final ActivityResultLauncher<Intent> editContent = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onEditFinished(GROUP_CONTENT, result.getResultCode(), result.getData()));
+    /** 编辑图片：答案图 */
+    private final ActivityResultLauncher<Intent> editAnswer = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> onEditFinished(GROUP_ANSWER, result.getResultCode(), result.getData()));
+
     /** 构造系统相册选图 Intent；无可用相册时返回 null 由调用方兜底提示。 */
     private Intent galleryIntent() {
         Intent i = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
@@ -333,7 +342,7 @@ public class AddQuestionActivity extends AppCompatActivity {
             final String p = inlineMenuPath;
             final int g = inlineMenuGroup;
             findViewById(android.R.id.content).post(() -> {
-                if (!isFinishing()) ImageLoader.showImageMenu(AddQuestionActivity.this, p, x -> confirmDelete(g, x), x -> rotateImage(g, x));
+                if (!isFinishing()) ImageLoader.showImageMenu(AddQuestionActivity.this, p, x -> confirmDelete(g, x), x -> openEditor(g, x));
             });
         }
     }
@@ -497,29 +506,42 @@ public class AddQuestionActivity extends AppCompatActivity {
     }
 
     /**
-     * 旋转当前组的某张图：后台转出新的正向文件，回到主线程替换组内路径。
-     * 基线（initContentImgs/initAnswerImgs）刻意保持原样，让旋转沿用现有语义：
+     * 打开图片编辑页：旋转与裁剪都在那边完成，改题页只负责拿到新路径后替换草稿引用。
+     * 沿用原先旋转那套语义——新路径进草稿，旧图仍留在基线（initContentImgs/initAnswerImgs）里，
      * 保存时旧路径被比对出来清理，放弃时新图按未保存内容删除、旧图原样保留。
      */
-    private void rotateImage(int group, String path) {
+    private void openEditor(int group, String path) {
+        if (path == null || path.isEmpty()) return;
         ArrayList<String> target = group == GROUP_CONTENT ? contentPaths : answerPaths;
-        if (path == null || !target.contains(path)) return;
-        ImageLoader.rotateImageAsync(this, path, newPath -> {
-            if (isFinishing()) return;
-            if (newPath == null) {
-                Toast.makeText(this, "旋转失败", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            // 后台期间列表可能被拖动改序、图也可能已被删，统一按路径重新定位
-            int idx = target.indexOf(path);
-            if (idx < 0) return;
-            target.set(idx, newPath);
-            adapterOf(group).notifyItemChanged(idx);
-            refreshCounts();
-            saveDraft();
-            if (inlineMenuPath != null && inlineMenuPath.equals(path)) inlineMenuPath = newPath;
-            Toast.makeText(this, "已旋转", Toast.LENGTH_SHORT).show();
-        });
+        if (!target.contains(path)) return;
+        try {
+            (group == GROUP_CONTENT ? editContent : editAnswer)
+                    .launch(ImageEditActivity.newIntent(this, path));
+        } catch (Exception e) {
+            Log.w(TAG, "打开编辑页失败", e);
+            Toast.makeText(this, "无法打开编辑页", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** 编辑页返回：把组内旧路径换成新路径并立即落草稿；取消或未改动时什么都不动 */
+    private void onEditFinished(int group, int resultCode, Intent data) {
+        if (resultCode != RESULT_OK || data == null) return;
+        if (!ImageEditActivity.resultChanged(data)) return;
+        String oldPath = data.getStringExtra(ImageEditActivity.EXTRA_RESULT_SOURCE);
+        String newPath = ImageEditActivity.resultPath(data);
+        if (oldPath == null || newPath == null) return;
+        ArrayList<String> target = group == GROUP_CONTENT ? contentPaths : answerPaths;
+        // 编辑期间列表可能被拖动改序、图也可能已被删，统一按路径重新定位
+        int idx = target.indexOf(oldPath);
+        if (idx < 0) return;
+        target.set(idx, newPath);
+        adapterOf(group).notifyItemChanged(idx);
+        refreshCounts();
+        saveDraft();
+        if (inlineMenuPath != null && inlineMenuPath.equals(oldPath)) inlineMenuPath = newPath;
+        // 若大图正开着，让看图里那一页也跟着换成新图
+        ImageLoader.replaceViewerPath(oldPath, newPath);
+        Toast.makeText(this, "已编辑", Toast.LENGTH_SHORT).show();
     }
 
     /** 大图内「删除当前图」回调：复用本组删图确认口径 */
@@ -528,13 +550,19 @@ public class AddQuestionActivity extends AppCompatActivity {
         confirmDelete(fsGroup, path);
     }
 
+    /** 大图内「编辑图片」回调：按大图当前所属组打开编辑页 */
+    private void onViewerEditRequested(String path) {
+        if (fsGroup < 0) return;
+        openEditor(fsGroup, path);
+    }
+
     /** 打开大图预览并记录留存状态；弹窗关闭时清掉打开标记 */
     private void openPreview(int group, int index, List<String> list, float[] restoreSupp, boolean restoreMenu) {
         fullscreenOpen = true;
         fsGroup = group;
         fsIndex = index;
         ImageLoader.openFullscreen(this, list, index, () -> fullscreenOpen = false,
-                restoreSupp, restoreMenu, this::onViewerDeleteRequested);
+                restoreSupp, restoreMenu, this::onViewerDeleteRequested, this::onViewerEditRequested);
     }
 
     // ==================== 草稿持久化（仅新增态） ====================
@@ -807,7 +835,7 @@ public class AddQuestionActivity extends AppCompatActivity {
                 String target = paths.get(idx);
                 inlineMenuPath = target;
                 inlineMenuGroup = group;
-                ImageLoader.showImageMenu(AddQuestionActivity.this, target, p -> confirmDelete(group, p), p -> rotateImage(group, p));
+                ImageLoader.showImageMenu(AddQuestionActivity.this, target, p -> confirmDelete(group, p), p -> openEditor(group, p));
                 return true;
             });
             attachDirectDrag(holder);

@@ -33,12 +33,11 @@ public class QuestionBankActivity extends AppCompatActivity {
 
     // 类别胶囊：可多选叠加（同时满足），mask 为 0 表示「全部」
     private static final int CAT_DUE = 1 << 1;
-    private static final int CAT_IMAGE = 1 << 2;
-    private static final int CAT_TEXT = 1 << 3;
-    private static final int CAT_EXCLUDED = 1 << 4;
-    private static final int CAT_FAVORITE = 1 << 5;
+    private static final int CAT_EXCLUDED = 1 << 2;
+    private static final int CAT_NOT_EXCLUDED = 1 << 3;
+    private static final int CAT_FAVORITE = 1 << 4;
 
-    private static final String[] CAT_LABELS = {"全部", "待复习", "有图", "有文本", "已斩", "收藏"};
+    private static final String[] CAT_LABELS = {"全部", "待复习", "已斩", "未斩", "收藏"};
     private static final String[] LEVEL_LABELS = {"S", "A", "B", "C", "D", "E"};
     private static final long SEARCH_DEBOUNCE_MS = 250;
     private static final String STATE_CAT = "list_cat";
@@ -306,11 +305,8 @@ public class QuestionBankActivity extends AppCompatActivity {
     /** 类别条件逐个 AND 叠加；catMask 为 0 时不过滤，等级单选再叠一层 */
     private boolean passesFilter(Question q) {
         if ((catMask & CAT_DUE) != 0 && !QuestionStorage.isDue(this, q)) return false;
-        if ((catMask & CAT_IMAGE) != 0
-                && (q.contentImages == null || q.contentImages.isEmpty())) return false;
-        if ((catMask & CAT_TEXT) != 0
-                && (q.content == null || q.content.trim().isEmpty())) return false;
         if ((catMask & CAT_EXCLUDED) != 0 && !q.excluded) return false;
+        if ((catMask & CAT_NOT_EXCLUDED) != 0 && q.excluded) return false;
         if ((catMask & CAT_FAVORITE) != 0 && !q.favorite) return false;
         if (levelFilter >= 0 && levelIndex(q.status) != levelFilter) return false;
         return true;

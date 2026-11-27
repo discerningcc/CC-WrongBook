@@ -38,7 +38,7 @@
         android:focusableInTouchMode="true"
         android:focusable="true"/>
 
-    <!-- 筛选胶囊：全部 / 待复习 / 只有图片 / 有文本 -->
+    <!-- 筛选胶囊：全部 / 待复习 / 已斩 / 未斩 / 收藏（可多选叠加） -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

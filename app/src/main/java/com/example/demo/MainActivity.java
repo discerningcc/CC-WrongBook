@@ -115,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
         // 两套口径：文案「待复习 N 道」= 今天该复习的全部（含逾期与 E 级）；柱图每格 = 那一天到期的新题
         int[] buckets = QuestionStorage.dueBuckets(this, DAYS_AHEAD);
         int due = QuestionStorage.countDue(this);
-        int queued = QuestionStorage.buildTodayQueue(this).size();
         int budget = QuestionStorage.getDailyBudget(this);
         int done = QuestionStorage.getTodayDone(this);
         bankEmpty = total == 0;
@@ -130,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (budget <= 0) {
             main.setText("今日已完成 " + done + "（不限量）");
-            sub.setText("待复习 " + due + " 道 · 队列 " + queued);
+            sub.setText("待复习 " + due + " 道");
             progress.setMax(Math.max(1, due));
             progress.setProgress(Math.min(done, due));
         } else if (done >= budget) {
@@ -140,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
             progress.setProgress(budget);
         } else {
             main.setText("今日已完成 " + done + " / " + budget);
-            sub.setText("待复习 " + due + " 道 · 队列 " + queued);
+            sub.setText("待复习 " + due + " 道");
             progress.setMax(budget);
             progress.setProgress(done);
         }

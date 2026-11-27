@@ -337,22 +337,19 @@ public class QuestionBankActivity extends AppCompatActivity {
         }
     }
 
-    /** 统计条：题库规模、到期数、图片/文本构成、等级分布；有筛选时带「显示 M / 共 N」 */
+    /** 统计条：题库规模、待复习、已斩/收藏、等级分布；有筛选时带「显示 M / 共 N」 */
     private void updateStats() {
-        int due = 0, withImg = 0, withText = 0, excluded = 0, favorite = 0;
+        int due = 0, excluded = 0, favorite = 0;
         int[] level = new int[6]; // S A B C D E
         for (Question q : allQuestions) {
             if (q.excluded) excluded++;
             if (q.favorite) favorite++;
             if (QuestionStorage.isDue(this, q)) due++;
-            if (q.contentImages != null && !q.contentImages.isEmpty()) withImg++;
-            if (q.content != null && !q.content.trim().isEmpty()) withText++;
             int idx = levelIndex(q.status);
             if (idx >= 0) level[idx]++;
         }
 
         String head = "共 " + allQuestions.size() + " 题 · 待复习 " + due
-                + " · 有图 " + withImg + " · 有文本 " + withText
                 + " · 已斩 " + excluded + " · 收藏 " + favorite;
         String levels = " · S" + level[0] + " A" + level[1] + " B" + level[2]
                 + " C" + level[3] + " D" + level[4] + " E" + level[5];

@@ -101,6 +101,39 @@
                     android:progressTint="@color/home_primary"
                     android:progressBackgroundTint="@color/home_stroke" />
 
+                <!-- 未来 7 天到期分布：今天 + 后 6 天；7 天全空时整块隐藏 -->
+                <LinearLayout
+                    android:id="@+id/due_section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="未来 7 天"
+                        android:textSize="12sp"
+                        android:textColor="@color/home_text_secondary" />
+
+                    <com.example.demo.DueChartView
+                        android:id="@+id/due_chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/home_chart_height"
+                        android:layout_marginTop="4dp"
+                        android:contentDescription="未来 7 天到期分布" />
+
+                    <TextView
+                        android:id="@+id/tv_chart_tip"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textSize="12sp"
+                        android:textColor="@color/home_text_secondary"
+                        android:visibility="gone" />
+                </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/checkin_row"
                     android:layout_width="match_parent"
@@ -288,6 +321,20 @@
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
+
+        <!-- 数据备份提示：题库非空、且超 30 天未备份/长期没备份过时才出现 -->
+        <TextView
+            android:id="@+id/tv_backup_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:padding="8dp"
+            android:textSize="12sp"
+            android:textColor="@color/home_text_secondary"
+            android:visibility="gone" />
 
     </LinearLayout>
 </ScrollView>

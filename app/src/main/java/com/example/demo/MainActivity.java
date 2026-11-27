@@ -9,17 +9,25 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.Calendar;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String KEY_HELP_DIALOG = "help_dialog_open";
+    /** 柱图选中格：旋转重建后保留 */
+    private static final String KEY_CHART_SELECTED = "chart_selected";
+    private static final int DAYS_AHEAD = DueBucketUtil.BUCKET_COUNT;
 
     private boolean bankEmpty = false;
     /** 复习量弹窗：与设置页共用同一控制器，变更后回刷今日进度行 */
     private final BudgetDialogController budgetController = new BudgetDialogController();
     /** 帮助弹窗打开态：跨旋转重建留存，关闭后清标记避免误唤醒 */
     private boolean helpOpen = false;
+    /** 未来 7 天柱图选中格；-1 = 未选中 */
+    private int chartSelected = -1;
+    private DueChartView chart;
+    private TextView chartTip;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +39,16 @@ public class MainActivity extends AppCompatActivity {
             SessionStorage.prepare(this);
             QuestionStorage.sweepImagesIfDue(this);
         }, "startup-maintenance").start();
+
+        chart = findViewById(R.id.due_chart);
+        chartTip = findViewById(R.id.tv_chart_tip);
+        if (savedInstanceState != null) {
+            chartSelected = savedInstanceState.getInt(KEY_CHART_SELECTED, -1);
+        }
+        chart.setOnBucketSelectedListener(index -> {
+            chartSelected = index;
+            showChartTip();
+        });
 
         refreshHome();
 
@@ -78,6 +96,11 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, ReviewHistoryActivity.class))
         );
 
+        // 备份提示：点一下去题库管理页，那里右上角是导出入口
+        findViewById(R.id.tv_backup_hint).setOnClickListener(v ->
+                startActivity(new Intent(this, SaveManageActivity.class))
+        );
+
         // 打卡文本：仅在满足资格时响应点击
         findViewById(R.id.tv_checkin).setOnClickListener(v -> onCheckinClick());
         // 日历入口：历史记录随时可查看（24h 模式下只读）
@@ -89,10 +112,9 @@ public class MainActivity extends AppCompatActivity {
     private void refreshHome() {
         List<Question> all = QuestionStorage.loadAll(this);
         int total = all.size();
-        int due = 0;
-        for (Question q : all) {
-            if (QuestionStorage.isDue(this, q)) due++;
-        }
+        // 同一次统计兼作「到期 N 道」和柱图第 0 格，两处数字天然一致
+        int[] buckets = QuestionStorage.dueBuckets(this, DAYS_AHEAD);
+        int due = buckets[0];
         int queued = QuestionStorage.buildTodayQueue(this).size();
         int budget = QuestionStorage.getDailyBudget(this);
         int done = QuestionStorage.getTodayDone(this);
@@ -129,6 +151,90 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_review).setAlpha(bankEmpty ? 0.5f : 1f);
 
         renderCheckin(budget, done, due);
+        renderDueChart(buckets, total);
+        renderBackupHint(total);
+    }
+
+    // ==================== 未来 7 天柱图 ====================
+
+    /** 7 格标签：第 0 格「今」，其余单字星期，跨月也不会出现怪日期 */
+    private String[] chartLabels() {
+        String[] labels = new String[DAYS_AHEAD];
+        String week = "日一二三四五六";
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(System.currentTimeMillis());
+        for (int i = 0; i < DAYS_AHEAD; i++) {
+            if (i == 0) {
+                labels[0] = "今";
+                continue;
+            }
+            cal.add(Calendar.DAY_OF_MONTH, 1);   // 逐日推进，跨月/跨年由 Calendar 自己处理
+            labels[i] = String.valueOf(week.charAt(cal.get(Calendar.DAY_OF_WEEK) - 1));
+        }
+        return labels;
+    }
+
+    private void renderDueChart(int[] buckets, int total) {
+        View section = findViewById(R.id.due_section);
+        int sum = 0;
+        for (int c : buckets) sum += c;
+        boolean show = total > 0 && sum > 0;
+        section.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (!show) {
+            chartSelected = -1;
+            chart.setSelected(-1);
+            chartTip.setVisibility(View.GONE);
+            return;
+        }
+        chart.setLabels(chartLabels());
+        chart.setData(buckets);
+        chart.setSelected(chartSelected);
+        showChartTip();
+    }
+
+    private void showChartTip() {
+        if (chartSelected < 0 || chartSelected >= DAYS_AHEAD) {
+            chartTip.setVisibility(View.GONE);
+            return;
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, chartSelected);
+        String date = (cal.get(Calendar.MONTH) + 1) + "/" + cal.get(Calendar.DAY_OF_MONTH);
+        String when;
+        if (chartSelected == 0) {
+            when = "今天";
+        } else if (chartSelected == 1) {
+            when = "明天";
+        } else {
+            when = "周" + "日一二三四五六".charAt(cal.get(Calendar.DAY_OF_WEEK) - 1);
+        }
+        chartTip.setText(when + "（" + date + "）· " + chart.countAt(chartSelected) + " 道到期");
+        chartTip.setVisibility(View.VISIBLE);
+    }
+
+    // ==================== 备份提示 ====================
+
+    /** 只在题库非空、且超 30 天未备份（或题库建了 7 天还没备份过）时出现 */
+    private void renderBackupHint(int total) {
+        TextView hint = findViewById(R.id.tv_backup_hint);
+        long now = System.currentTimeMillis();
+        long lastExportAt = QuestionStorage.getLastExportAt(this);
+        boolean hasRecord = lastExportAt > 0;
+        long daysSinceExport = hasRecord
+                ? Math.max(0, QuestionStorage.dayNumberLocal(now) - QuestionStorage.dayNumberLocal(lastExportAt))
+                : 0;
+        long bankAgeDays = Math.max(0, QuestionStorage.dayNumberLocal(now)
+                - QuestionStorage.dayNumberLocal(QuestionStorage.getCurrentBankCreatedAt(this)));
+
+        int state = BackupHintUtil.stateOf(hasRecord, daysSinceExport, bankAgeDays, total);
+        if (state == BackupHintUtil.HIDE) {
+            hint.setVisibility(View.GONE);
+            return;
+        }
+        hint.setText(BackupHintUtil.textOf(hasRecord, daysSinceExport));
+        hint.setTextColor(getColor(state == BackupHintUtil.EMPHASIS
+                ? R.color.home_primary : R.color.home_text_secondary));
+        hint.setVisibility(View.VISIBLE);
     }
 
     /** 打卡状态行：门禁关闭时以品牌名占位，仅保留日历历史入口 */
@@ -218,5 +324,6 @@ public class MainActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         budgetController.saveInstanceState(outState);
         outState.putBoolean(KEY_HELP_DIALOG, helpOpen);
+        outState.putInt(KEY_CHART_SELECTED, chartSelected);
     }
 }

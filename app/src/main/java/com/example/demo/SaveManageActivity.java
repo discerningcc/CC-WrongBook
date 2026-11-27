@@ -256,6 +256,7 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
     public void onExportSuccess() {
         runOnUiThread(() -> {
             if (isFinishing() || isDestroyed()) return;
+            QuestionStorage.markExportDone(this);   // 主页备份提示读这个时间戳
             dismissProgress();
             Toast.makeText(this, "导出成功", Toast.LENGTH_SHORT).show();
         });

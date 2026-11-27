@@ -30,4 +30,6 @@
     <color name="home_text_primary">#333333</color>
     <color name="home_text_secondary">#616161</color>
     <color name="home_on_primary_secondary">#CCFFFFFF</color>
+    <!-- 未来 7 天到期柱：非今天/非选中柱的淡主色 -->
+    <color name="home_chart_bar">#E3EDFB</color>
 </resources>

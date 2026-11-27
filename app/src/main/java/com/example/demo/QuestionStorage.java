@@ -55,6 +55,8 @@ public class QuestionStorage {
     private static final String KEY_MIGRATED_V5 = "data_migrated_v5";
     /** 上次扫孤儿图/缩略图的时间戳：一天最多跑一次，别每次进主页都读一遍全部题库 */
     private static final String KEY_IMAGE_SWEEP_AT = "image_sweep_at";
+    /** 上次导出备份的时间戳；0 表示本机还没有记录（主页备份提示用） */
+    private static final String KEY_LAST_EXPORT_AT = "last_export_at";
     private static final long IMAGE_SWEEP_INTERVAL_MS = 24L * 3600 * 1000;
     public static final String KEY_DAILY_BUDGET = "daily_review_budget";
     public static final int DEFAULT_DAILY_BUDGET = 50;
@@ -311,7 +313,7 @@ public class QuestionStorage {
     /** 今天已经按目标完成的题数（跨自然日自动清零） */
     public static int getTodayDone(Context context) {
         SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        long today = getDayNumberLocal(System.currentTimeMillis());
+        long today = dayNumberLocal(System.currentTimeMillis());
         if (sp.getLong(KEY_PROGRESS_DATE, -1) != today) return 0;
         return sp.getInt(KEY_PROGRESS_DONE, 0);
     }
@@ -319,7 +321,7 @@ public class QuestionStorage {
     /** 答完一道（记得/模糊/不会）后计数；跳过和答错重做的第二遍不调用这里 */
     public static void incTodayDone(Context context) {
         SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        long today = getDayNumberLocal(System.currentTimeMillis());
+        long today = dayNumberLocal(System.currentTimeMillis());
         // 先用读到的旧值判断是否同一天；跨日直接从 1 起算，不携带昨日残留。
         // 注意不能在 Editor 已 put(0) 后再 sp.getInt 累加：apply 前内存缓存不会回写，仍读到旧值。
         int next = nextTodayDone(sp.getLong(KEY_PROGRESS_DATE, -1),
@@ -437,9 +439,24 @@ public class QuestionStorage {
         long now = System.currentTimeMillis();
         SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         if (sp.getBoolean(SettingsActivity.KEY_NATURAL_DAY, true)) {
-            return getDayNumberLocal(now) - getDayNumberLocal(q.updateTime);
+            return dayNumberLocal(now) - dayNumberLocal(q.updateTime);
         }
         return (now - q.updateTime) / (1000L * 60 * 60 * 24);
+    }
+
+    /**
+     * 未来 days 天的到期分布：[0] = 今天（含已逾期），[1..days-1] = 未来第 N 天。
+     * 与 isDue 同一口径（已斩不计、E 级恒为今天），所以 [0] 恒等于主页「到期 N 道」那个数。
+     */
+    public static int[] dueBuckets(Context context, int days) {
+        ensureBankExists(context);
+        int size = Math.max(1, days);
+        int[] buckets = new int[size];
+        for (Question q : cacheBank.questions) {
+            int bucket = DueBucketUtil.bucketOf(intervalDaysOf(q.status), daysSince(context, q), q.excluded);
+            if (bucket >= 0 && bucket < size) buckets[bucket]++;
+        }
+        return buckets;
     }
 
     /** 题目列表里展示的到期文案 */
@@ -459,7 +476,8 @@ public class QuestionStorage {
         return null;
     }
 
-    private static long getDayNumberLocal(long timestamp) {
+    /** 本地自然日序号（按本地零点切天），用于跨天比较 */
+    public static long dayNumberLocal(long timestamp) {
         java.util.Calendar cal = java.util.Calendar.getInstance();
         cal.setTimeZone(java.util.TimeZone.getDefault());
         cal.setTimeInMillis(timestamp);
@@ -539,6 +557,24 @@ public class QuestionStorage {
     public static String getCurrentBankName(Context context) {
         ensureBankExists(context);
         return cacheBank.name;
+    }
+
+    /** 当前题库创建时间（老数据可能为 0，主页备份提示据此判断「题库龄」） */
+    public static long getCurrentBankCreatedAt(Context context) {
+        ensureBankExists(context);
+        return cacheBank.createdAt;
+    }
+
+    /** 导出成功后记一笔时间，主页据此提示该不该再备份 */
+    public static void markExportDone(Context context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putLong(KEY_LAST_EXPORT_AT, System.currentTimeMillis()).apply();
+    }
+
+    /** 上次导出的时间戳；0 表示本机没有记录 */
+    public static long getLastExportAt(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getLong(KEY_LAST_EXPORT_AT, 0L);
     }
 
     public static void renameBank(Context context, String bankId, String newName) {

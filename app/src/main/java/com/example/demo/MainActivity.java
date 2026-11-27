@@ -15,6 +15,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private static final String KEY_HELP_DIALOG = "help_dialog_open";
+    /** 柱图用法弹窗打开态：旋转重建后保留 */
+    private static final String KEY_CHART_HELP = "chart_help_open";
     /** 柱图选中格：旋转重建后保留 */
     private static final String KEY_CHART_SELECTED = "chart_selected";
     private static final int DAYS_AHEAD = DueBucketUtil.BUCKET_COUNT;
@@ -24,6 +26,8 @@ public class MainActivity extends AppCompatActivity {
     private final BudgetDialogController budgetController = new BudgetDialogController();
     /** 帮助弹窗打开态：跨旋转重建留存，关闭后清标记避免误唤醒 */
     private boolean helpOpen = false;
+    /** 柱图用法弹窗打开态：同上 */
+    private boolean chartHelpOpen = false;
     /** 未来 7 天柱图选中格；-1 = 未选中 */
     private int chartSelected = -1;
     private DueChartView chart;
@@ -63,6 +67,14 @@ public class MainActivity extends AppCompatActivity {
         budgetController.restore(savedInstanceState, this, this::refreshHome);
 
         findViewById(R.id.btn_help).setOnClickListener(v -> showHelpDialog());
+
+        // 「未来 7 天 · 用法」：点标题看柱子怎么读、新旧题怎么配比
+        findViewById(R.id.tv_due_title).setOnClickListener(v -> showChartHelpDialog());
+
+        // 旋转重建后恢复柱图用法弹窗；仅系统重建（savedInstanceState 非空）时执行
+        if (savedInstanceState != null && savedInstanceState.getBoolean(KEY_CHART_HELP, false)) {
+            showChartHelpDialog();
+        }
 
         // 旋转重建后恢复帮助弹窗；仅系统重建（savedInstanceState 非空）时执行
         if (savedInstanceState != null && savedInstanceState.getBoolean(KEY_HELP_DIALOG, false)) {
@@ -321,8 +333,6 @@ public class MainActivity extends AppCompatActivity {
                 "复习节奏（艾宾浩斯）：E(每天)→D(1天)→C(3天)→B(7天)→A(15天)→S(30天抽查)\n" +
                 "记得：升级；模糊：等级不变但下次提前；不会：E~A打回E、S降回A；答错的题本次会再出现一次。\n" +
                 "每日复习量可在设置里调；到期超过预算时，多出来的顺延到后面几天，S 长期题每天抽 1~2 道。\n\n" +
-                "怎么看「未来 7 天」柱子：每格是那一天会新到期的题，逾期不算在柱里，都在上面的「待复习」里。\n" +
-                "待复习多就先还旧账，柱子高就先别加新题——题是做题时攒进来的，今天加得越多，后面越挤。\n\n" +
                 "支持多题库管理，题库可导出zip备份（含图片）。\n" +
                 "两种计时模式：自然日 / 24小时间隔。\n\n" +
                 "⚠️ 全部数据本地存储，卸载会丢失，请记得备份！\n" +
@@ -338,6 +348,24 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    /** 「未来 7 天 · 用法」：柱子读法 + 新旧题配比，只讲判断方法，不给固定比例 */
+    private void showChartHelpDialog() {
+        String content =
+                "柱子的每一格，是那一天会有多少题到期；已经逾期的旧账不在柱子里，都算在主页的「待复习 N 道」。\n\n" +
+                "要平衡的是复习时间，不是题量：未来几天到期多，说明这一周的时间已经排满，今天就少加新题、先消化积压；" +
+                "未来几天很轻、待复习也不多，才可以多做新题。\n\n" +
+                "每加一道新题，都会在 1、3、7、15、30 天后回来占时间。判断标准是你每天实际能投入多久，不是固定比例。";
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("未来 7 天 · 新旧题怎么平衡")
+                .setMessage(content)
+                .setPositiveButton("知道了", null)
+                .create();
+        dialog.setOnDismissListener(d -> chartHelpOpen = false);
+        chartHelpOpen = true;
+        dialog.show();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -349,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         budgetController.saveInstanceState(outState);
         outState.putBoolean(KEY_HELP_DIALOG, helpOpen);
+        outState.putBoolean(KEY_CHART_HELP, chartHelpOpen);
         outState.putInt(KEY_CHART_SELECTED, chartSelected);
     }
 }

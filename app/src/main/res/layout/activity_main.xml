@@ -111,9 +111,16 @@
                     android:visibility="gone">
 
                     <TextView
+                        android:id="@+id/tv_due_title"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="未来 7 天"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:contentDescription="未来 7 天 · 点此看柱子用法"
+                        android:text="未来 7 天 · 用法"
                         android:textSize="12sp"
                         android:textColor="@color/home_text_secondary" />
 

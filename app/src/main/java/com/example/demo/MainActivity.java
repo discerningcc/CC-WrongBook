@@ -348,16 +348,14 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    /** 「未来 7 天 · 用法」：柱子读法 + 新旧题配比，只讲判断方法，不给固定比例 */
+    /** 「未来 7 天 · 用法」：只说明柱子是什么，并给一条安排复习计划的建议 */
     private void showChartHelpDialog() {
         String content =
-                "柱子的每一格，是那一天会有多少题到期；已经逾期的旧账不在柱子里，都算在主页的「待复习 N 道」。\n\n" +
-                "要平衡的是复习时间，不是题量：未来几天到期多，说明这一周的时间已经排满，今天就少加新题、先消化积压；" +
-                "未来几天很轻、待复习也不多，才可以多做新题。\n\n" +
-                "每加一道新题，都会在 1、3、7、15、30 天后回来占时间。判断标准是你每天实际能投入多久，不是固定比例。";
+                "表示未来几天预计会到期的题目数量\n" +
+                "建议结合具体复习情况安排复习计划";
 
         AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("未来 7 天 · 新旧题怎么平衡")
+                .setTitle("未来 7 天")
                 .setMessage(content)
                 .setPositiveButton("知道了", null)
                 .create();

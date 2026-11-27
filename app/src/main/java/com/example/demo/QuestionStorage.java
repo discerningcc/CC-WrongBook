@@ -469,6 +469,19 @@ public class QuestionStorage {
         return due;
     }
 
+    /** 今柱构成：index 见 TodayBreakdownUtil.DUE / NEW_NEVER_ANSWERED / DOWNGRADED_TODAY / BACKLOG_E */
+    public static int[] todayBreakdown(Context context) {
+        ensureBankExists(context);
+        int[] kinds = new int[TodayBreakdownUtil.KIND_COUNT];
+        for (Question q : cacheBank.questions) {
+            if (q.excluded) continue;
+            int kind = TodayBreakdownUtil.classify(intervalDaysOf(q.status),
+                    daysSince(context, q), q.encounterCount);
+            if (kind >= 0 && kind < kinds.length) kinds[kind]++;
+        }
+        return kinds;
+    }
+
     /** 题目列表里展示的到期文案 */
     public static String dueText(Context context, Question q) {
         if (q != null && q.excluded) return "已斩";

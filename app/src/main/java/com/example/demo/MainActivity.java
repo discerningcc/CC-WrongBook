@@ -210,8 +210,16 @@ public class MainActivity extends AppCompatActivity {
         String date = (cal.get(Calendar.MONTH) + 1) + "/" + cal.get(Calendar.DAY_OF_MONTH);
         String when;
         if (chartSelected == 0) {
-            when = "今天";
-        } else if (chartSelected == 1) {
+            // 今柱按来路拆开讲清楚：刚好到期 / 新题未做 / 今天降为 E / 以往积压 E
+            int[] kinds = QuestionStorage.todayBreakdown(this);
+            chartTip.setText("今天（" + date + "）· " + chart.countAt(0) + " 道：刚好到期 " + kinds[TodayBreakdownUtil.DUE]
+                    + " · 新题未做 " + kinds[TodayBreakdownUtil.NEW_NEVER_ANSWERED]
+                    + " · 今天降 E " + kinds[TodayBreakdownUtil.DOWNGRADED_TODAY]
+                    + " · 以往 E " + kinds[TodayBreakdownUtil.BACKLOG_E]);
+            chartTip.setVisibility(View.VISIBLE);
+            return;
+        }
+        if (chartSelected == 1) {
             when = "明天";
         } else {
             when = "周" + "日一二三四五六".charAt(cal.get(Calendar.DAY_OF_WEEK) - 1);

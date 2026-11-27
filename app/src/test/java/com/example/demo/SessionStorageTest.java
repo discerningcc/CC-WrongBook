@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -108,5 +109,33 @@ public class SessionStorageTest {
         assertFalse("今天".equals(header));
         assertFalse("昨天".equals(header));
         assertTrue(Pattern.matches("^\\d{1,2}月\\d{1,2}日$|^\\d{4}年\\d{1,2}月\\d{1,2}日$", header));
+    }
+
+    // ==================== 会话文件名 ====================
+
+    @Test
+    public void parseName_readsTimeStatusBankAndId() {
+        String name = SessionStorage.nameOf(1764000000000L, "FINISHED",
+                "209eba8c-fa7e-471b-a338-3759ec352e99", "20261126_134948_382");
+        SessionStorage.NameMeta meta = SessionStorage.parseName(name);
+        assertEquals(1764000000000L, meta.startTime);
+        assertEquals("FINISHED", meta.status);
+        assertEquals("209eba8c-fa7e-471b-a338-3759ec352e99", meta.bankId);
+        assertEquals("20261126_134948_382", meta.id);   // 会话 id 自带下划线，不能被切碎
+    }
+
+    @Test
+    public void parseName_noBankBecomesNone() {
+        String name = SessionStorage.nameOf(1234L, "ACTIVE", null, "x");
+        assertEquals("1234_ACTIVE_none_x.json", name);
+        assertNull(SessionStorage.parseName(name).bankId);
+    }
+
+    @Test
+    public void parseName_rejectsLegacyAndTempNames() {
+        assertNull(SessionStorage.parseName("20261126_134948_382.json"));   // 老格式
+        assertNull(SessionStorage.parseName("1234_ACTIVE_bank_x.json.tmp"));
+        assertNull(SessionStorage.parseName("1234_ACTIVE_bank_x"));          // 没有扩展名
+        assertNull(SessionStorage.parseName(null));
     }
 }

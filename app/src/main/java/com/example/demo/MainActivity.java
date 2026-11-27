@@ -26,8 +26,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 孤儿图片扫描放后台线程，避免启动时在主线程遍历全部题库与图片目录
-        new Thread(() -> QuestionStorage.sweepOrphanImages(this), "orphan-sweep").start();
+        // 启动维护（会话文件名迁移、孤儿图/缩略图清理，后者一天最多一次）全放后台线程，别拖慢首屏
+        new Thread(() -> {
+            SessionStorage.prepare(this);
+            QuestionStorage.sweepImagesIfDue(this);
+        }, "startup-maintenance").start();
 
         refreshHome();
 

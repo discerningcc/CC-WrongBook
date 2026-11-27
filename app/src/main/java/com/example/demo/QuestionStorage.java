@@ -53,6 +53,9 @@ public class QuestionStorage {
     private static final String KEY_MIGRATED_V3 = "data_migrated_v3";
     private static final String KEY_MIGRATED_V4 = "data_migrated_v4";
     private static final String KEY_MIGRATED_V5 = "data_migrated_v5";
+    /** 上次扫孤儿图/缩略图的时间戳：一天最多跑一次，别每次进主页都读一遍全部题库 */
+    private static final String KEY_IMAGE_SWEEP_AT = "image_sweep_at";
+    private static final long IMAGE_SWEEP_INTERVAL_MS = 24L * 3600 * 1000;
     public static final String KEY_DAILY_BUDGET = "daily_review_budget";
     public static final int DEFAULT_DAILY_BUDGET = 50;
     /** 今日已完成题数（按自然日跨天清零） */
@@ -119,7 +122,7 @@ public class QuestionStorage {
             if (containsImage(q.contentImages, path) || containsImage(q.answerImages, path)) return;
         }
         File imagesDir = context.getDir(IMAGES_DIR, Context.MODE_PRIVATE);
-        deleteImage(imagesDir, path);
+        deleteImage(context, imagesDir, path);
     }
 
     /** 登记加题页草稿期引用的图片，清理孤儿图时保留；入参传当前两组路径集合 */
@@ -173,9 +176,29 @@ public class QuestionStorage {
                 canonical = img.getAbsolutePath();
             }
             if (!kept.contains(canonical)) {
-                deleteImage(imagesDir, canonical);
+                deleteImage(context, imagesDir, canonical);
             }
         }
+    }
+
+    /**
+     * 启动时清理入口：孤儿图 + 缩略图缓存，一天最多跑一次。
+     * 主页每次重建（含旋转）都会走这里，隔一天才会真扫一次；读全部题库、列目录都在调用线程（后台线程）里做。
+     * @return 本次是否真的扫了
+     */
+    public static boolean sweepImagesIfDue(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        long last = sp.getLong(KEY_IMAGE_SWEEP_AT, 0L);
+        long now = System.currentTimeMillis();
+        // 时钟被往回调过（now < last）时不信任旧时间戳，照扫一遍
+        if (last > 0 && now >= last && now - last < IMAGE_SWEEP_INTERVAL_MS) return false;
+        try {
+            sweepOrphanImages(context);
+            ImageLoader.sweepThumbs(context);
+        } finally {
+            sp.edit().putLong(KEY_IMAGE_SWEEP_AT, now).apply();
+        }
+        return true;
     }
 
     private static void addKeptPath(Set<String> kept, Collection<String> paths) {
@@ -1024,23 +1047,24 @@ public class QuestionStorage {
         try {
             File imagesDir = context.getDir(IMAGES_DIR, Context.MODE_PRIVATE);
             if (question.contentImages != null) {
-                for (String path : question.contentImages) deleteImage(imagesDir, path);
+                for (String path : question.contentImages) deleteImage(context, imagesDir, path);
             }
             if (question.answerImages != null) {
-                for (String path : question.answerImages) deleteImage(imagesDir, path);
+                for (String path : question.answerImages) deleteImage(context, imagesDir, path);
             }
         } catch (Exception e) {
             Log.w(TAG, "delete question images failed", e);
         }
     }
 
-    private static void deleteImage(File imagesDir, String path) {
+    private static void deleteImage(Context context, File imagesDir, String path) {
         if (path == null || path.isEmpty()) return;
         File f = new File(path);
         if (!f.exists()) return;
         try {
             if (f.getCanonicalPath().startsWith(imagesDir.getCanonicalPath())) {
                 f.delete();
+                ImageLoader.dropThumbsFor(context, path);   // 原图没了，列表缩略图缓存也别留着
             }
         } catch (IOException e) {
             Log.w(TAG, "delete private image failed: " + path, e);

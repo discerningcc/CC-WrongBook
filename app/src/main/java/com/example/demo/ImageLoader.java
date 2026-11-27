@@ -40,12 +40,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -286,10 +289,63 @@ public final class ImageLoader {
         if (!tmp.renameTo(cache)) tmp.delete();
     }
 
-    /** 缩略文件名带原图修改时间、大小和目标宽度，原图或列宽变了就重新生成 */
+    /** 缩略文件名：<原图名去扩展>_<原图修改时间>_w<列宽>.jpg —— 原图一变名字就变，也能反查原图 */
     private static String gridCacheName(File src, int targetW) {
-        String raw = src.getAbsolutePath() + "|" + src.lastModified() + "|" + src.length() + "|w" + targetW;
-        return md5(raw) + ".jpg";
+        return ThumbNameUtil.nameOf(src.getName(), src.lastModified(), targetW);
+    }
+
+    /** 某张原图被删掉后，把它各个列宽的缩略图缓存一起删掉（按文件名里的原图名匹配） */
+    public static void dropThumbsFor(Context context, String srcPath) {
+        if (srcPath == null || srcPath.isEmpty()) return;
+        String stem = ThumbNameUtil.stemOf(srcPath);
+        File[] thumbs = gridDir(context).listFiles();
+        if (thumbs == null) return;
+        for (File t : thumbs) {
+            String[] p = ThumbNameUtil.parse(t.getName());
+            if (p != null && stem.equals(p[0])) t.delete();
+        }
+    }
+
+    /**
+     * 清缩略图缓存：原图已不在的条目删掉，同一原图同一列宽只留最新那份（改过图之后旧缩略会留着），
+     * 老的 md5 命名缓存也一并清掉（列表滚过去自然重建，不会丢任何数据）。
+     */
+    public static void sweepThumbs(Context context) {
+        File dir = gridDir(context);
+        File[] thumbs = dir.listFiles();
+        if (thumbs == null || thumbs.length == 0) return;
+
+        Set<String> alive = new HashSet<>();
+        File[] srcs = context.getDir("images", Context.MODE_PRIVATE).listFiles();
+        if (srcs != null) {
+            for (File f : srcs) alive.add(ThumbNameUtil.stemOf(f.getName()));
+        }
+
+        Map<String, String> keepMtime = new HashMap<>();
+        int removed = 0;
+        for (File t : thumbs) {
+            if (!t.isFile()) continue;
+            String[] p = ThumbNameUtil.parse(t.getName());
+            if (p == null || !alive.contains(p[0])) {
+                if (t.delete()) removed++;
+                continue;
+            }
+            String key = p[0] + "@" + p[2];
+            String prev = keepMtime.get(key);
+            if (prev == null || Long.parseLong(p[1]) > Long.parseLong(prev)) {
+                keepMtime.put(key, p[1]);
+            }
+        }
+        for (File t : thumbs) {
+            if (!t.isFile()) continue;
+            String[] p = ThumbNameUtil.parse(t.getName());
+            if (p == null || !alive.contains(p[0])) continue;
+            String best = keepMtime.get(p[0] + "@" + p[2]);
+            if (best != null && !best.equals(p[1])) {
+                if (t.delete()) removed++;
+            }
+        }
+        if (removed > 0) Log.d("ImageLoader", "sweepThumbs removed " + removed);
     }
 
     private static File gridDir(Context context) {
@@ -298,18 +354,6 @@ public final class ImageLoader {
             if (!thumbDir.isDirectory()) thumbDir.mkdirs();
         }
         return thumbDir;
-    }
-
-    private static String md5(String raw) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] bytes = md.digest(raw.getBytes("UTF-8"));
-            StringBuilder sb = new StringBuilder(bytes.length * 2);
-            for (byte b : bytes) sb.append(String.format("%02x", b));
-            return sb.toString();
-        } catch (Exception e) {
-            return Integer.toHexString(raw.hashCode());
-        }
     }
 
     /** 单图全屏看图兼容入口。 */

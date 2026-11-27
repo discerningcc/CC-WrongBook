@@ -27,11 +27,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 复习会话存储：review_history/ 目录下一条会话一个 JSON 文件（<会话id>.json）。
+ * 复习会话存储：review_history/ 目录下一条会话一个 JSON 文件，
+ * 文件名是「<开始时间>_<状态>_<题库id>_<会话id>.json」。
  * 一条一文件的好处：答题时只重写当前这一条（约 20 KB），历史记录一个字节都不碰；
- * 写入先写 .tmp 再改名，崩在中间旧文件仍完好。
+ * 时间/状态/题库写在文件名里，找「没做完的那一条」或「某题库最近几条」只看目录项，
+ * 只解析真正需要的那一份正文。写入先写 .tmp 再改名，崩在中间旧文件仍完好。
  * 每个题库最多保留 MAX_SESSIONS_PER_BANK 条已归档记录，未完成（ACTIVE）的会话不会被裁掉。
- * 旧版把所有会话放在 sessions.json 一个文件里，首次启动会自动拆成一条一文件并留下 .bak 备份。
+ * 旧版文件名只有会话 id，首次启动会自动改名成新格式；更早的单文件 sessions.json 会拆成一条一文件并留 .bak。
  */
 public class SessionStorage {
 
@@ -60,17 +62,18 @@ public class SessionStorage {
     /** 一次待落盘的会话快照：json 已在调用线程序列化好，write 线程只管写盘 */
     private static final class PendingWrite {
         final String id;
+        final long startTime;
+        final String status;
         final String json;
         final boolean trim;       // 会话已结束，写完顺手裁剪该题库的超量记录
         final String bankId;
         final CountDownLatch latch;   // 仅 flush 标记项使用：写到这里代表前面的都落盘了
 
-        PendingWrite(String id, String json, boolean trim, String bankId) {
-            this(id, json, trim, bankId, null);
-        }
-
-        PendingWrite(String id, String json, boolean trim, String bankId, CountDownLatch latch) {
+        PendingWrite(String id, long startTime, String status, String json, boolean trim,
+                     String bankId, CountDownLatch latch) {
             this.id = id;
+            this.startTime = startTime;
+            this.status = status;
             this.json = json;
             this.trim = trim;
             this.bankId = bankId;
@@ -82,6 +85,7 @@ public class SessionStorage {
 
     public static List<ReviewSession> loadAll(Context context) {
         migrateLegacy(context);
+        migrateNames(context);
         List<ReviewSession> list = new ArrayList<>();
         File[] files = dir(context).listFiles();
         if (files == null) return list;
@@ -106,10 +110,11 @@ public class SessionStorage {
     public static void save(Context context, ReviewSession session) {
         if (session == null || session.id == null) return;
         migrateLegacy(context);
+        migrateNames(context);   // 老文件名先改掉，否则同一会话会以新旧两个名字各存一份
         Context app = appOf(context);
         // 结束（归档/完成）时才可能超出上限，标记写完顺手裁剪一次
         boolean trim = !ReviewSession.STATUS_ACTIVE.equals(session.status);
-        requestWrite(app, session.id, new Gson().toJson(session), trim, session.bankId);
+        requestWrite(app, session, new Gson().toJson(session), trim);
     }
 
     public static void remove(Context context, String sessionId) {
@@ -118,8 +123,8 @@ public class SessionStorage {
         synchronized (WRITE_LOCK) {
             pendingWrites.remove(safeId(sessionId));
         }
-        File f = fileOf(context, sessionId);
-        if (f.exists() && !f.delete()) {
+        File f = findFile(context, sessionId);
+        if (f != null && f.exists() && !f.delete()) {
             f.deleteOnExit();
         }
     }
@@ -130,26 +135,75 @@ public class SessionStorage {
         synchronized (WRITE_LOCK) {
             if (pendingWrites.containsKey(safeId(sessionId))) return true;   // 还在队列里也算存在
         }
-        return fileOf(context, sessionId).exists();
+        return findFile(context, sessionId) != null;
     }
 
     // ==================== 查询 ====================
 
+    /**
+     * 启动时在后台线程跑一次：老单文件拆成一条一文件 + 老文件名改成带元信息的新名字。
+     * 两个迁移都只读目录项，没有老数据时立刻返回，放在后台不会拖慢启动。
+     */
+    public static void prepare(Context context) {
+        migrateLegacy(context);
+        migrateNames(context);
+    }
+
     /** 指定题库下未完成的会话（最近一次） */
     public static ReviewSession getActive(Context context, String bankId) {
-        ReviewSession latest = null;
-        for (ReviewSession s : loadAll(context)) {
-            if (!ReviewSession.STATUS_ACTIVE.equals(s.status)) continue;
-            if (bankId != null && !bankId.equals(s.bankId)) continue;
-            if (latest == null || s.startTime > latest.startTime) latest = s;
-        }
-        return latest;
+        return findLatest(context, bankId, ReviewSession.STATUS_ACTIVE);
     }
 
     /** 指定题库下最近一次会话（不限状态），bankId 传 null 表示全部题库 */
     public static ReviewSession getLatest(Context context, String bankId) {
+        return findLatest(context, bankId, null);
+    }
+
+    /**
+     * 先按文件名筛状态/题库、挑出 startTime 最大的一条，只解析这一条。
+     * 目录里若还留着解析不出名字的老文件，退回全量解析，宁可慢一点也不能漏掉记录。
+     */
+    private static ReviewSession findLatest(Context context, String bankId, String status) {
+        migrateLegacy(context);
+        migrateNames(context);
+        File[] files = dir(context).listFiles();
+        if (files == null) return null;
+        String wantBank = bankId == null ? null : safeId(bankId);
+        File newest = null;
+        long newestTime = Long.MIN_VALUE;
+        boolean sawLegacyName = false;
+        for (File f : files) {
+            String name = f.getName();
+            if (!name.endsWith(".json") || LEGACY_FILE.equals(name)) continue;
+            NameMeta m = parseName(name);
+            if (m == null) {
+                sawLegacyName = true;
+                continue;
+            }
+            if (status != null && !safeId(status).equals(m.status)) continue;
+            if (wantBank != null && !wantBank.equals(m.bankId)) continue;
+            if (m.startTime > newestTime) {
+                newestTime = m.startTime;
+                newest = f;
+            }
+        }
+        if (sawLegacyName) return findLatestSlow(context, bankId, status);
+        if (newest == null) return null;
+        try {
+            ReviewSession s = new Gson().fromJson(readFile(newest), ReviewSession.class);
+            if (s != null && s.items == null) s.items = new ArrayList<>();
+            return s;
+        } catch (Exception e) {
+            Log.w(TAG, "read session failed: " + newest.getName(), e);
+            return null;
+        }
+    }
+
+    /** 兜底：目录里混着读不出名字的文件时，把全部正文解析一遍再挑 */
+    private static ReviewSession findLatestSlow(Context context, String bankId, String status) {
         ReviewSession latest = null;
         for (ReviewSession s : loadAll(context)) {
+            if (status != null && !status.equals(s.status)) continue;
             if (bankId != null && !bankId.equals(s.bankId)) continue;
             if (latest == null || s.startTime > latest.startTime) latest = s;
         }
@@ -260,21 +314,27 @@ public class SessionStorage {
      * 只在会话结束时调用一次，答题过程中不会触发。
      */
     private static void trimBank(Context context, String bankId) {
-        List<ReviewSession> archived = new ArrayList<>();
-        for (ReviewSession s : loadAll(context)) {
-            if (ReviewSession.STATUS_ACTIVE.equals(s.status)) continue;
-            boolean sameBank = bankId == null ? s.bankId == null : bankId.equals(s.bankId);
-            if (sameBank) archived.add(s);
+        migrateNames(context);
+        File[] files = dir(context).listFiles();
+        if (files == null) return;
+        String wantBank = bankId == null ? null : safeId(bankId);
+        final List<File> archived = new ArrayList<>();
+        for (File f : files) {
+            NameMeta m = parseName(f.getName());
+            if (m == null) continue;
+            if (ReviewSession.STATUS_ACTIVE.equals(m.status)) continue;   // 正在做的那一轮永不参与
+            boolean sameBank = wantBank == null ? m.bankId == null : wantBank.equals(m.bankId);
+            if (sameBank) archived.add(f);
         }
         if (archived.size() <= MAX_SESSIONS_PER_BANK) return;
-        Collections.sort(archived, new Comparator<ReviewSession>() {
+        Collections.sort(archived, new Comparator<File>() {
             @Override
-            public int compare(ReviewSession a, ReviewSession b) {
-                return Long.compare(b.startTime, a.startTime);
+            public int compare(File a, File b) {
+                return Long.compare(parseName(b.getName()).startTime, parseName(a.getName()).startTime);
             }
         });
         for (int i = MAX_SESSIONS_PER_BANK; i < archived.size(); i++) {
-            File f = fileOf(context, archived.get(i).id);
+            File f = archived.get(i);
             if (f.exists() && !f.delete()) f.deleteOnExit();
         }
     }
@@ -290,7 +350,7 @@ public class SessionStorage {
                 Gson gson = new Gson();
                 for (ReviewSession s : list) {
                     if (s == null || s.id == null) continue;
-                    File target = fileOf(context, s.id);
+                    File target = fileOf(context, s);
                     if (target.exists()) continue;   // 已经拆出来了就跳过
                     writeAtomic(target, gson.toJson(s));
                 }
@@ -322,10 +382,12 @@ public class SessionStorage {
     // ==================== 后台写队列 ====================
 
     /** 只把最新一份快照塞进队列并唤醒写线程：写线程忙时不会叠加多个任务 */
-    private static void requestWrite(Context app, String sessionId, String json, boolean trim, String bankId) {
-        String id = safeId(sessionId);
+    private static void requestWrite(Context app, ReviewSession session, String json, boolean trim) {
+        String id = safeId(session.id);
+        String status = session.status == null ? ReviewSession.STATUS_ACTIVE : session.status;
         synchronized (WRITE_LOCK) {
-            pendingWrites.put(id, new PendingWrite(id, json, trim, bankId));
+            pendingWrites.put(id, new PendingWrite(id, session.startTime, safeId(status),
+                    json, trim, session.bankId, null));
             if (writeRunning) return;
             writeRunning = true;
         }
@@ -348,7 +410,9 @@ public class SessionStorage {
                 w.latch.countDown();
                 continue;
             }
-            writeAtomic(fileOf(app, w.id), w.json);
+            File target = new File(dir(app), nameOf(w.startTime, w.status, w.bankId, w.id));
+            deleteSameId(app, w.id, target);   // 状态/题库变了文件名也变，先清掉旧名字那份
+            writeAtomic(target, w.json);
             if (w.trim) trimBank(app, w.bankId);
         }
     }
@@ -359,7 +423,7 @@ public class SessionStorage {
         boolean startWriter;
         synchronized (WRITE_LOCK) {
             String key = FLUSH_KEY + "_" + (flushSeq++);   // 每次一个独立标记，多个 flush 互不覆盖
-            pendingWrites.put(key, new PendingWrite(key, null, false, null, latch));
+            pendingWrites.put(key, new PendingWrite(key, 0L, null, null, false, null, latch));
             startWriter = !writeRunning;
             if (startWriter) writeRunning = true;
         }
@@ -379,8 +443,101 @@ public class SessionStorage {
         return context.getDir(DIR_NAME, Context.MODE_PRIVATE);
     }
 
-    private static File fileOf(Context context, String id) {
-        return new File(dir(context), safeId(id) + ".json");
+    // ==================== 文件命名 ====================
+    // 文件名：<startTime>_<status>_<bankKey>_<id>.json
+    // 一条会话语义上 20 KB 上下，「找出某题库没做完的那一条」「按时间排最近几条」只看目录项就够，
+    // 不必把每个正文都解析一遍；状态变了文件名跟着变，写新文件时删掉旧的那份。
+
+    private static final String BANK_NONE = "none";
+
+    static String nameOf(long startTime, String status, String bankId, String id) {
+        return startTime + "_" + safeId(status) + "_"
+                + (bankId == null ? BANK_NONE : safeId(bankId)) + "_" + safeId(id) + ".json";
+    }
+
+    private static File fileOf(Context context, ReviewSession s) {
+        return new File(dir(context), nameOf(s.startTime, s.status, s.bankId, s.id));
+    }
+
+    /** 从文件名直接读出的元信息；老格式（<id>.json）、.tmp、.bak 解析不出来就是 null */
+    static final class NameMeta {
+        final long startTime;
+        final String status;
+        final String bankId;   // 会话不属于任何题库时为 null
+        final String id;
+
+        NameMeta(long startTime, String status, String bankId, String id) {
+            this.startTime = startTime;
+            this.status = status;
+            this.bankId = bankId;
+            this.id = id;
+        }
+    }
+
+    static NameMeta parseName(String fileName) {
+        if (fileName == null || !fileName.endsWith(".json")) return null;
+        String base = fileName.substring(0, fileName.length() - ".json".length());
+        String[] parts = base.split("_", 4);   // id 自己带下划线，必须限制成 4 段
+        if (parts.length != 4) return null;
+        long startTime;
+        try {
+            startTime = Long.parseLong(parts[0]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        String bank = parts[2];
+        return new NameMeta(startTime, parts[1], BANK_NONE.equals(bank) ? null : bank, parts[3]);
+    }
+
+    /** 按会话 id 找它当前的文件：文件名带前缀，只能按最后一段匹配 */
+    private static File findFile(Context context, String sessionId) {
+        File[] files = dir(context).listFiles();
+        if (files == null) return null;
+        String want = safeId(sessionId);
+        for (File f : files) {
+            NameMeta m = parseName(f.getName());
+            if (m != null && want.equals(m.id)) return f;
+        }
+        return null;
+    }
+
+    /** 写新文件前删掉同一会话的旧文件（状态变了文件名就跟着变，不删会留成两条记录） */
+    private static void deleteSameId(Context context, String sessionId, File keep) {
+        File[] files = dir(context).listFiles();
+        if (files == null) return;
+        String want = safeId(sessionId);
+        String keepPath = keep.getAbsolutePath();
+        for (File f : files) {
+            NameMeta m = parseName(f.getName());
+            if (m == null || !want.equals(m.id)) continue;
+            if (keepPath.equals(f.getAbsolutePath())) continue;
+            if (f.exists() && !f.delete()) f.deleteOnExit();
+        }
+    }
+
+    /**
+     * 老文件名（<id>.json）一次性改成带元信息的新名字。正常只在第一次启动跑，
+     * 之后目录里全命中新格式，一个正文字节都不用多读。
+     * 解析不出来的文件保持原名，读取时有兜底路径，不会丢已经存下的记录。
+     */
+    private static void migrateNames(Context context) {
+        File[] files = dir(context).listFiles();
+        if (files == null) return;
+        Gson gson = new Gson();
+        for (File f : files) {
+            String name = f.getName();
+            if (!name.endsWith(".json") || LEGACY_FILE.equals(name)) continue;
+            if (parseName(name) != null) continue;
+            try {
+                ReviewSession s = gson.fromJson(readFile(f), ReviewSession.class);
+                if (s == null || s.id == null || s.startTime <= 0) continue;
+                File target = fileOf(context, s);
+                if (target.equals(f) || target.exists()) continue;
+                if (!f.renameTo(target)) Log.w(TAG, "rename session file failed: " + name);
+            } catch (Exception e) {
+                Log.w(TAG, "skip session file with unknown name: " + name, e);
+            }
+        }
     }
 
     /** 先写 .tmp 再改名：写到一半被打断，原文件仍然完整可用 */

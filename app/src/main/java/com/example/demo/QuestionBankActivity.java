@@ -47,6 +47,7 @@ public class QuestionBankActivity extends AppCompatActivity {
     private static final String STATE_KEYWORD = "list_keyword";
     private static final String STATE_LEVEL = "list_level";
     private static final String STATE_SORT = "list_sort";
+    private static final String STATE_SORT_MENU = "list_sort_menu_open";
 
     private SearchView searchView;
     private TextView tvStats;
@@ -54,6 +55,8 @@ public class QuestionBankActivity extends AppCompatActivity {
     private TextView tvSortLabel;
     /** 当前展开的排序菜单；null 表示未展开 */
     private PopupWindow sortMenu;
+    /** 旋转重建后是否要重弹排序菜单（仅配置变更时置位） */
+    private boolean sortMenuOpenForRestore;
     private Adapter adapter;
 
     /** 题库全量（最新添加在前） */
@@ -113,11 +116,13 @@ public class QuestionBankActivity extends AppCompatActivity {
         // 旋转重建：恢复筛选胶囊与关键词；savedInstanceState 为空才是首次进入
         // 排序跨次进入保留（写 settings），旋转时以实例状态为准
         sortOption = QuestionStorage.getListSort(this);
+        boolean restoreSortMenu = false;
         if (savedInstanceState != null) {
             catMask = savedInstanceState.getInt(STATE_CAT, 0);
             keywordText = savedInstanceState.getString(STATE_KEYWORD, "");
             levelFilter = savedInstanceState.getInt(STATE_LEVEL, -1);
             sortOption = QuestionSort.clamp(savedInstanceState.getInt(STATE_SORT, sortOption));
+            restoreSortMenu = savedInstanceState.getBoolean(STATE_SORT_MENU, false);
         }
         updateSortLabel();
 
@@ -131,6 +136,13 @@ public class QuestionBankActivity extends AppCompatActivity {
 
         // 标题栏右侧：切换排序
         tvSortLabel.setOnClickListener(v -> showSortMenu());
+
+        // 旋转前菜单是展开的，重建后等标签排好版再重弹
+        if (restoreSortMenu) {
+            tvSortLabel.post(() -> {
+                if (!isFinishing() && !isDestroyed()) showSortMenu();
+            });
+        }
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -521,6 +533,8 @@ public class QuestionBankActivity extends AppCompatActivity {
         outState.putString(STATE_KEYWORD, keywordText);
         outState.putInt(STATE_LEVEL, levelFilter);
         outState.putInt(STATE_SORT, sortOption);
+        // 旋转时保住菜单展开态（只认配置变更，切到别的页面不该重弹）
+        outState.putBoolean(STATE_SORT_MENU, sortMenuOpenForRestore);
     }
 
     @Override
@@ -534,7 +548,10 @@ public class QuestionBankActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         // 菜单是独立窗口，页面切走/旋转时先收起来，避免残留在别的界面上
-        if (sortMenu != null && sortMenu.isShowing()) sortMenu.dismiss();
+        boolean showing = sortMenu != null && sortMenu.isShowing();
+        // 只有旋转这类配置变更才在重建后重弹；切到别的页面不重弹
+        sortMenuOpenForRestore = showing && isChangingConfigurations();
+        if (showing) sortMenu.dismiss();
     }
 
     private int dp(int value) {

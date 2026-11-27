@@ -2,10 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.demo">
 
-    <!-- 权限必须写在这里！👇👇👇 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <!-- 刻意不声明 CAMERA：拍照走系统相机，权限归相机应用；一旦声明，调用方反而要先申请到该权限 -->
+    <!-- 不声明存储权限：取图走系统文件选择器（SAF），保存相册走 MediaStore（Android 10+ 免权限）
+         刻意不声明 CAMERA：拍照走系统相机，权限归相机应用；一旦声明，调用方反而要先申请到该权限 -->
 
     <application
         android:allowBackup="true"

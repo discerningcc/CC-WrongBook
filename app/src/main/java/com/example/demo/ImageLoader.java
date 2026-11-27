@@ -409,6 +409,12 @@ public final class ImageLoader {
 
     /** 后台线程把指定图片写入系统相册，主线程回 Toast；路径/文件无效时提示「图片已不存在」。 */
     private static void saveImage(Context appContext, String path) {
+        // 已删除存储权限：Android 10 以下直写公共目录必然失败，这里直接给出明确提示
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            Toast.makeText(appContext, "当前系统版本不支持直接保存到相册（需 Android 10 及以上）",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (path == null || path.isEmpty()) {
             MAIN.post(() -> Toast.makeText(appContext, "图片已不存在", Toast.LENGTH_SHORT).show());
             return;
@@ -595,7 +601,7 @@ public final class ImageLoader {
 
     /**
      * 把当前图片原样写入系统相册 Pictures/错题本，时间戳命名；返回是否成功。
-     * Android 10+ 走 MediaStore（免存储权限），更低版本回退公共目录直写。
+     * 只走 Android 10+ 的 MediaStore（免存储权限）；更早版本由调用方拦下并提示。
      */
     private static boolean saveImageToGallery(Context ctx, File src) throws Exception {
         String ext = extensionOf(src.getName());
@@ -607,32 +613,18 @@ public final class ImageLoader {
         values.put(MediaStore.Images.Media.MIME_TYPE, mime);
         ContentResolver resolver = ctx.getContentResolver();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            values.put(MediaStore.Images.Media.RELATIVE_PATH,
-                    Environment.DIRECTORY_PICTURES + "/错题本");
-            values.put(MediaStore.Images.Media.IS_PENDING, 1);
-            Uri uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-            if (uri == null) return false;
-            try (OutputStream os = resolver.openOutputStream(uri);
-                 FileInputStream is = new FileInputStream(src)) {
-                copyBytes(is, os);
-            }
-            ContentValues done = new ContentValues();
-            done.put(MediaStore.Images.Media.IS_PENDING, 0);
-            resolver.update(uri, done, null, null);
-        } else {
-            File dir = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_PICTURES), "错题本");
-            if (!dir.exists()) dir.mkdirs();
-            File out = new File(dir, baseName + "." + ext);
-            try (FileOutputStream fos = new FileOutputStream(out);
-                 FileInputStream is = new FileInputStream(src)) {
-                copyBytes(is, fos);
-            }
-            values.clear();
-            values.put(MediaStore.Images.Media.DATA, out.getAbsolutePath());
-            resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        values.put(MediaStore.Images.Media.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES + "/错题本");
+        values.put(MediaStore.Images.Media.IS_PENDING, 1);
+        Uri uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        if (uri == null) return false;
+        try (OutputStream os = resolver.openOutputStream(uri);
+             FileInputStream is = new FileInputStream(src)) {
+            copyBytes(is, os);
         }
+        ContentValues done = new ContentValues();
+        done.put(MediaStore.Images.Media.IS_PENDING, 0);
+        resolver.update(uri, done, null, null);
         return true;
     }
 

@@ -6,21 +6,28 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * 未来 7 天分桶与柱高归一单测：今天/明天边界、7 天窗口截断、斩题排除、平方根压缩。
+ * 未来 7 天分桶与柱高归一单测：今天/明天边界、逾期不并入今天、7 天窗口截断、斩题排除、平方根压缩。
  */
 public class DueBucketUtilTest {
 
     @Test
     public void bucketOf_eLevelAlwaysToday() {
         assertEquals(0, DueBucketUtil.bucketOf(0, 0, false));
-        assertEquals(0, DueBucketUtil.bucketOf(0, 12, false));   // 隔了很久的 E 题仍算今天到期
+        assertEquals(0, DueBucketUtil.bucketOf(0, 12, false));   // E 级每天抽查，隔多久都算今天到期
     }
 
     @Test
     public void bucketOf_leftZeroMeansToday() {
         assertEquals(1, DueBucketUtil.bucketOf(1, 0, false));    // D 级：今天刚答过，明天到期
-        assertEquals(0, DueBucketUtil.bucketOf(1, 1, false));    // D 级：隔一天 → 到期
-        assertEquals(0, DueBucketUtil.bucketOf(30, 40, false));  // 逾期也归今天
+        assertEquals(0, DueBucketUtil.bucketOf(1, 1, false));    // D 级：隔一天 → 正好今天到期
+        assertEquals(0, DueBucketUtil.bucketOf(30, 30, false));  // S 级：第 30 天当天到期
+    }
+
+    @Test
+    public void bucketOf_overdueIsNotCounted() {
+        assertEquals(-1, DueBucketUtil.bucketOf(30, 40, false)); // 逾期 10 天，不并进今天
+        assertEquals(-1, DueBucketUtil.bucketOf(1, 2, false));
+        assertEquals(-1, DueBucketUtil.bucketOf(7, 8, false));
     }
 
     @Test

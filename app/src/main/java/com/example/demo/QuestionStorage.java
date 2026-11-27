@@ -445,8 +445,8 @@ public class QuestionStorage {
     }
 
     /**
-     * 未来 days 天的到期分布：[0] = 今天（含已逾期），[1..days-1] = 未来第 N 天。
-     * 与 isDue 同一口径（已斩不计、E 级恒为今天），所以 [0] 恒等于主页「到期 N 道」那个数。
+     * 未来 days 天的到期分布：[0] = 今天到期（E 级恒算今天），[1..days-1] = 未来第 N 天。
+     * 逾期题不进任何格，所以 [0] 不再等于主页「到期 N 道」，那个数用 countDue 单独取。
      */
     public static int[] dueBuckets(Context context, int days) {
         ensureBankExists(context);
@@ -457,6 +457,16 @@ public class QuestionStorage {
             if (bucket >= 0 && bucket < size) buckets[bucket]++;
         }
         return buckets;
+    }
+
+    /** 今天该复习的总数（与 isDue 同口径：含逾期、含 E 级），主页「到期 N 道」用这个 */
+    public static int countDue(Context context) {
+        ensureBankExists(context);
+        int due = 0;
+        for (Question q : cacheBank.questions) {
+            if (isDue(context, q)) due++;
+        }
+        return due;
     }
 
     /** 题目列表里展示的到期文案 */

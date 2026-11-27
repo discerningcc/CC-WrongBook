@@ -112,9 +112,9 @@ public class MainActivity extends AppCompatActivity {
     private void refreshHome() {
         List<Question> all = QuestionStorage.loadAll(this);
         int total = all.size();
-        // 同一次统计兼作「到期 N 道」和柱图第 0 格，两处数字天然一致
+        // 两套口径：文案「到期 N 道」= 今天该复习的全部（含逾期）；柱图每格 = 那一天到期的题
         int[] buckets = QuestionStorage.dueBuckets(this, DAYS_AHEAD);
-        int due = buckets[0];
+        int due = QuestionStorage.countDue(this);
         int queued = QuestionStorage.buildTodayQueue(this).size();
         int budget = QuestionStorage.getDailyBudget(this);
         int done = QuestionStorage.getTodayDone(this);

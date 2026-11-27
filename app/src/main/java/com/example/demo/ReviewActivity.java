@@ -73,6 +73,8 @@ public class ReviewActivity extends AppCompatActivity {
     private PopupWindow reviewMenu;
     /** 右上角菜单的选项，顺序与 onReviewMenuPick 的下标一致 */
     private static final String[] REVIEW_MENU_LABELS = {"上一题", "跳过", "斩题", "管理本题"};
+    /** 复习页菜单标签最多四字，卡片比列表页排序菜单窄一些 */
+    private static final int REVIEW_MENU_WIDTH_DP = 150;
 
     // ==================== 计时 ====================
 
@@ -1090,7 +1092,7 @@ public class ReviewActivity extends AppCompatActivity {
                 currentQuestion() != null && !finished
         };
         reviewMenu = OptionMenuPopup.show(this, anchor, REVIEW_MENU_LABELS, -1, enabled,
-                OptionMenuPopup.DEFAULT_WIDTH_DP, this::onReviewMenuPick);
+                REVIEW_MENU_WIDTH_DP, this::onReviewMenuPick);
         reviewMenu.setOnDismissListener(new PopupWindow.OnDismissListener() {
             @Override
             public void onDismiss() {

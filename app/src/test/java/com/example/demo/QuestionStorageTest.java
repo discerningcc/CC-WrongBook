@@ -2,6 +2,8 @@ package com.example.demo;
 
 import org.junit.Test;
 
+import java.io.File;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -97,5 +99,38 @@ public class QuestionStorageTest {
         assertEquals(1, QuestionStorage.nextTodayDone(99, 32, 100));
         // 首次使用（无记录日戳 -1）同样从 1 起算
         assertEquals(1, QuestionStorage.nextTodayDone(-1, 0, 100));
+    }
+
+    // ==================== 解压路径校验（Zip Slip） ====================
+
+    @Test
+    public void isInsideDir_acceptsNormalEntries() {
+        File dir = tempDir("normal");
+        assertTrue(QuestionStorage.isInsideDir(dir, new File(dir, "questions.json")));
+        assertTrue(QuestionStorage.isInsideDir(dir, new File(dir, "images/a.jpg")));
+        assertTrue(QuestionStorage.isInsideDir(dir, new File(dir, "images/2026/11/a.jpg")));
+    }
+
+    @Test
+    public void isInsideDir_rejectsParentTraversal() {
+        File dir = tempDir("traversal");
+        assertFalse(QuestionStorage.isInsideDir(dir, new File(dir, "../evil.json")));
+        assertFalse(QuestionStorage.isInsideDir(dir, new File(dir, "images/../../evil.json")));
+        assertFalse(QuestionStorage.isInsideDir(dir, new File(dir, "..")));
+    }
+
+    @Test
+    public void isInsideDir_rejectsSiblingWithSamePrefix() {
+        File dir = tempDir("prefix");
+        File sibling = new File(dir.getParentFile(), dir.getName() + "_evil/x.json");
+        assertFalse(QuestionStorage.isInsideDir(dir, sibling));
+    }
+
+    /** 每个用例一个独立临时目录，避免相互干扰 */
+    private static File tempDir(String tag) {
+        File dir = new File(System.getProperty("java.io.tmpdir"),
+                "zipslip_" + tag + "_" + System.nanoTime());
+        assertTrue(dir.isDirectory() || dir.mkdirs());
+        return dir;
     }
 }

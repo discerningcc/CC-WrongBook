@@ -89,9 +89,14 @@ public class QuestionStorage {
 
     // ==================== 对外兼容的旧接口（自动走当前题库） ====================
 
+    /**
+     * 当前题库的题目列表（只读视图）。
+     * 直接交出内部列表会让任何调用方一个 clear() 就静默清空全局题库且不写盘，
+     * 这里包一层不可变视图；增删改仍然只能走 QuestionStorage 自己的方法。
+     */
     public static List<Question> loadAll(Context context) {
         ensureBankExists(context);
-        return cacheBank.questions;
+        return Collections.unmodifiableList(cacheBank.questions);
     }
 
     /** 删除单题（同时删除该题关联的图片文件） */
@@ -668,6 +673,14 @@ public class QuestionStorage {
                 ZipEntry entry;
                 while ((entry = zis.getNextEntry()) != null) {
                     File out = new File(tmpDir, entry.getName());
+                    if (!isInsideDir(tmpDir, out)) {
+                        // 压缩包条目带 ../ 或绝对路径：跳过，绝不写到临时目录外面（Zip Slip）
+                        Log.w(TAG, "skip unsafe zip entry: " + entry.getName());
+                        zis.closeEntry();
+                        doneEntries++;
+                        if (listener != null) listener.onProgress(doneEntries, totalEntries);
+                        continue;
+                    }
                     if (entry.isDirectory()) {
                         out.mkdirs();
                     } else {
@@ -736,6 +749,16 @@ public class QuestionStorage {
     }
 
     // ==================== 内部实现 ====================
+
+    /** target 的规范路径是否位于 dir 之内（解压前用于拦住 Zip Slip）；包级可见以便单测 */
+    static boolean isInsideDir(File dir, File target) {
+        try {
+            String base = dir.getCanonicalPath() + File.separator;
+            return target.getCanonicalPath().startsWith(base);
+        } catch (IOException e) {
+            return false;
+        }
+    }
 
     /** 确保存在一个可用的当前题库（含旧数据迁移与兜底新建） */
     private static void ensureBankExists(Context context) {

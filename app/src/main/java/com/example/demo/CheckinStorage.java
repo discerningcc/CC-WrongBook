@@ -36,8 +36,14 @@ public class CheckinStorage {
     private static final String FILE_NAME = "checkins.json";
     private static final long ONE_DAY = 24L * 60 * 60 * 1000;
 
-    private static final SimpleDateFormat KEY_FORMAT =
-            new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
+    /** 日期键格式：SimpleDateFormat 非线程安全，按线程各持一份，后台线程算日期也不会串日 */
+    private static final ThreadLocal<SimpleDateFormat> KEY_FORMAT =
+            new ThreadLocal<SimpleDateFormat>() {
+                @Override
+                protected SimpleDateFormat initialValue() {
+                    return new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
+                }
+            };
 
     // ==================== 纯函数：资格判定 ====================
 
@@ -92,7 +98,7 @@ public class CheckinStorage {
 
     /** 时间戳 → yyyy-MM-dd（本地时区，0 点对齐）。 */
     public static String dateKeyOf(long ts) {
-        return KEY_FORMAT.format(new Date(SessionStorage.dayStart(ts)));
+        return KEY_FORMAT.get().format(new Date(SessionStorage.dayStart(ts)));
     }
 
     /** 今天的 dateKey。 */

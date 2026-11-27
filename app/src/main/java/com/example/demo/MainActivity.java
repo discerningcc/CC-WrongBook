@@ -126,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
         TextView main = findViewById(R.id.tv_today_main);
         TextView sub = findViewById(R.id.tv_today_sub);
         ProgressBar progress = findViewById(R.id.progress_today);
-        TextView reviewSub = findViewById(R.id.tv_review_sub);
         TextView emptyHint = findViewById(R.id.tv_empty_hint);
 
         if (budget <= 0) {
@@ -146,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
             progress.setProgress(done);
         }
 
-        reviewSub.setText("待复习 " + due + " 道");
         emptyHint.setVisibility(bankEmpty ? View.VISIBLE : View.GONE);
         findViewById(R.id.btn_review).setAlpha(bankEmpty ? 0.5f : 1f);
 
@@ -217,7 +215,7 @@ public class MainActivity extends AppCompatActivity {
             int overdue = Math.max(0, total - kinds[TodayBreakdownUtil.DUE_TODAY]
                     - kinds[TodayBreakdownUtil.ADDED_TODAY]
                     - kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]);
-            chartTip.setText("今天（" + date + "）· 待复习 " + total + " 道：今日到期 "
+            chartTip.setText("今天（" + date + "）：今日到期 "
                     + kinds[TodayBreakdownUtil.DUE_TODAY]
                     + " · 今日添加 " + kinds[TodayBreakdownUtil.ADDED_TODAY]
                     + " · 今日未过 " + kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]

@@ -207,14 +207,6 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tv_review_sub"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="到期 0 道"
-                    android:textColor="@color/home_on_primary_secondary"
-                    android:textSize="12sp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

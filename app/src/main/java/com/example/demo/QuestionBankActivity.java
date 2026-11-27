@@ -32,13 +32,13 @@ import java.util.Locale;
 public class QuestionBankActivity extends AppCompatActivity {
 
     private static final int FILTER_ALL = 0;
-    private static final int FILTER_TODAY = 1;
+    private static final int FILTER_DUE = 1;
     private static final int FILTER_IMAGE = 2;
     private static final int FILTER_TEXT = 3;
     private static final int FILTER_EXCLUDED = 4;
     private static final int FILTER_FAVORITE = 5;
 
-    private static final String[] FILTER_LABELS = {"全部", "今日到期", "只有图片", "有文本", "已斩", "收藏"};
+    private static final String[] FILTER_LABELS = {"全部", "待复习", "只有图片", "有文本", "已斩", "收藏"};
     private static final String[] LEVEL_LABELS = {"S", "A", "B", "C", "D", "E"};
     private static final long SEARCH_DEBOUNCE_MS = 250;
     private static final String STATE_FILTER = "list_filter";
@@ -315,7 +315,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             case FILTER_FAVORITE:
                 categoryPass = q.favorite;
                 break;
-            case FILTER_TODAY:
+            case FILTER_DUE:
                 categoryPass = !q.excluded && QuestionStorage.isDue(this, q);
                 break;
             case FILTER_IMAGE:
@@ -371,7 +371,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             if (idx >= 0) level[idx]++;
         }
 
-        String head = "共 " + allQuestions.size() + " 题 · 今日到期 " + due
+        String head = "共 " + allQuestions.size() + " 题 · 待复习 " + due
                 + " · 有图 " + withImg + " · 有文本 " + withText
                 + " · 已斩 " + excluded + " · 收藏 " + favorite;
         String levels = " · S" + level[0] + " A" + level[1] + " B" + level[2]

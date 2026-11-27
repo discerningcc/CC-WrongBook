@@ -348,7 +348,7 @@ public class ReviewActivity extends AppCompatActivity {
             if (budget > 0 && dueAll > 0) {
                 int done = QuestionStorage.getTodayDone(this);
                 String goalMsg = "今日目标 " + budget + " 道，已完成 " + done + " 道；\n还有 " + dueAll
-                        + " 道到期，要继续多做一些吗？" + checkinReminderIfEligible();
+                        + " 道待复习，要继续多做一些吗？" + checkinReminderIfEligible();
                 showPrompt("今日目标已完成", goalMsg,
                         "继续多做（" + dueAll + " 道）", this::launchExtraSession,
                         "回首页", this::finish,

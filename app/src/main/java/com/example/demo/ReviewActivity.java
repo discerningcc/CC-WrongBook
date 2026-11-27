@@ -662,6 +662,7 @@ public class ReviewActivity extends AppCompatActivity {
             session.totalElapsedMs = totalBaseMs;
             persistSession();
         }
+        SessionStorage.flush(this);    // 会话写盘已挪到后台，离开页面必须等它落地（旋转重建也走这里）
         stopTicker();
     }
 
@@ -902,7 +903,7 @@ public class ReviewActivity extends AppCompatActivity {
      */
     private void answerQuestion(String result) {
         if (session == null || session.currentIndex >= session.items.size()) return;
-        commitPending();
+        commitPending(false);   // 上一道只提交到内存，会话在下面统一写一次
 
         Question q = currentQuestion();
         if (q == null) return;
@@ -960,12 +961,9 @@ public class ReviewActivity extends AppCompatActivity {
         if (finishing) {
             // 末题随即收尾：这份副本本轮已无机会作答，不再追加，避免归档记录留下空结果的悬空副本
             p.redoCopy = false;
-        }
-        persistSession();
-
-        if (finishing) {
-            finishSession();
+            finishSession();     // 收尾统一归档落盘，这里不再提前写一次
         } else {
+            persistSession();
             showCurrentQuestion();
         }
     }
@@ -991,6 +989,14 @@ public class ReviewActivity extends AppCompatActivity {
 
     /** 提交当前缓冲：把暂存的题目改动、副本、计数、会话结果真正落盘 */
     private void commitPending() {
+        commitPending(true);
+    }
+
+    /**
+     * 同 commitPending()，但可指定是否立刻落盘会话。
+     * 作答流程里调用方随后自己会写一次，传 false 避免同一题写两遍。
+     */
+    private void commitPending(boolean persist) {
         if (pending == null || session == null) return;
         ReviewSession.Item item = session.items.get(pending.index);
         Question q = QuestionStorage.findById(this, item.questionId);
@@ -1023,7 +1029,7 @@ public class ReviewActivity extends AppCompatActivity {
         item.answeredAt = System.currentTimeMillis();
         item.dwellMs = pending.dwellMs;
         pending = null;
-        persistSession();
+        if (persist) persistSession();
     }
 
     /** 落盘当前会话：记录若已被历史页外部删除（磁盘文件不存在），就不再写回，避免复活已删记录 */
@@ -1193,7 +1199,7 @@ public class ReviewActivity extends AppCompatActivity {
 
     private void finishSession() {
         if (finished) return;
-        commitPending();
+        commitPending(false);   // 末尾统一 persistSession，避免同一处写两遍
         finished = true;
 
         int total = 0, know = 0, vague = 0, forget = 0, skip = 0, excluded = 0;

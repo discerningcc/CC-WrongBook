@@ -17,8 +17,14 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 复习会话存储：review_history/ 目录下一条会话一个 JSON 文件（<会话id>.json）。
@@ -35,6 +41,42 @@ public class SessionStorage {
     private static final String LEGACY_BACKUP = "sessions.json.bak";
     private static final int MAX_SESSIONS_PER_BANK = 100;
     private static final int SNAPSHOT_LEN = 60;
+
+    /** 写队列：会话 id → 该会话最新一份 JSON；同一会话多次保存只留最后一份，不堆叠 */
+    private static final Map<String, PendingWrite> pendingWrites = new LinkedHashMap<>();
+    private static final Object WRITE_LOCK = new Object();
+    private static boolean writeRunning = false;
+    private static int flushSeq = 0;
+
+    /** 写队列里的 flush 标记项 key：真实会话 id 都是 yyyyMMdd_HHmmss_xxx，不会撞上 */
+    private static final String FLUSH_KEY = "__flush";
+
+    private static final ExecutorService WRITER = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "session-writer");
+        t.setPriority(Thread.MIN_PRIORITY + 1);   // 别和界面抢 CPU
+        return t;
+    });
+
+    /** 一次待落盘的会话快照：json 已在调用线程序列化好，write 线程只管写盘 */
+    private static final class PendingWrite {
+        final String id;
+        final String json;
+        final boolean trim;       // 会话已结束，写完顺手裁剪该题库的超量记录
+        final String bankId;
+        final CountDownLatch latch;   // 仅 flush 标记项使用：写到这里代表前面的都落盘了
+
+        PendingWrite(String id, String json, boolean trim, String bankId) {
+            this(id, json, trim, bankId, null);
+        }
+
+        PendingWrite(String id, String json, boolean trim, String bankId, CountDownLatch latch) {
+            this.id = id;
+            this.json = json;
+            this.trim = trim;
+            this.bankId = bankId;
+            this.latch = latch;
+        }
+    }
 
     // ==================== 读写 ====================
 
@@ -60,19 +102,22 @@ public class SessionStorage {
         return list;
     }
 
-    /** 保存单个会话：只写它自己的那个文件 */
+    /** 保存单个会话：只写它自己的那个文件（序列化在当前线程，写盘交给后台队列） */
     public static void save(Context context, ReviewSession session) {
         if (session == null || session.id == null) return;
         migrateLegacy(context);
-        writeAtomic(fileOf(context, session.id), new Gson().toJson(session));
-        // 会话结束（归档/完成）时才可能超出上限，这时才做一次裁剪
-        if (!ReviewSession.STATUS_ACTIVE.equals(session.status)) {
-            trimBank(context, session.bankId);
-        }
+        Context app = appOf(context);
+        // 结束（归档/完成）时才可能超出上限，标记写完顺手裁剪一次
+        boolean trim = !ReviewSession.STATUS_ACTIVE.equals(session.status);
+        requestWrite(app, session.id, new Gson().toJson(session), trim, session.bankId);
     }
 
     public static void remove(Context context, String sessionId) {
         if (sessionId == null) return;
+        flush(context);                       // 先把队列排空，否则删完又会被旧快照写回
+        synchronized (WRITE_LOCK) {
+            pendingWrites.remove(safeId(sessionId));
+        }
         File f = fileOf(context, sessionId);
         if (f.exists() && !f.delete()) {
             f.deleteOnExit();
@@ -82,6 +127,9 @@ public class SessionStorage {
     /** 记录文件是否仍在磁盘上：用于发现外部删除后，避免把内存里的会话副本又写回复活 */
     public static boolean exists(Context context, String sessionId) {
         if (sessionId == null) return false;
+        synchronized (WRITE_LOCK) {
+            if (pendingWrites.containsKey(safeId(sessionId))) return true;   // 还在队列里也算存在
+        }
         return fileOf(context, sessionId).exists();
     }
 
@@ -264,6 +312,67 @@ public class SessionStorage {
     /** 会话 id 里的非法字符统一替换成下划线，保证文件名安全 */
     private static String safeId(String id) {
         return id.replaceAll("[^A-Za-z0-9_\\-]", "_");
+    }
+
+    private static Context appOf(Context context) {
+        Context app = context.getApplicationContext();
+        return app != null ? app : context;
+    }
+
+    // ==================== 后台写队列 ====================
+
+    /** 只把最新一份快照塞进队列并唤醒写线程：写线程忙时不会叠加多个任务 */
+    private static void requestWrite(Context app, String sessionId, String json, boolean trim, String bankId) {
+        String id = safeId(sessionId);
+        synchronized (WRITE_LOCK) {
+            pendingWrites.put(id, new PendingWrite(id, json, trim, bankId));
+            if (writeRunning) return;
+            writeRunning = true;
+        }
+        WRITER.execute(() -> drainWrites(app));
+    }
+
+    /** 写线程主体：一直取队列里最早的一条写盘，直到排空才退出 */
+    private static void drainWrites(Context app) {
+        while (true) {
+            PendingWrite w;
+            synchronized (WRITE_LOCK) {
+                if (pendingWrites.isEmpty()) {
+                    writeRunning = false;
+                    return;
+                }
+                String key = pendingWrites.keySet().iterator().next();
+                w = pendingWrites.remove(key);
+            }
+            if (w.latch != null) {   // flush 标记：它前面排的都已经写完了
+                w.latch.countDown();
+                continue;
+            }
+            writeAtomic(fileOf(app, w.id), w.json);
+            if (w.trim) trimBank(app, w.bankId);
+        }
+    }
+
+    /** 把队列里已排好的写入全部等到落盘（离开复习页时调用，最多等 3 秒） */
+    public static void flush(Context context) {
+        CountDownLatch latch = new CountDownLatch(1);
+        boolean startWriter;
+        synchronized (WRITE_LOCK) {
+            String key = FLUSH_KEY + "_" + (flushSeq++);   // 每次一个独立标记，多个 flush 互不覆盖
+            pendingWrites.put(key, new PendingWrite(key, null, false, null, latch));
+            startWriter = !writeRunning;
+            if (startWriter) writeRunning = true;
+        }
+        if (startWriter) WRITER.execute(() -> drainWrites(appOf(context)));
+        awaitQuietly(latch, 3);
+    }
+
+    private static void awaitQuietly(CountDownLatch latch, long seconds) {
+        try {
+            latch.await(seconds, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static File dir(Context context) {

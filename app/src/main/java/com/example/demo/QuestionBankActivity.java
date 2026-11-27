@@ -1,9 +1,10 @@
 package com.example.demo;
 
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,6 +19,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.SearchView;
 import android.widget.TextView;
 
@@ -50,6 +52,8 @@ public class QuestionBankActivity extends AppCompatActivity {
     private TextView tvStats;
     private TextView tvEmpty;
     private TextView tvSortLabel;
+    /** 当前展开的排序菜单；null 表示未展开 */
+    private PopupWindow sortMenu;
     private Adapter adapter;
 
     /** 题库全量（最新添加在前） */
@@ -126,7 +130,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         );
 
         // 标题栏右侧：切换排序
-        tvSortLabel.setOnClickListener(v -> showSortDialog());
+        tvSortLabel.setOnClickListener(v -> showSortMenu());
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -330,15 +334,66 @@ public class QuestionBankActivity extends AppCompatActivity {
         if (tvSortLabel != null) tvSortLabel.setText(QuestionSort.shortLabelOf(sortOption));
     }
 
-    private void showSortDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("排序")
-                .setSingleChoiceItems(QuestionSort.LABELS, sortOption, (d, which) -> {
-                    d.dismiss();
-                    applySortOption(which);
-                })
-                .setNegativeButton("取消", null)
-                .show();
+    /** 右上角排序菜单：贴着排序标签弹出，选项间用细灰线分隔，当前项高亮 */
+    private void showSortMenu() {
+        View content = LayoutInflater.from(this).inflate(R.layout.popup_sort_menu, null);
+        LinearLayout box = content.findViewById(R.id.sort_menu_box);
+        for (int i = 0; i < QuestionSort.OPTION_COUNT; i++) {
+            if (i > 0) box.addView(buildSortDivider(), dividerLp());
+            box.addView(buildSortRow(i));
+        }
+        // 宽度必须显式给：PopupWindow 会把内容视图撑满窗口，WRAP_CONTENT 会变成整屏宽
+        final int menuWidth = dp(184);
+        final PopupWindow popup = new PopupWindow(content, menuWidth,
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popup.setOutsideTouchable(true);
+        popup.setElevation(dp(6));
+        popup.setOnDismissListener(new PopupWindow.OnDismissListener() {
+            @Override
+            public void onDismiss() {
+                if (sortMenu == popup) sortMenu = null;
+            }
+        });
+        sortMenu = popup;
+
+        // 右边缘对齐排序标签，向下留 2dp
+        int xoff = tvSortLabel.getWidth() - menuWidth;
+        popup.showAsDropDown(tvSortLabel, xoff, dp(2));
+    }
+
+    private View buildSortRow(int option) {
+        TextView row = new TextView(this);
+        row.setText(QuestionSort.LABELS[option]);
+        row.setTextSize(14);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(18), dp(9), dp(18), dp(9));
+        row.setMinHeight(dp(42));
+        boolean on = option == sortOption;
+        row.setTextColor(on ? 0xff1f6aa5 : 0xff333333);
+        if (on) row.setTypeface(Typeface.DEFAULT_BOLD);
+
+        // 点击水波纹（沿用主题里的可选背景）
+        android.util.TypedValue tv = new android.util.TypedValue();
+        if (getTheme().resolveAttribute(android.R.attr.selectableItemBackground, tv, true)) {
+            row.setBackgroundResource(tv.resourceId);
+        }
+        row.setOnClickListener(v -> {
+            if (sortMenu != null) sortMenu.dismiss();
+            applySortOption(option);
+        });
+        return row;
+    }
+
+    private View buildSortDivider() {
+        View line = new View(this);
+        line.setBackgroundColor(0xffececec);
+        return line;
+    }
+
+    private LinearLayout.LayoutParams dividerLp() {
+        return new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 1);
     }
 
     private void applySortOption(int option) {
@@ -473,6 +528,13 @@ public class QuestionBankActivity extends AppCompatActivity {
         super.onResume();
         // 可能刚从详情页改了题，或从题库管理页切了题库
         reload();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // 菜单是独立窗口，页面切走/旋转时先收起来，避免残留在别的界面上
+        if (sortMenu != null && sortMenu.isShowing()) sortMenu.dismiss();
     }
 
     private int dp(int value) {

@@ -208,18 +208,18 @@ public class MainActivity extends AppCompatActivity {
         String date = (cal.get(Calendar.MONTH) + 1) + "/" + cal.get(Calendar.DAY_OF_MONTH);
         String when;
         if (chartSelected == 0) {
-            // 今柱只数今天新产生的功课：今日到期 / 今日添加 / 今日未过；剩下全是已逾期。
+            // 今柱只数今天新产生的功课：到期 / 添加 / 未过；剩下全是逾期。
             // 四类相加 = 待复习总数，和主页副标题对得上。
             int[] kinds = QuestionStorage.todayBreakdown(this);
             int total = QuestionStorage.countDue(this);
             int overdue = Math.max(0, total - kinds[TodayBreakdownUtil.DUE_TODAY]
                     - kinds[TodayBreakdownUtil.ADDED_TODAY]
                     - kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]);
-            chartTip.setText("今天（" + date + "）：今日到期 "
+            chartTip.setText("今天（" + date + "）：到期 "
                     + kinds[TodayBreakdownUtil.DUE_TODAY]
-                    + " · 今日添加 " + kinds[TodayBreakdownUtil.ADDED_TODAY]
-                    + " · 今日未过 " + kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]
-                    + " · 已逾期 " + overdue);
+                    + " · 添加 " + kinds[TodayBreakdownUtil.ADDED_TODAY]
+                    + " · 未过 " + kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]
+                    + " · 逾期 " + overdue);
             chartTip.setVisibility(View.VISIBLE);
             return;
         }

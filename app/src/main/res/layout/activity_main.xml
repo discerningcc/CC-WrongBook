@@ -119,8 +119,8 @@
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground"
-                        android:contentDescription="未来 7 天 · 点此看柱子用法"
-                        android:text="未来 7 天 · 用法"
+                        android:contentDescription="未来 7 天 · 点此看说明"
+                        android:text="未来 7 天"
                         android:textSize="12sp"
                         android:textColor="@color/home_text_secondary" />
 

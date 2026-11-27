@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
     private void refreshHome() {
         List<Question> all = QuestionStorage.loadAll(this);
         int total = all.size();
-        // 两套口径：文案「到期 N 道」= 今天该复习的全部（含逾期）；柱图每格 = 那一天到期的题
+        // 两套口径：文案「待复习 N 道」= 今天该复习的全部（含逾期与 E 级）；柱图每格 = 那一天到期的新题
         int[] buckets = QuestionStorage.dueBuckets(this, DAYS_AHEAD);
         int due = QuestionStorage.countDue(this);
         int queued = QuestionStorage.buildTodayQueue(this).size();
@@ -131,22 +131,22 @@ public class MainActivity extends AppCompatActivity {
 
         if (budget <= 0) {
             main.setText("今日已完成 " + done + "（不限量）");
-            sub.setText("到期 " + due + " 道 · 队列 " + queued);
+            sub.setText("待复习 " + due + " 道 · 队列 " + queued);
             progress.setMax(Math.max(1, due));
             progress.setProgress(Math.min(done, due));
         } else if (done >= budget) {
             main.setText("今日目标已完成 " + done + " / " + budget);
-            sub.setText("到期还剩 " + due + " 道，可继续多做");
+            sub.setText("待复习还剩 " + due + " 道，可继续多做");
             progress.setMax(budget);
             progress.setProgress(budget);
         } else {
             main.setText("今日已完成 " + done + " / " + budget);
-            sub.setText("到期 " + due + " 道 · 队列 " + queued);
+            sub.setText("待复习 " + due + " 道 · 队列 " + queued);
             progress.setMax(budget);
             progress.setProgress(done);
         }
 
-        reviewSub.setText("到期 " + due + " 道");
+        reviewSub.setText("待复习 " + due + " 道");
         emptyHint.setVisibility(bankEmpty ? View.VISIBLE : View.GONE);
         findViewById(R.id.btn_review).setAlpha(bankEmpty ? 0.5f : 1f);
 
@@ -210,12 +210,18 @@ public class MainActivity extends AppCompatActivity {
         String date = (cal.get(Calendar.MONTH) + 1) + "/" + cal.get(Calendar.DAY_OF_MONTH);
         String when;
         if (chartSelected == 0) {
-            // 今柱只数今天新产生的功课：今日到期 / 今日添加 / 今日未过，三者之和就是柱高
+            // 今柱只数今天新产生的功课：今日到期 / 今日添加 / 今日未过；剩下全是已逾期。
+            // 四类相加 = 待复习总数，和主页副标题对得上。
             int[] kinds = QuestionStorage.todayBreakdown(this);
-            chartTip.setText("今天（" + date + "）· " + chart.countAt(0) + " 道：今日到期 "
+            int total = QuestionStorage.countDue(this);
+            int overdue = Math.max(0, total - kinds[TodayBreakdownUtil.DUE_TODAY]
+                    - kinds[TodayBreakdownUtil.ADDED_TODAY]
+                    - kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]);
+            chartTip.setText("今天（" + date + "）· 待复习 " + total + " 道：今日到期 "
                     + kinds[TodayBreakdownUtil.DUE_TODAY]
                     + " · 今日添加 " + kinds[TodayBreakdownUtil.ADDED_TODAY]
-                    + " · 今日未过 " + kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]);
+                    + " · 今日未过 " + kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]
+                    + " · 已逾期 " + overdue);
             chartTip.setVisibility(View.VISIBLE);
             return;
         }
@@ -288,7 +294,7 @@ public class MainActivity extends AppCompatActivity {
             tv.setTextColor(getColor(R.color.detail_primary));
             tv.setClickable(true);
         } else {
-            tv.setText("完成目标或无到期题目后可打卡");
+            tv.setText("完成目标或待复习清零后可打卡");
             tv.setTextColor(getColor(R.color.home_text_secondary));
             tv.setClickable(false);
         }

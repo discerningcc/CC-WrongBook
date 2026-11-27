@@ -13,14 +13,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.graphics.Rect;
-import android.view.MenuItem;
 import android.view.TouchDelegate;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -70,6 +69,10 @@ public class ReviewActivity extends AppCompatActivity {
     private boolean bannerShowRestart;
     private long bannerRemainingMs;
     private boolean menuOpen;
+    /** 当前展开的右上角菜单；null 表示未展开 */
+    private PopupWindow reviewMenu;
+    /** 右上角菜单的选项，顺序与 onReviewMenuPick 的下标一致 */
+    private static final String[] REVIEW_MENU_LABELS = {"上一题", "跳过", "斩题", "管理本题"};
 
     // ==================== 计时 ====================
 
@@ -1077,43 +1080,39 @@ public class ReviewActivity extends AppCompatActivity {
         return n + 1;
     }
 
-    /** 右上角溢出菜单：上一题 / 跳过 / 斩题等低频操作集中在此 */
+    /** 右上角菜单：上一题 / 跳过 / 斩题 / 管理本题；与列表页排序菜单同一套观感 */
     private void openReviewMenu(View anchor) {
         menuOpen = true;
-        PopupMenu popup = new PopupMenu(this, anchor);
-        popup.getMenuInflater().inflate(R.menu.review_menu, popup.getMenu());
-        // 无待提交缓冲时「上一题」不可用
-        popup.getMenu().findItem(R.id.menu_previous)
-                .setEnabled(pending != null && !finished);
-        // 当前题已被删/已收尾时「管理本题」不可用
-        boolean questionAvailable = currentQuestion() != null && !finished;
-        popup.getMenu().findItem(R.id.menu_manage).setEnabled(questionAvailable);
-        popup.setOnDismissListener(p -> menuOpen = false);
-        popup.setOnMenuItemClickListener((MenuItem item) -> {
-            int id = item.getItemId();
-            if (id == R.id.menu_previous) {
-                onPrevious();
-                return true;
+        boolean[] enabled = new boolean[]{
+                pending != null && !finished,
+                true,
+                true,
+                currentQuestion() != null && !finished
+        };
+        reviewMenu = OptionMenuPopup.show(this, anchor, REVIEW_MENU_LABELS, -1, enabled,
+                OptionMenuPopup.DEFAULT_WIDTH_DP, this::onReviewMenuPick);
+        reviewMenu.setOnDismissListener(new PopupWindow.OnDismissListener() {
+            @Override
+            public void onDismiss() {
+                menuOpen = false;
             }
-            if (id == R.id.menu_exclude) {
-                onExclude();
-                return true;
-            }
-            if (id == R.id.menu_skip) {
-                onSkip();
-                return true;
-            }
-            if (id == R.id.menu_manage) {
-                Question q = currentQuestion();
-                if (q == null) return true;
-                Intent detail = new Intent(this, QuestionDetailActivity.class);
-                detail.putExtra("qid", q.id);
-                startActivity(detail);
-                return true;
-            }
-            return false;
         });
-        popup.show();
+    }
+
+    private void onReviewMenuPick(int index) {
+        if (index == 0) {
+            onPrevious();
+        } else if (index == 1) {
+            onSkip();
+        } else if (index == 2) {
+            onExclude();
+        } else if (index == 3) {
+            Question q = currentQuestion();
+            if (q == null) return;
+            Intent detail = new Intent(this, QuestionDetailActivity.class);
+            detail.putExtra("qid", q.id);
+            startActivity(detail);
+        }
     }
 
     /** 斩题：软标记退出复习，不计完成数、不回炉；题目本体保留可恢复 */

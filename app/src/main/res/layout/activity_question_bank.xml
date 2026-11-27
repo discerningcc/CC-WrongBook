@@ -16,14 +16,34 @@
 
         <TextView
             android:id="@+id/tv_bank_title"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:padding="8dp"
             android:gravity="center"
             android:text="题库"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="#222222"/>
+
+        <TextView
+            android:id="@+id/tv_sort_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:drawableStart="@drawable/ic_sort"
+            android:drawablePadding="4dp"
+            android:gravity="center_vertical"
+            android:contentDescription="切换排序方式"
+            android:text="添加 · 新→旧"
+            android:textSize="12sp"
+            android:textColor="#666666"/>
     </LinearLayout>
 
     <!-- 搜索框（已修复：点击任何地方都能输入） -->

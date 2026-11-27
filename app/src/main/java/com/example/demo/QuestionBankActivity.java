@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
@@ -43,10 +44,12 @@ public class QuestionBankActivity extends AppCompatActivity {
     private static final String STATE_CAT = "list_cat";
     private static final String STATE_KEYWORD = "list_keyword";
     private static final String STATE_LEVEL = "list_level";
+    private static final String STATE_SORT = "list_sort";
 
     private SearchView searchView;
     private TextView tvStats;
     private TextView tvEmpty;
+    private TextView tvSortLabel;
     private Adapter adapter;
 
     /** 题库全量（最新添加在前） */
@@ -61,6 +64,9 @@ public class QuestionBankActivity extends AppCompatActivity {
     /** 等级筛选：-1 表示全部等级，否则对应 levelIndex 0..5 */
     private final TextView[] levelChips = new TextView[LEVEL_LABELS.length + 1];
     private int levelFilter = -1;
+
+    /** 当前排序选项，见 {@link QuestionSort} */
+    private int sortOption = QuestionSort.ADDED_DESC;
 
     /** 搜索关键词的拆分结果（小写），空表示没有搜索 */
     private final List<String> tokens = new ArrayList<>();
@@ -84,6 +90,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         searchView = findViewById(R.id.search_view);
         tvStats = findViewById(R.id.tv_stats);
         tvEmpty = findViewById(R.id.tv_empty);
+        tvSortLabel = findViewById(R.id.tv_sort_label);
 
         // 网格：宽屏 3 列、窄屏 2 列；卡片高度随图（瀑布流），不再留白条
         float density = getResources().getDisplayMetrics().density;
@@ -100,11 +107,15 @@ public class QuestionBankActivity extends AppCompatActivity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 
         // 旋转重建：恢复筛选胶囊与关键词；savedInstanceState 为空才是首次进入
+        // 排序跨次进入保留（写 settings），旋转时以实例状态为准
+        sortOption = QuestionStorage.getListSort(this);
         if (savedInstanceState != null) {
             catMask = savedInstanceState.getInt(STATE_CAT, 0);
             keywordText = savedInstanceState.getString(STATE_KEYWORD, "");
             levelFilter = savedInstanceState.getInt(STATE_LEVEL, -1);
+            sortOption = QuestionSort.clamp(savedInstanceState.getInt(STATE_SORT, sortOption));
         }
+        updateSortLabel();
 
         buildChips(findViewById(R.id.chip_row));
         buildLevelChips(findViewById(R.id.chip_row_level));
@@ -113,6 +124,9 @@ public class QuestionBankActivity extends AppCompatActivity {
         findViewById(R.id.tv_bank_title).setOnClickListener(v ->
                 startActivity(new Intent(this, SaveManageActivity.class))
         );
+
+        // 标题栏右侧：切换排序
+        tvSortLabel.setOnClickListener(v -> showSortDialog());
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -256,12 +270,84 @@ public class QuestionBankActivity extends AppCompatActivity {
     private void reload() {
         allQuestions.clear();
         allQuestions.addAll(QuestionStorage.loadAll(this));
-        // 倒序：最新添加的在最上面（沿用原有排序，不改语义）
+        // 先倒序（最新添加的在最上面），再按当前排序选项重排
         Collections.reverse(allQuestions);
+        sortQuestions();
 
         refreshLevelCounts();
         refreshTitle();
         applyFilter();
+    }
+
+    /** 按当前 sortOption 重排全量；默认「添加时间·新→旧」时保持上面的倒序结果 */
+    private void sortQuestions() {
+        if (sortOption == QuestionSort.ADDED_DESC) return;
+
+        final boolean byDue = QuestionSort.keyOf(sortOption) == QuestionSort.KEY_DUE;
+        final boolean asc = QuestionSort.ascending(sortOption);
+        // 预计算：id 时间戳（兜底键）与剩余天数（到期排序主键），避免比较器里反复算
+        final java.util.Map<String, Long> added = new java.util.HashMap<>();
+        final java.util.Map<String, Long> left = new java.util.HashMap<>();
+        for (Question q : allQuestions) {
+            added.put(q.id, QuestionSort.addedMillis(q.id));
+            if (byDue) {
+                left.put(q.id, QuestionSort.leftDays(QuestionStorage.intervalDaysOf(q.status),
+                        QuestionStorage.daysSince(this, q)));
+            }
+        }
+
+        Collections.sort(allQuestions, (a, b) -> {
+            int ba = QuestionSort.bucket(sortOption, a.excluded);
+            int bb = QuestionSort.bucket(sortOption, b.excluded);
+            if (ba != bb) return ba - bb;
+
+            long va = sortValue(a, added, left);
+            long vb = sortValue(b, added, left);
+            int c = Long.compare(va, vb);
+            if (!asc) c = -c;
+            if (c != 0) return c;
+
+            // 并列时统一按添加时间新→旧兜底
+            return Long.compare(added.get(b.id), added.get(a.id));
+        });
+    }
+
+    private long sortValue(Question q,
+                           java.util.Map<String, Long> added, java.util.Map<String, Long> left) {
+        switch (QuestionSort.keyOf(sortOption)) {
+            case QuestionSort.KEY_DUE:
+                Long l = left.get(q.id);
+                return l == null ? 0 : l;
+            case QuestionSort.KEY_UPDATED:
+                return q.updateTime;
+            default:
+                Long a = added.get(q.id);
+                return a == null ? -1 : a;
+        }
+    }
+
+    private void updateSortLabel() {
+        if (tvSortLabel != null) tvSortLabel.setText(QuestionSort.shortLabelOf(sortOption));
+    }
+
+    private void showSortDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("排序")
+                .setSingleChoiceItems(QuestionSort.LABELS, sortOption, (d, which) -> {
+                    d.dismiss();
+                    applySortOption(which);
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void applySortOption(int option) {
+        int next = QuestionSort.clamp(option);
+        if (next == sortOption) return;
+        sortOption = next;
+        QuestionStorage.setListSort(this, next);
+        updateSortLabel();
+        reload();
     }
 
     private void refreshTitle() {
@@ -379,6 +465,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         outState.putInt(STATE_CAT, catMask);
         outState.putString(STATE_KEYWORD, keywordText);
         outState.putInt(STATE_LEVEL, levelFilter);
+        outState.putInt(STATE_SORT, sortOption);
     }
 
     @Override

@@ -60,6 +60,8 @@ public class QuestionStorage {
     private static final long IMAGE_SWEEP_INTERVAL_MS = 24L * 3600 * 1000;
     public static final String KEY_DAILY_BUDGET = "daily_review_budget";
     public static final int DEFAULT_DAILY_BUDGET = 50;
+    /** 题目列表排序选项，见 {@link QuestionSort}；默认添加时间·新→旧 */
+    private static final String KEY_LIST_SORT = "list_sort_option";
     /** 今日已完成题数（按自然日跨天清零） */
     private static final String KEY_PROGRESS_DATE = "today_progress_day";
     private static final String KEY_PROGRESS_DONE = "today_progress_done";
@@ -291,6 +293,17 @@ public class QuestionStorage {
     public static void setDailyBudget(Context context, int n) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit().putInt(KEY_DAILY_BUDGET, n).apply();
+    }
+
+    /** 题目列表排序选项（跨次进入保留），返回 {@link QuestionSort} 的序号 */
+    public static int getListSort(Context context) {
+        return QuestionSort.clamp(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt(KEY_LIST_SORT, QuestionSort.ADDED_DESC));
+    }
+
+    public static void setListSort(Context context, int option) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putInt(KEY_LIST_SORT, QuestionSort.clamp(option)).apply();
     }
 
     /** 自然日模式开关（默认开）；关闭后为 24 小时滚动间隔，打卡功能不可用 */

@@ -1,10 +1,10 @@
 package com.example.demo;
 
 /**
- * 「未来 7 天到期」分桶规则：第 0 格 = 今天到期，第 1..6 格 = 明天 .. 第 6 天。
- * 每格只数「那一天到期的题」，逾期题不计入任何格（逾期只体现在主页「到期 N 道」）。
- * E 级（间隔 0）每天都要抽查，恒算今天到期；已斩题不计。
- * 只做纯计算，方便 JVM 单测；绘制在 DueChartView 里。
+ * 「未来 7 天到期」分桶：第 1..6 格 = 明天 .. 第 6 天到期的新题。
+ * 第 0 格（今柱）不归这里管，由 {@link TodayBreakdownUtil} 只数「今日到期 / 今日添加 / 今日未过」三类。
+ * 欠账（旧债 E、其他等级逾期）不进任何格，只体现在主页「到期 N 道」。
+ * 已斩题不计。只做纯计算，方便 JVM 单测；绘制在 DueChartView 里。
  */
 public final class DueBucketUtil {
 
@@ -14,15 +14,14 @@ public final class DueBucketUtil {
     }
 
     /**
-     * 该题落在第几格：0 = 今天到期，1..6 = 未来第 N 天，-1 = 逾期或不在 7 天窗口。
-     * 逾期（left &lt; 0）不再并进今天，保证每格都是「那一天到期」的新题。
+     * 该题落在第几格：1..6 = 未来第 N 天到期，-1 = 今天到期、逾期、窗口外或已斩。
+     * 今天到期的题由 TodayBreakdownUtil 决定上不上柱，这里一律返回 -1。
      */
     public static int bucketOf(int intervalDays, long daysSince, boolean excluded) {
         if (excluded) return -1;
-        if (intervalDays <= 0) return 0;
+        if (intervalDays <= 0) return -1;   // E 级恒今天，交给 TodayBreakdownUtil
         long left = intervalDays - daysSince;
-        if (left < 0) return -1;
-        if (left == 0) return 0;
+        if (left <= 0) return -1;           // 今天到期或逾期，都不在未来格里
         if (left >= BUCKET_COUNT) return -1;
         return (int) left;
     }

@@ -210,16 +210,12 @@ public class MainActivity extends AppCompatActivity {
         String date = (cal.get(Calendar.MONTH) + 1) + "/" + cal.get(Calendar.DAY_OF_MONTH);
         String when;
         if (chartSelected == 0) {
-            // 今柱按来路拆开：新到期 / 新添加 / 新不会 / 旧债 E，第二行把“今柱 + 逾期 = 到期总数”对上账
+            // 今柱只数今天新产生的功课：今日到期 / 今日添加 / 今日未过，三者之和就是柱高
             int[] kinds = QuestionStorage.todayBreakdown(this);
-            int chartTotal = chart.countAt(0);
-            int dueTotal = QuestionStorage.countDue(this);
-            int overdue = Math.max(0, dueTotal - chartTotal);
-            chartTip.setText("今天（" + date + "）· " + chartTotal + " 道：新到期 " + kinds[TodayBreakdownUtil.DUE]
-                    + " · 新添加 " + kinds[TodayBreakdownUtil.NEW_TODAY]
-                    + " · 新不会 " + kinds[TodayBreakdownUtil.DOWNGRADED_TODAY]
-                    + " · 旧债 E " + kinds[TodayBreakdownUtil.OLD_DEBT_E]
-                    + "\n到期 " + dueTotal + " 道 = 这 " + chartTotal + " 道 + 逾期 " + overdue + " 道");
+            chartTip.setText("今天（" + date + "）· " + chart.countAt(0) + " 道：今日到期 "
+                    + kinds[TodayBreakdownUtil.DUE_TODAY]
+                    + " · 今日添加 " + kinds[TodayBreakdownUtil.ADDED_TODAY]
+                    + " · 今日未过 " + kinds[TodayBreakdownUtil.NOT_PASSED_TODAY]);
             chartTip.setVisibility(View.VISIBLE);
             return;
         }

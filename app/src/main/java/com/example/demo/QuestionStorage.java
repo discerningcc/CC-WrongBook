@@ -445,16 +445,26 @@ public class QuestionStorage {
     }
 
     /**
-     * 未来 days 天的到期分布：[0] = 今天到期（E 级恒算今天），[1..days-1] = 未来第 N 天。
-     * 逾期题不进任何格，所以 [0] 不再等于主页「到期 N 道」，那个数用 countDue 单独取。
+     * 未来 days 天的到期分布：[0] = 今柱（今日到期 + 今日添加 + 今日未过，见 TodayBreakdownUtil），
+     * [1..days-1] = 未来第 N 天到期的新题。
+     * 欠账（旧债 E、其他等级逾期）不上柱，只体现在主页「到期 N 道」，那个数用 countDue 单独取。
      */
     public static int[] dueBuckets(Context context, int days) {
         ensureBankExists(context);
         int size = Math.max(1, days);
         int[] buckets = new int[size];
+        long today = dayNumberLocal(System.currentTimeMillis());
         for (Question q : cacheBank.questions) {
-            int bucket = DueBucketUtil.bucketOf(intervalDaysOf(q.status), daysSince(context, q), q.excluded);
-            if (bucket >= 0 && bucket < size) buckets[bucket]++;
+            if (q.excluded) continue;
+            int interval = intervalDaysOf(q.status);
+            long daysSince = daysSince(context, q);
+            if (TodayBreakdownUtil.classify(interval, daysSince, q.encounterCount,
+                    addedDayNumber(q.id), today) >= 0) {
+                buckets[0]++;
+                continue;
+            }
+            int bucket = DueBucketUtil.bucketOf(interval, daysSince, false);
+            if (bucket > 0 && bucket < size) buckets[bucket]++;
         }
         return buckets;
     }
@@ -469,7 +479,7 @@ public class QuestionStorage {
         return due;
     }
 
-    /** 今柱构成：index 见 TodayBreakdownUtil.DUE / NEW_TODAY / DOWNGRADED_TODAY / OLD_DEBT_E */
+    /** 今柱构成：index 见 TodayBreakdownUtil.DUE_TODAY / ADDED_TODAY / NOT_PASSED_TODAY，三者之和就是柱高 */
     public static int[] todayBreakdown(Context context) {
         ensureBankExists(context);
         long today = dayNumberLocal(System.currentTimeMillis());

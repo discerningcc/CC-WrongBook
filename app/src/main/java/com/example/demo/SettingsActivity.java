@@ -14,9 +14,25 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_CHECKIN_ENABLED = "checkin_enabled";
     /** 图片编辑：点裁剪时是否自动把选框收紧到内容上（默认开） */
     public static final String KEY_AUTO_TRIM = "auto_trim_enabled";
+    /** 主页是否显示「未来 7 天到期柱」（默认开） */
+    public static final String KEY_SHOW_DUE_CHART = "show_due_chart";
+    /** 主页是否显示「备份提醒」一行（默认开） */
+    public static final String KEY_SHOW_BACKUP_HINT = "show_backup_hint";
 
     /** 设置项的存储位置，编辑页等别处读同一份 */
     private static final String SP_SETTINGS = "settings";
+
+    /** 主页柱图开关 */
+    public static boolean isDueChartEnabled(android.content.Context context) {
+        return context.getSharedPreferences(SP_SETTINGS, MODE_PRIVATE)
+                .getBoolean(KEY_SHOW_DUE_CHART, true);
+    }
+
+    /** 主页备份提示开关 */
+    public static boolean isBackupHintEnabled(android.content.Context context) {
+        return context.getSharedPreferences(SP_SETTINGS, MODE_PRIVATE)
+                .getBoolean(KEY_SHOW_BACKUP_HINT, true);
+    }
 
     /** 自动去白边是否开启；编辑页进裁剪前读它决定选框是收紧还是四边内缩 */
     public static boolean isAutoTrimEnabled(android.content.Context context) {
@@ -79,6 +95,24 @@ public class SettingsActivity extends AppCompatActivity {
         switchAutoTrim.setOnCheckedChangeListener((buttonView, isChecked) -> {
             sp.edit().putBoolean(KEY_AUTO_TRIM, isChecked).apply();
             applySwitchState(switchAutoTrim, isChecked, true);
+        });
+
+        Switch switchDueChart = findViewById(R.id.switch_due_chart);
+        boolean showChart = sp.getBoolean(KEY_SHOW_DUE_CHART, true);
+        switchDueChart.setChecked(showChart);
+        applySwitchState(switchDueChart, showChart, true);
+        switchDueChart.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            sp.edit().putBoolean(KEY_SHOW_DUE_CHART, isChecked).apply();
+            applySwitchState(switchDueChart, isChecked, true);
+        });
+
+        Switch switchBackupHint = findViewById(R.id.switch_backup_hint);
+        boolean showBackupHint = sp.getBoolean(KEY_SHOW_BACKUP_HINT, true);
+        switchBackupHint.setChecked(showBackupHint);
+        applySwitchState(switchBackupHint, showBackupHint, true);
+        switchBackupHint.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            sp.edit().putBoolean(KEY_SHOW_BACKUP_HINT, isChecked).apply();
+            applySwitchState(switchBackupHint, isChecked, true);
         });
 
         // 每日复习量：点一下弹「快捷档 + 自定义 + 无限」

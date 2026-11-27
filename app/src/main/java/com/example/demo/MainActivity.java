@@ -176,6 +176,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void renderDueChart(int[] buckets, int total) {
         View section = findViewById(R.id.due_section);
+        if (!SettingsActivity.isDueChartEnabled(this)) {
+            // 设置里关掉：整块收起，选中态一并清掉，别留一个看不见的选中格
+            section.setVisibility(View.GONE);
+            chartSelected = -1;
+            chart.setSelected(-1);
+            chartTip.setVisibility(View.GONE);
+            return;
+        }
         int sum = 0;
         for (int c : buckets) sum += c;
         boolean show = total > 0 && sum > 0;
@@ -217,6 +225,10 @@ public class MainActivity extends AppCompatActivity {
     /** 只在题库非空、且超 30 天未备份（或题库建了 7 天还没备份过）时出现 */
     private void renderBackupHint(int total) {
         TextView hint = findViewById(R.id.tv_backup_hint);
+        if (!SettingsActivity.isBackupHintEnabled(this)) {
+            hint.setVisibility(View.GONE);
+            return;
+        }
         long now = System.currentTimeMillis();
         long lastExportAt = QuestionStorage.getLastExportAt(this);
         boolean hasRecord = lastExportAt > 0;

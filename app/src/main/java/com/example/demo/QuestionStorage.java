@@ -469,17 +469,42 @@ public class QuestionStorage {
         return due;
     }
 
-    /** 今柱构成：index 见 TodayBreakdownUtil.DUE / NEW_NEVER_ANSWERED / DOWNGRADED_TODAY / BACKLOG_E */
+    /** 今柱构成：index 见 TodayBreakdownUtil.DUE / NEW_TODAY / DOWNGRADED_TODAY / OLD_DEBT_E */
     public static int[] todayBreakdown(Context context) {
         ensureBankExists(context);
+        long today = dayNumberLocal(System.currentTimeMillis());
         int[] kinds = new int[TodayBreakdownUtil.KIND_COUNT];
         for (Question q : cacheBank.questions) {
             if (q.excluded) continue;
             int kind = TodayBreakdownUtil.classify(intervalDaysOf(q.status),
-                    daysSince(context, q), q.encounterCount);
+                    daysSince(context, q), q.encounterCount, addedDayNumber(q.id), today);
             if (kind >= 0 && kind < kinds.length) kinds[kind]++;
         }
         return kinds;
+    }
+
+    /**
+     * 从题目 id 里解析添加日期（id 形如 20260507_182423_893，前 8 位就是 yyyyMMdd），
+     * 返回自然日序号；格式不认识或日期非法返回 -1（按“旧题”处理）。
+     */
+    public static long addedDayNumber(String id) {
+        if (id == null || id.length() < 9 || id.charAt(8) != '_') return -1;
+        for (int i = 0; i < 8; i++) {
+            char c = id.charAt(i);
+            if (c < '0' || c > '9') return -1;
+        }
+        int year = Integer.parseInt(id.substring(0, 4));
+        int month = Integer.parseInt(id.substring(4, 6));
+        int day = Integer.parseInt(id.substring(6, 8));
+        if (year < 1970 || month < 1 || month > 12 || day < 1 || day > 31) return -1;
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.clear();
+        cal.set(year, month - 1, day);
+        if (cal.get(java.util.Calendar.MONTH) != month - 1
+                || cal.get(java.util.Calendar.DAY_OF_MONTH) != day) {
+            return -1;   // 2 月 30 日这类非法日期，Calendar 会顺延，这里挡掉
+        }
+        return dayNumberLocal(cal.getTimeInMillis());
     }
 
     /** 题目列表里展示的到期文案 */

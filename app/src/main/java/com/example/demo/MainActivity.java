@@ -210,12 +210,16 @@ public class MainActivity extends AppCompatActivity {
         String date = (cal.get(Calendar.MONTH) + 1) + "/" + cal.get(Calendar.DAY_OF_MONTH);
         String when;
         if (chartSelected == 0) {
-            // 今柱按来路拆开讲清楚：刚好到期 / 新题未做 / 今天降为 E / 以往积压 E
+            // 今柱按来路拆开：新到期 / 新添加 / 新不会 / 旧债 E，第二行把“今柱 + 逾期 = 到期总数”对上账
             int[] kinds = QuestionStorage.todayBreakdown(this);
-            chartTip.setText("今天（" + date + "）· " + chart.countAt(0) + " 道：刚好到期 " + kinds[TodayBreakdownUtil.DUE]
-                    + " · 新题未做 " + kinds[TodayBreakdownUtil.NEW_NEVER_ANSWERED]
-                    + " · 今天降 E " + kinds[TodayBreakdownUtil.DOWNGRADED_TODAY]
-                    + " · 以往 E " + kinds[TodayBreakdownUtil.BACKLOG_E]);
+            int chartTotal = chart.countAt(0);
+            int dueTotal = QuestionStorage.countDue(this);
+            int overdue = Math.max(0, dueTotal - chartTotal);
+            chartTip.setText("今天（" + date + "）· " + chartTotal + " 道：新到期 " + kinds[TodayBreakdownUtil.DUE]
+                    + " · 新添加 " + kinds[TodayBreakdownUtil.NEW_TODAY]
+                    + " · 新不会 " + kinds[TodayBreakdownUtil.DOWNGRADED_TODAY]
+                    + " · 旧债 E " + kinds[TodayBreakdownUtil.OLD_DEBT_E]
+                    + "\n到期 " + dueTotal + " 道 = 这 " + chartTotal + " 道 + 逾期 " + overdue + " 道");
             chartTip.setVisibility(View.VISIBLE);
             return;
         }

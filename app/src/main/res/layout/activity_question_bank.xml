@@ -49,13 +49,16 @@
             android:textColor="@color/text_secondary"/>
     </FrameLayout>
 
-    <!-- 搜索框（已修复：点击任何地方都能输入） -->
+    <!-- 搜索框：白底圆角卡片，去掉系统默认下划线 -->
     <SearchView
         android:id="@+id/search_view"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="8dp"
+        android:background="@drawable/bg_search_field"
+        android:queryBackground="@null"
+        android:submitBackground="@null"
         android:queryHint="搜索题干 / 答案 / ID..."
         android:iconifiedByDefault="false"
         android:focusableInTouchMode="true"

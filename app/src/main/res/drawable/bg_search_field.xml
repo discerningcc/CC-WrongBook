@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 列表页搜索框：白底圆角卡片，与输入类控件同档圆角 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/white"/>
+    <corners android:radius="@dimen/corner_control"/>
+</shape>

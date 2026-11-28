@@ -67,6 +67,12 @@
     <color name="edit_bg">@color/page_bg</color>
     <color name="edit_stage_bg">#111111</color>
 
+    <!-- 裁剪视图绘制色：遮罩/三分线/深色垫层，画在图片之上，不参与界面层次 -->
+    <color name="crop_mask">#CC000000</color>
+    <color name="crop_guide">#66FFFFFF</color>
+    <color name="crop_shade_strong">#99000000</color>
+    <color name="crop_shade_soft">#66000000</color>
+
     <!-- 主页 -->
     <!-- 品牌浅蓝：仅用于图表等数据可视化，不再作按钮/顶栏底色 -->
     <color name="home_primary">#5D9CEC</color>

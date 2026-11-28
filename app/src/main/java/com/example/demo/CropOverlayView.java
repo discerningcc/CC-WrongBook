@@ -9,6 +9,8 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.core.content.ContextCompat;
+
 /**
  * 裁剪选框浮层：叠在按 FIT_CENTER 显示的图片之上，只负责画遮罩/边框/手柄并接收拖拽。
  *
@@ -71,25 +73,25 @@ public class CropOverlayView extends View {
         cornerThickness = 3f * d;
         borderWidth = 1.5f * d;
 
-        maskPaint.setColor(0xCC000000);
+        maskPaint.setColor(ContextCompat.getColor(context, R.color.crop_mask));
         maskPaint.setStyle(Paint.Style.FILL);
         borderPaint.setColor(Color.WHITE);
         borderPaint.setStyle(Paint.Style.STROKE);
         borderPaint.setStrokeWidth(borderWidth);
-        guidePaint.setColor(0x66FFFFFF);
+        guidePaint.setColor(ContextCompat.getColor(context, R.color.crop_guide));
         guidePaint.setStyle(Paint.Style.STROKE);
         guidePaint.setStrokeWidth(1f * d);
         handlePaint.setColor(Color.WHITE);
         handlePaint.setStyle(Paint.Style.FILL);
 
         // 深色垫层：边框垫在下面稍粗，白线才有黑边轮廓；三分线同理
-        borderShadePaint.setColor(0x99000000);
+        borderShadePaint.setColor(ContextCompat.getColor(context, R.color.crop_shade_strong));
         borderShadePaint.setStyle(Paint.Style.STROKE);
         borderShadePaint.setStrokeWidth(borderWidth + 2f * d);
-        guideShadePaint.setColor(0x66000000);
+        guideShadePaint.setColor(ContextCompat.getColor(context, R.color.crop_shade_soft));
         guideShadePaint.setStyle(Paint.Style.STROKE);
         guideShadePaint.setStrokeWidth(2f * d);
-        handleShadePaint.setColor(0x99000000);
+        handleShadePaint.setColor(ContextCompat.getColor(context, R.color.crop_shade_strong));
         handleShadePaint.setStyle(Paint.Style.FILL);
     }
 

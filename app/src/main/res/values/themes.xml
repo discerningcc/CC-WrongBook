@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Demo" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- 固定浅色主题：全应用为纯浅色设计，避免系统深色把系统控件（搜索框/列表弹窗）染黑 -->
+    <style name="Base.Theme.Demo" parent="Theme.Material3.Light.NoActionBar">
         <!-- 状态栏与导航栏跟随页底，图标转深色，避免露出 Material3 默认紫 -->
         <item name="android:statusBarColor">@color/home_bg</item>
         <item name="android:windowLightStatusBar">true</item>

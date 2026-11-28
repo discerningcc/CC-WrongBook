@@ -17,6 +17,9 @@
     <color name="state_success_text">#389E0D</color>
     <color name="state_warn">#FAAD14</color>
     <color name="state_warn_text">#AD6800</color>
+    <!-- 描边按钮用的橙色档：描边走浅档、文字图标走纯档，避免褐橙发脏 -->
+    <color name="state_warn_stroke">#FFD591</color>
+    <color name="state_warn_strong">#D46B08</color>
     <!-- 提示条底色：与警告文字配套的浅底 -->
     <color name="state_warn_bg">#FFF7E6</color>
     <color name="state_danger">#FF4D4F</color>

@@ -238,7 +238,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="重学"
-                    android:textColor="@color/state_warn_text"
+                    android:textColor="@color/state_warn_strong"
                     android:textSize="16sp" />
             </LinearLayout>
         </LinearLayout>

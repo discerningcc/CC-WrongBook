@@ -28,7 +28,7 @@
         <item name="android:gravity">center</item>
         <item name="android:text">←</item>
         <item name="android:textSize">20sp</item>
-        <item name="android:textColor">@color/home_text_primary</item>
+        <item name="android:textColor">@color/text_primary</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
     </style>
 
@@ -40,7 +40,7 @@
         <item name="android:gravity">center</item>
         <item name="android:textSize">18sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/home_text_primary</item>
+        <item name="android:textColor">@color/text_primary</item>
     </style>
 
     <!-- 图片编辑页：与详情页同一套浅底，状态栏与导航栏同色、图标转深色 -->

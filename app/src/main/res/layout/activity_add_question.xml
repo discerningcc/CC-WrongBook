@@ -55,7 +55,7 @@
                     android:layout_height="wrap_content"
                     android:text="0/9"
                     android:textSize="@dimen/text_size_body"
-                    android:textColor="#999999" />
+                    android:textColor="@color/text_hint" />
             </LinearLayout>
 
             <EditText
@@ -101,7 +101,7 @@
                     android:layout_height="24dp"
                     android:layout_gravity="end|center_vertical"
                     android:layout_marginEnd="52dp"
-                    android:background="#d5dbe4" />
+                    android:background="@color/divider" />
 
                 <ImageView
                     android:id="@+id/btn_camera_content"
@@ -136,7 +136,7 @@
                     android:layout_height="wrap_content"
                     android:text="0/9"
                     android:textSize="@dimen/text_size_body"
-                    android:textColor="#999999" />
+                    android:textColor="@color/text_hint" />
             </LinearLayout>
 
             <EditText
@@ -182,7 +182,7 @@
                     android:layout_height="24dp"
                     android:layout_gravity="end|center_vertical"
                     android:layout_marginEnd="52dp"
-                    android:background="#d5dbe4" />
+                    android:background="@color/divider" />
 
                 <ImageView
                     android:id="@+id/btn_camera_answer"

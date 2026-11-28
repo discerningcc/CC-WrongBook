@@ -124,7 +124,7 @@ public class CheckinCalendarActivity extends AppCompatActivity {
             tv.setGravity(Gravity.CENTER);
             tv.setText(label);
             tv.setTextSize(12);
-            tv.setTextColor(getColor(R.color.home_text_secondary));
+            tv.setTextColor(getColor(R.color.text_secondary));
             weekdayHeader.addView(tv);
         }
     }
@@ -200,9 +200,9 @@ public class CheckinCalendarActivity extends AppCompatActivity {
             if (readyToday) tv.setTypeface(null, Typeface.BOLD);
             tv.setOnClickListener(v -> onTodayClick());
         } else if (future) {
-            tv.setTextColor(0xFFBDBDBD);
+            tv.setTextColor(0xFF999999);
         } else {
-            tv.setTextColor(getColor(R.color.home_text_secondary));
+            tv.setTextColor(getColor(R.color.text_secondary));
         }
         row.addView(tv);
     }

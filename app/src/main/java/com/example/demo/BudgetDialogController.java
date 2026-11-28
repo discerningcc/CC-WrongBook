@@ -152,11 +152,11 @@ final class BudgetDialogController {
                 : R.drawable.bg_budget_option_normal);
         num.setTextColor(chip.getContext().getColor(selected
                 ? R.color.home_primary
-                : R.color.home_text_primary));
+                : R.color.text_primary));
         TextView unit = (TextView) ((ViewGroup) chip).getChildAt(1);
         unit.setTextColor(chip.getContext().getColor(selected
                 ? R.color.home_primary
-                : R.color.home_text_secondary));
+                : R.color.text_secondary));
     }
 
     private void applyRowState(View row, TextView title, TextView sub, boolean selected) {
@@ -165,10 +165,10 @@ final class BudgetDialogController {
                 : R.drawable.bg_budget_option_normal);
         title.setTextColor(row.getContext().getColor(selected
                 ? R.color.home_primary
-                : R.color.home_text_primary));
+                : R.color.text_primary));
         sub.setTextColor(row.getContext().getColor(selected
                 ? R.color.home_primary
-                : R.color.home_text_secondary));
+                : R.color.text_secondary));
     }
 
     private void afterChange(Runnable onChanged) {

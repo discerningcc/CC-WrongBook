@@ -207,7 +207,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             if (chip == null) continue;
             boolean on = (i == 0) ? catMask == 0 : (catMask & (1 << i)) != 0;
             chip.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
-            chip.setTextColor(on ? 0xffffffff : 0xff666666);
+            chip.setTextColor(on ? 0xffffffff : 0xFF616161);
         }
     }
 
@@ -265,7 +265,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             int chipLevel = i - 1; // 0 号胶囊对应全部等级
             boolean on = (chipLevel == levelFilter);
             chip.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
-            chip.setTextColor(on ? 0xffffffff : 0xff666666);
+            chip.setTextColor(on ? 0xffffffff : 0xFF616161);
         }
     }
 

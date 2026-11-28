@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:textSize="@dimen/text_size_emphasis"
         android:textStyle="bold"
-        android:textColor="#222222" />
+        android:textColor="@color/text_primary" />
 
     <TextView
         android:id="@+id/tv_session_stats"
@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="@dimen/text_size_caption"
-        android:textColor="#666666" />
+        android:textColor="@color/text_secondary" />
 
     <TextView
         android:id="@+id/tv_session_bank"
@@ -32,7 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:textSize="@dimen/text_size_caption"
-        android:textColor="#999999" />
+        android:textColor="@color/text_hint" />
 
     <LinearLayout
         android:id="@+id/session_questions"

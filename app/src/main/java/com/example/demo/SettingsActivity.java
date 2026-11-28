@@ -150,15 +150,15 @@ public class SettingsActivity extends AppCompatActivity {
 
         applySwitchState(switchCheckin, checked, naturalOn);
         if (naturalOn) {
-            tvCheckinTitle.setTextColor(getColor(R.color.home_text_primary));
+            tvCheckinTitle.setTextColor(getColor(R.color.text_primary));
             tvCheckinHint.setText("完成今日目标或待复习清零后可在主页打卡，历史记录可在日历中查看");
-            tvCheckinHint.setTextColor(getColor(R.color.home_text_secondary));
-            checkinGuide.setBackgroundColor(getColor(R.color.home_stroke));
+            tvCheckinHint.setTextColor(getColor(R.color.text_secondary));
+            checkinGuide.setBackgroundColor(getColor(R.color.divider));
         } else {
-            tvCheckinTitle.setTextColor(getColor(R.color.home_text_secondary));
+            tvCheckinTitle.setTextColor(getColor(R.color.text_secondary));
             tvCheckinHint.setText("24 小时模式无固定日界，打卡功能不可用；历史记录仍保留");
             tvCheckinHint.setTextColor(getColor(R.color.state_warn_text));
-            checkinGuide.setBackgroundColor(getColor(R.color.home_stroke));
+            checkinGuide.setBackgroundColor(getColor(R.color.divider));
         }
     }
 

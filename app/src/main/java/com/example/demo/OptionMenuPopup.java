@@ -22,9 +22,9 @@ public final class OptionMenuPopup {
     /** 卡片默认宽度（dp）；必须是固定值，PopupWindow 会把内容视图撑满窗口 */
     public static final int DEFAULT_WIDTH_DP = 184;
 
-    private static final int COLOR_TEXT = 0xff333333;
+    private static final int COLOR_TEXT = 0xFF222222;
     private static final int COLOR_TEXT_ON = 0xff1f6aa5;
-    private static final int COLOR_TEXT_OFF = 0xffb0b0b0;
+    private static final int COLOR_TEXT_OFF = 0xFF999999;
     private static final int COLOR_DIVIDER = 0xffececec;
 
     public interface OnPick {

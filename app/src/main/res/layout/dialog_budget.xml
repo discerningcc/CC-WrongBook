@@ -18,7 +18,7 @@
         android:text="每日复习量"
         android:textSize="@dimen/text_size_title"
         android:textStyle="bold"
-        android:textColor="@color/home_text_primary" />
+        android:textColor="@color/text_primary" />
 
     <TextView
         android:id="@+id/tv_budget_current"
@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="@dimen/text_size_caption"
-        android:textColor="@color/home_text_secondary" />
+        android:textColor="@color/text_secondary" />
 
     <!-- 档位网格：2 列 × 3 行 -->
     <LinearLayout
@@ -54,7 +54,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -62,7 +62,7 @@
                 android:layout_marginTop="2dp"
                 android:text="题/天"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <LinearLayout
@@ -84,7 +84,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -92,7 +92,7 @@
                 android:layout_marginTop="2dp"
                 android:text="题/天"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
     </LinearLayout>
 
@@ -121,7 +121,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -129,7 +129,7 @@
                 android:layout_marginTop="2dp"
                 android:text="题/天"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <LinearLayout
@@ -151,7 +151,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -159,7 +159,7 @@
                 android:layout_marginTop="2dp"
                 android:text="题/天"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
     </LinearLayout>
 
@@ -188,7 +188,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -196,7 +196,7 @@
                 android:layout_marginTop="2dp"
                 android:text="题/天"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <LinearLayout
@@ -218,7 +218,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -226,7 +226,7 @@
                 android:layout_marginTop="2dp"
                 android:text="题/天"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
     </LinearLayout>
 
@@ -257,7 +257,7 @@
                 android:layout_height="wrap_content"
                 android:text="自定义（1~500）"
                 android:textSize="@dimen/text_size_emphasis"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:id="@+id/row_custom_sub"
@@ -266,7 +266,7 @@
                 android:layout_marginTop="2dp"
                 android:text="输入其他数值"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <EditText
@@ -278,8 +278,8 @@
             android:maxLength="3"
             android:hint="1~500"
             android:textSize="@dimen/text_size_body"
-            android:textColor="@color/home_text_primary"
-            android:textColorHint="@color/home_text_secondary"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
             android:background="@drawable/bg_budget_option_normal"
             android:paddingLeft="6dp"
             android:paddingRight="6dp" />
@@ -329,7 +329,7 @@
                 android:layout_height="wrap_content"
                 android:text="不限量"
                 android:textSize="@dimen/text_size_emphasis"
-                android:textColor="@color/home_text_primary" />
+                android:textColor="@color/text_primary" />
 
             <TextView
                 android:id="@+id/row_unlimited_sub"
@@ -338,7 +338,7 @@
                 android:layout_marginTop="2dp"
                 android:text="到期题全部进入队列"
                 android:textSize="@dimen/text_size_caption"
-                android:textColor="@color/home_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
     </LinearLayout>
 

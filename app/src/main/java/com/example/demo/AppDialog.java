@@ -202,7 +202,7 @@ public final class AppDialog {
             case STYLE_DANGER:
                 return R.color.state_danger_text;
             case STYLE_TERTIARY:
-                return R.color.home_text_secondary;
+                return R.color.text_secondary;
             default:
                 return R.color.action_primary;
         }

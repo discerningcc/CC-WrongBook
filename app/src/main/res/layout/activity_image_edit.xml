@@ -30,7 +30,7 @@
                 android:layout_height="18dp"
                 android:contentDescription="取消"
                 android:src="@drawable/ic_edit_close"
-                android:tint="@color/detail_text_secondary" />
+                android:tint="@color/text_secondary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -38,7 +38,7 @@
                 android:layout_marginStart="6dp"
                 android:letterSpacing="0.02"
                 android:text="取消"
-                android:textColor="@color/detail_text_secondary"
+                android:textColor="@color/text_secondary"
                 android:textSize="@dimen/text_size_emphasis" />
         </LinearLayout>
 
@@ -47,7 +47,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="编辑图片"
-            android:textColor="@color/detail_text_primary"
+            android:textColor="@color/text_primary"
             android:textSize="@dimen/text_size_emphasis" />
 
         <LinearLayout
@@ -129,12 +129,12 @@
                 style="@style/ImageEditBarIcon"
                 android:contentDescription="左转"
                 android:src="@drawable/ic_edit_rotate_left"
-                android:tint="@color/detail_text_secondary" />
+                android:tint="@color/text_secondary" />
 
             <TextView
                 style="@style/ImageEditBarText"
                 android:text="左转"
-                android:textColor="@color/detail_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <LinearLayout
@@ -147,12 +147,12 @@
                 style="@style/ImageEditBarIcon"
                 android:contentDescription="右转"
                 android:src="@drawable/ic_edit_rotate_right"
-                android:tint="@color/detail_text_secondary" />
+                android:tint="@color/text_secondary" />
 
             <TextView
                 style="@style/ImageEditBarText"
                 android:text="右转"
-                android:textColor="@color/detail_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <LinearLayout
@@ -192,12 +192,12 @@
                 style="@style/ImageEditBarIcon"
                 android:contentDescription="重置"
                 android:src="@drawable/ic_edit_reset"
-                android:tint="@color/detail_text_secondary" />
+                android:tint="@color/text_secondary" />
 
             <TextView
                 style="@style/ImageEditBarText"
                 android:text="重置"
-                android:textColor="@color/detail_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <LinearLayout
@@ -210,12 +210,12 @@
                 style="@style/ImageEditBarIcon"
                 android:contentDescription="取消裁剪"
                 android:src="@drawable/ic_edit_close"
-                android:tint="@color/detail_text_secondary" />
+                android:tint="@color/text_secondary" />
 
             <TextView
                 style="@style/ImageEditBarText"
                 android:text="取消裁剪"
-                android:textColor="@color/detail_text_secondary" />
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <LinearLayout

@@ -75,7 +75,7 @@
                     android:text="今日已完成 0 / 50"
                     android:textSize="@dimen/text_size_title"
                     android:textStyle="bold"
-                    android:textColor="@color/home_text_primary" />
+                    android:textColor="@color/text_primary" />
 
                 <TextView
                     android:id="@+id/tv_today_sub"
@@ -88,7 +88,7 @@
                     android:padding="6dp"
                     android:text="待复习 0 道"
                     android:textSize="@dimen/text_size_caption"
-                    android:textColor="@color/home_text_secondary" />
+                    android:textColor="@color/text_secondary" />
 
                 <ProgressBar
                     android:id="@+id/progress_today"
@@ -99,7 +99,7 @@
                     android:max="100"
                     android:progress="0"
                     android:progressTint="@color/action_primary"
-                    android:progressBackgroundTint="@color/home_stroke" />
+                    android:progressBackgroundTint="@color/divider" />
 
                 <!-- 未来 7 天到期分布：今天 + 后 6 天；7 天全空时整块隐藏 -->
                 <LinearLayout
@@ -122,7 +122,7 @@
                         android:contentDescription="未来 7 天 · 点此看说明"
                         android:text="未来 7 天"
                         android:textSize="@dimen/text_size_caption"
-                        android:textColor="@color/home_text_secondary" />
+                        android:textColor="@color/text_secondary" />
 
                     <com.example.demo.DueChartView
                         android:id="@+id/due_chart"
@@ -137,7 +137,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:textSize="@dimen/text_size_caption"
-                        android:textColor="@color/home_text_secondary"
+                        android:textColor="@color/text_secondary"
                         android:visibility="gone" />
                 </LinearLayout>
 
@@ -160,7 +160,7 @@
                         android:foreground="?attr/selectableItemBackground"
                         android:padding="6dp"
                         android:textSize="@dimen/text_size_caption"
-                        android:textColor="@color/home_text_secondary" />
+                        android:textColor="@color/text_secondary" />
 
                     <ImageView
                         android:id="@+id/iv_checkin_calendar"
@@ -332,7 +332,7 @@
             android:foreground="?attr/selectableItemBackground"
             android:padding="8dp"
             android:textSize="@dimen/text_size_caption"
-            android:textColor="@color/home_text_secondary"
+            android:textColor="@color/text_secondary"
             android:visibility="gone" />
 
     </LinearLayout>

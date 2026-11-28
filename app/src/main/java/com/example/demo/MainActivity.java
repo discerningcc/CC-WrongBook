@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
         }
         hint.setText(BackupHintUtil.textOf(hasRecord, daysSinceExport));
         hint.setTextColor(getColor(state == BackupHintUtil.EMPHASIS
-                ? R.color.home_primary : R.color.home_text_secondary));
+                ? R.color.home_primary : R.color.text_secondary));
         hint.setVisibility(View.VISIBLE);
     }
 
@@ -284,7 +284,7 @@ public class MainActivity extends AppCompatActivity {
             // 保留 weight 占位槽，日历图标仍靠右端；左侧以品牌名占位避免空白突兀
             tv.setVisibility(View.VISIBLE);
             tv.setText("CC错题本");
-            tv.setTextColor(getColor(R.color.home_text_secondary));
+            tv.setTextColor(getColor(R.color.text_secondary));
             tv.setClickable(false);
             return;
         }
@@ -304,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
             tv.setClickable(true);
         } else {
             tv.setText("完成目标或待复习清零后可打卡");
-            tv.setTextColor(getColor(R.color.home_text_secondary));
+            tv.setTextColor(getColor(R.color.text_secondary));
             tv.setClickable(false);
         }
     }

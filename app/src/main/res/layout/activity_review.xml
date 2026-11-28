@@ -103,7 +103,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textSize="@dimen/text_size_caption"
-                        android:textColor="#888888" />
+                        android:textColor="@color/text_hint" />
                 </LinearLayout>
 
                 <TextView
@@ -122,7 +122,7 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#eeeeee"
+                android:background="@color/divider"
                 android:layout_marginBottom="12dp" />
 
             <!-- 元信息行：等级药丸 + 完成进度；ID 收进溢出菜单 -->
@@ -153,7 +153,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
                     android:textSize="@dimen/text_size_caption"
-                    android:textColor="#999999" />
+                    android:textColor="@color/text_hint" />
 
                 <View
                     android:layout_width="0dp"
@@ -185,7 +185,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="@dimen/text_size_caption"
-                    android:textColor="#999999"
+                    android:textColor="@color/text_hint"
                     android:singleLine="true"
                     android:clickable="true"
                     android:focusable="true"
@@ -198,7 +198,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:textSize="@dimen/text_size_caption"
-                    android:textColor="#999999"
+                    android:textColor="@color/text_hint"
                     android:singleLine="true" />
 
                 <TextView
@@ -207,7 +207,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:textSize="@dimen/text_size_caption"
-                    android:textColor="#999999"
+                    android:textColor="@color/text_hint"
                     android:singleLine="true" />
 
                 <TextView
@@ -216,7 +216,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:textSize="@dimen/text_size_caption"
-                    android:textColor="#999999"
+                    android:textColor="@color/text_hint"
                     android:singleLine="true" />
             </LinearLayout>
 
@@ -225,7 +225,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_display"
-                android:textColor="#222222"
+                android:textColor="@color/text_primary"
                 android:lineSpacingExtra="8dp" />
 
             <HorizontalScrollView
@@ -264,7 +264,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="@dimen/text_size_title"
-                    android:textColor="#333333"
+                    android:textColor="@color/text_primary"
                     android:layout_marginTop="8dp"/>
 
                 <HorizontalScrollView

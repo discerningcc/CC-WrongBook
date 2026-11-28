@@ -22,7 +22,7 @@
             android:text="题库"
             android:textSize="@dimen/text_size_title"
             android:textStyle="bold"
-            android:textColor="#222222"/>
+            android:textColor="@color/text_primary"/>
 
         <TextView
             android:id="@+id/tv_sort_label"
@@ -41,7 +41,7 @@
             android:contentDescription="切换排序方式"
             android:text="添加 · 新→旧"
             android:textSize="@dimen/text_size_caption"
-            android:textColor="#666666"/>
+            android:textColor="@color/text_secondary"/>
     </LinearLayout>
 
     <!-- 搜索框（已修复：点击任何地方都能输入） -->
@@ -96,7 +96,7 @@
         android:paddingHorizontal="16dp"
         android:paddingVertical="2dp"
         android:textSize="@dimen/text_size_caption"
-        android:textColor="#666666"
+        android:textColor="@color/text_secondary"
         android:maxLines="2"
         android:ellipsize="end"/>
 
@@ -121,7 +121,7 @@
             android:padding="24dp"
             android:lineSpacingExtra="6dp"
             android:textSize="@dimen/text_size_body"
-            android:textColor="#999999"
+            android:textColor="@color/text_hint"
             android:visibility="gone"
             android:text="没有符合条件的题目"/>
     </FrameLayout>

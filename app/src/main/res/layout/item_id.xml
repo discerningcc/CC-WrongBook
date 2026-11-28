@@ -39,7 +39,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/text_size_body"
-                android:textColor="#222222"
+                android:textColor="@color/text_primary"
                 android:maxLines="2"
                 android:ellipsize="end"
                 android:lineSpacingExtra="2dp"/>
@@ -72,7 +72,7 @@
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
                     android:textSize="@dimen/text_size_caption"
-                    android:textColor="#888888"
+                    android:textColor="@color/text_hint"
                     android:maxLines="1"
                     android:ellipsize="end"/>
             </LinearLayout>

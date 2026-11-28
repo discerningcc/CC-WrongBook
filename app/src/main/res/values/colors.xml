@@ -5,7 +5,13 @@
     <color name="switch_thumb">#FFFFFF</color>
     <color name="switch_thumb_disabled">#BDBDBD</color>
     <color name="switch_track">@color/action_primary</color>
-    <color name="switch_track_disabled">#E0E0E0</color>
+    <color name="switch_track_disabled">@color/divider</color>
+
+    <!-- 全应用统一：灰阶三档（主文/次文/提示）+ 分隔线 -->
+    <color name="text_primary">#222222</color>
+    <color name="text_secondary">#616161</color>
+    <color name="text_hint">#999999</color>
+    <color name="divider">#E0E0E0</color>
 
     <!-- 全应用统一：页底与主操作色 -->
     <color name="page_bg">#F0F2F5</color>
@@ -31,9 +37,6 @@
     <!-- 详情页操作区 -->
     <color name="detail_primary">#1F6AA5</color>
     <color name="detail_secondary_stroke">#9E9E9E</color>
-    <color name="detail_divider">#E0E0E0</color>
-    <color name="detail_text_primary">#333333</color>
-    <color name="detail_text_secondary">#616161</color>
     <color name="favorite_gold">#FFB300</color>
 
     <!-- 图片编辑页：与其他页共用同一档页底 -->
@@ -45,9 +48,6 @@
     <color name="home_primary">#5D9CEC</color>
     <color name="home_bg">@color/page_bg</color>
     <color name="home_card">#FFFFFF</color>
-    <color name="home_stroke">#E0E0E0</color>
-    <color name="home_text_primary">#333333</color>
-    <color name="home_text_secondary">#616161</color>
     <color name="home_on_primary_secondary">#CCFFFFFF</color>
     <!-- 未来 7 天到期柱：非今天/非选中柱的淡主色 -->
     <color name="home_chart_bar">#E3EDFB</color>

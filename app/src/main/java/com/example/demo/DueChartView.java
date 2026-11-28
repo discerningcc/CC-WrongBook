@@ -53,8 +53,8 @@ public class DueChartView extends View {
         density = getResources().getDisplayMetrics().density;
         colorPrimary = context.getColor(R.color.home_primary);
         colorBar = context.getColor(R.color.home_chart_bar);
-        colorZero = context.getColor(R.color.home_stroke);
-        colorText = context.getColor(R.color.home_text_secondary);
+        colorZero = context.getColor(R.color.divider);
+        colorText = context.getColor(R.color.text_secondary);
 
         // 字号用 dp，不跟系统字体放大走：柱图高度固定，字被放大就会把柱子挤没
         countPaint.setTextSize(11f * density);

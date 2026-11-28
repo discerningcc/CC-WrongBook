@@ -149,7 +149,7 @@ public class SettingsActivity extends AppCompatActivity {
         applySwitchState(switchCheckin, checked, naturalOn);
         if (naturalOn) {
             tvCheckinTitle.setTextColor(getColor(R.color.home_text_primary));
-            tvCheckinHint.setText("完成今日目标后可在主页打卡，历史记录可在日历中查看");
+            tvCheckinHint.setText("完成今日目标或待复习清零后可在主页打卡，历史记录可在日历中查看");
             tvCheckinHint.setTextColor(getColor(R.color.home_text_secondary));
             checkinGuide.setBackgroundColor(getColor(R.color.home_stroke));
         } else {

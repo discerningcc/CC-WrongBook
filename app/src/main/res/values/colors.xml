@@ -9,8 +9,8 @@
 
     <!-- 全应用统一：页底与主操作色 -->
     <color name="page_bg">#F0F2F5</color>
-    <!-- 主操作（按钮底、开关、选中描边、进度、链接）：白字对比约 6:1 -->
-    <color name="action_primary">#1F6AA5</color>
+    <!-- 主操作（按钮底、开关、选中描边、进度）：沿用品牌浅蓝 -->
+    <color name="action_primary">#5D9CEC</color>
 
     <!-- 详情页操作区语义色 -->
     <color name="detail_primary">#1F6AA5</color>

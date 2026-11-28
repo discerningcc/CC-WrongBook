@@ -300,14 +300,23 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
         int idx = 0;
         reviewImageLayout.removeAllViews();
+        int contentCount = countImages(currentQuestion.contentImages);
         if (currentQuestion.contentImages != null) {
-            for (String path : currentQuestion.contentImages) if (path != null && !path.isEmpty()) addImage(reviewImageLayout, path, idx++);
+            for (String path : currentQuestion.contentImages) if (path != null && !path.isEmpty()) addImage(reviewImageLayout, path, idx++, contentCount, false);
         }
 
         answerImageLayout.removeAllViews();
+        int answerCount = countImages(currentQuestion.answerImages);
         if (currentQuestion.answerImages != null) {
-            for (String path : currentQuestion.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++);
+            for (String path : currentQuestion.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++, answerCount, true);
         }
+    }
+
+    private int countImages(java.util.List<String> paths) {
+        if (paths == null) return 0;
+        int n = 0;
+        for (String p : paths) if (p != null && !p.isEmpty()) n++;
+        return n;
     }
 
     /** 药丸点击：切换信息行展开 / 收起 */
@@ -381,13 +390,26 @@ public class QuestionDetailActivity extends AppCompatActivity {
         return true;
     }
 
-    private void addImage(LinearLayout parent, String path, int index) {
+    private void addImage(LinearLayout parent, String path, int index, int total, boolean answerBlock) {
         ImageView iv = new ImageView(this);
-        int size = (int) (280 * getResources().getDisplayMetrics().density);
-        iv.setLayoutParams(new LinearLayout.LayoutParams(size, LinearLayout.LayoutParams.WRAP_CONTENT));
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        iv.setAdjustViewBounds(true);
-        ImageLoader.bindThumb(this, iv, path, size);
+        iv.setTag(path);
+        int targetWidth = dp(280);
+        int[] fit = null;
+        if (total == 1 && SettingsActivity.isImageFitInDetail(this)) {
+            int[] raw = ImageLoader.readImageSize(path);
+            fit = ImageFitRule.fitSingle(availImageWidth(answerBlock), availImageHeight(),
+                    raw == null ? 0 : raw[0], raw == null ? 0 : raw[1]);
+        }
+        if (fit != null) {
+            iv.setAdjustViewBounds(false);
+            iv.setLayoutParams(new LinearLayout.LayoutParams(fit[0], fit[1]));
+            targetWidth = fit[0];
+        } else {
+            iv.setAdjustViewBounds(true);
+            iv.setLayoutParams(new LinearLayout.LayoutParams(targetWidth, LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+        ImageLoader.bindThumb(this, iv, path, targetWidth);
         iv.setOnClickListener(v -> openFullscreenFromDetail(index));
         iv.setOnLongClickListener(v -> {
             inlineMenuPath = path;
@@ -395,6 +417,20 @@ public class QuestionDetailActivity extends AppCompatActivity {
             return true;
         });
         parent.addView(iv);
+    }
+
+    /** 详情页图片可用宽（px）：屏宽扣掉页面 16dp×2、卡片 20dp×2、图片容器 8dp×2；答案区无左右内边距，同宽 */
+    private int availImageWidth(boolean answerBlock) {
+        return getResources().getDisplayMetrics().widthPixels - dp(88);
+    }
+
+    /** 详情页图片可视高（px）：屏高扣掉 56dp 顶栏、页边距与底部操作区，约 168dp */
+    private int availImageHeight() {
+        return getResources().getDisplayMetrics().heightPixels - dp(168);
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density);
     }
 
     /** 打开全屏看图并记录留存状态；弹窗关闭时清掉打开标记 */

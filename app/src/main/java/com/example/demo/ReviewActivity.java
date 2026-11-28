@@ -482,13 +482,15 @@ public class ReviewActivity extends AppCompatActivity {
 
         int idx = 0;
         reviewImageLayout.removeAllViews();
+        int contentCount = countImages(q.contentImages);
         if (q.contentImages != null) {
-            for (String path : q.contentImages) if (path != null && !path.isEmpty()) addImage(reviewImageLayout, path, idx++);
+            for (String path : q.contentImages) if (path != null && !path.isEmpty()) addImage(reviewImageLayout, path, idx++, contentCount, false);
         }
 
         answerImageLayout.removeAllViews();
+        int answerCount = countImages(q.answerImages);
         if (q.answerImages != null) {
-            for (String path : q.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++);
+            for (String path : q.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++, answerCount, true);
         }
 
         // 无图时整条横滚容器一起收起，避免纯文字题下方多出 16dp 外边距 + 8dp 内边距的空白
@@ -841,13 +843,26 @@ public class ReviewActivity extends AppCompatActivity {
         return SessionStorage.formatDuration(ms);
     }
 
-    private void addImage(LinearLayout parent, String path, int index) {
+    private void addImage(LinearLayout parent, String path, int index, int total, boolean answerBlock) {
         ImageView iv = new ImageView(this);
-        int size = (int) (280 * getResources().getDisplayMetrics().density);
-        iv.setLayoutParams(new LinearLayout.LayoutParams(size, LinearLayout.LayoutParams.WRAP_CONTENT));
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        iv.setAdjustViewBounds(true);
-        ImageLoader.bindThumb(this, iv, path, size);
+        iv.setTag(path);
+        int targetWidth = dp(280);
+        int[] fit = null;
+        if (total == 1 && SettingsActivity.isImageFitInReview(this)) {
+            int[] raw = ImageLoader.readImageSize(path);
+            fit = ImageFitRule.fitSingle(availImageWidth(answerBlock), availImageHeight(),
+                    raw == null ? 0 : raw[0], raw == null ? 0 : raw[1]);
+        }
+        if (fit != null) {
+            iv.setAdjustViewBounds(false);
+            iv.setLayoutParams(new LinearLayout.LayoutParams(fit[0], fit[1]));
+            targetWidth = fit[0];
+        } else {
+            iv.setAdjustViewBounds(true);
+            iv.setLayoutParams(new LinearLayout.LayoutParams(targetWidth, LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+        ImageLoader.bindThumb(this, iv, path, targetWidth);
         iv.setOnClickListener(v -> openFullscreenFromReview(index));
         iv.setOnLongClickListener(v -> {
             inlineMenuPath = path;
@@ -855,6 +870,28 @@ public class ReviewActivity extends AppCompatActivity {
             return true;
         });
         parent.addView(iv);
+    }
+
+    private int countImages(java.util.List<String> paths) {
+        if (paths == null) return 0;
+        int n = 0;
+        for (String p : paths) if (p != null && !p.isEmpty()) n++;
+        return n;
+    }
+
+    /** 图片可用宽（px）：屏宽扣掉页面 16dp×2、卡片 20dp×2、图片容器 8dp×2；答案区再扣 16dp×2 */
+    private int availImageWidth(boolean answerBlock) {
+        int offsetDp = answerBlock ? 120 : 88;
+        return getResources().getDisplayMetrics().widthPixels - dp(offsetDp);
+    }
+
+    /** 图片可视高（px）：屏高扣掉状态栏、页边距与底栏按钮，约 156dp */
+    private int availImageHeight() {
+        return getResources().getDisplayMetrics().heightPixels - dp(156);
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density);
     }
 
     // ==================== 作答 ====================

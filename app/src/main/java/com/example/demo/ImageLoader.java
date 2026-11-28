@@ -109,6 +109,18 @@ public final class ImageLoader {
     }
 
     /**
+     * 只读图片原始像素尺寸（不解码整图），用于单图自适应排版；失败返回 null。
+     */
+    public static int[] readImageSize(String path) {
+        if (path == null || path.isEmpty()) return null;
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, bounds);
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+        return new int[]{bounds.outWidth, bounds.outHeight};
+    }
+
+    /**
      * 内联缩略图：按 targetWidthPx 等比采样后贴到 iv；文件缺失或解码失败时清空。
      */
     public static void bindThumb(Activity activity, ImageView iv, String path, int targetWidthPx) {

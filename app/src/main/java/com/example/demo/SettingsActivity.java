@@ -20,6 +20,10 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_SHOW_BACKUP_HINT = "show_backup_hint";
     /** 做题时屏幕常亮（默认开）；复习页与题目详情页读它，见 {@link ScreenOn} */
     public static final String KEY_SCREEN_ON = "screen_on_while_practicing";
+    /** 复习页单图自适应放大（默认开） */
+    public static final String KEY_IMAGE_FIT_REVIEW = "image_fit_review";
+    /** 详情页单图自适应放大（默认关） */
+    public static final String KEY_IMAGE_FIT_DETAIL = "image_fit_detail";
 
     /** 设置项的存储位置，编辑页等别处读同一份 */
     private static final String SP_SETTINGS = "settings";
@@ -40,6 +44,18 @@ public class SettingsActivity extends AppCompatActivity {
     public static boolean isAutoTrimEnabled(android.content.Context context) {
         return context.getSharedPreferences(SP_SETTINGS, MODE_PRIVATE)
                 .getBoolean(KEY_AUTO_TRIM, true);
+    }
+
+    /** 复习页单图自适应（默认开）：单张题目图按可用宽度放大 */
+    public static boolean isImageFitInReview(android.content.Context context) {
+        return context.getSharedPreferences(SP_SETTINGS, MODE_PRIVATE)
+                .getBoolean(KEY_IMAGE_FIT_REVIEW, true);
+    }
+
+    /** 详情页单图自适应（默认关） */
+    public static boolean isImageFitInDetail(android.content.Context context) {
+        return context.getSharedPreferences(SP_SETTINGS, MODE_PRIVATE)
+                .getBoolean(KEY_IMAGE_FIT_DETAIL, false);
     }
 
     private Switch switchCheckin;
@@ -99,6 +115,24 @@ public class SettingsActivity extends AppCompatActivity {
         switchScreenOn.setOnCheckedChangeListener((buttonView, isChecked) -> {
             sp.edit().putBoolean(KEY_SCREEN_ON, isChecked).apply();
             applySwitchState(switchScreenOn, isChecked, true);
+        });
+
+        Switch switchReviewImage = findViewById(R.id.switch_review_image);
+        boolean reviewImageFit = sp.getBoolean(KEY_IMAGE_FIT_REVIEW, true);
+        switchReviewImage.setChecked(reviewImageFit);
+        applySwitchState(switchReviewImage, reviewImageFit, true);
+        switchReviewImage.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            sp.edit().putBoolean(KEY_IMAGE_FIT_REVIEW, isChecked).apply();
+            applySwitchState(switchReviewImage, isChecked, true);
+        });
+
+        Switch switchDetailImage = findViewById(R.id.switch_detail_image);
+        boolean detailImageFit = sp.getBoolean(KEY_IMAGE_FIT_DETAIL, false);
+        switchDetailImage.setChecked(detailImageFit);
+        applySwitchState(switchDetailImage, detailImageFit, true);
+        switchDetailImage.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            sp.edit().putBoolean(KEY_IMAGE_FIT_DETAIL, isChecked).apply();
+            applySwitchState(switchDetailImage, isChecked, true);
         });
 
         Switch switchAutoTrim = findViewById(R.id.switch_auto_trim);

@@ -59,7 +59,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/white"
+        android:background="@drawable/bg_card_grid"
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:paddingTop="12dp"
@@ -229,9 +229,11 @@
                 android:lineSpacingExtra="8dp" />
 
             <HorizontalScrollView
+                android:id="@+id/review_image_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
+                android:layout_marginTop="16dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:id="@+id/review_image_layout"
@@ -248,8 +250,8 @@
                 android:orientation="vertical"
                 android:visibility="gone"
                 android:layout_marginTop="24dp"
-                android:paddingTop="16dp"
-                android:background="@color/surface_subtle">
+                android:padding="16dp"
+                android:background="@drawable/bg_answer_block">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -268,9 +270,11 @@
                     android:layout_marginTop="8dp"/>
 
                 <HorizontalScrollView
+                    android:id="@+id/answer_image_scroll"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp">
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone">
 
                     <LinearLayout
                         android:id="@+id/answer_image_layout"

@@ -40,6 +40,14 @@ public final class OptionMenuPopup {
      */
     public static PopupWindow show(Context ctx, View anchor, String[] labels, int checked,
                                    boolean[] enabled, int widthDp, OnPick onPick) {
+        return show(ctx, anchor, labels, checked, enabled, widthDp, -1, onPick);
+    }
+
+    /**
+     * @param dangerIndex 用危险色（红字）展示的下标，-1 表示无；用于菜单末尾的破坏性动作
+     */
+    public static PopupWindow show(Context ctx, View anchor, String[] labels, int checked,
+                                   boolean[] enabled, int widthDp, int dangerIndex, OnPick onPick) {
         LinearLayout box = (LinearLayout) LayoutInflater.from(ctx)
                 .inflate(R.layout.popup_option_menu, null);
 
@@ -52,7 +60,7 @@ public final class OptionMenuPopup {
                         ViewGroup.LayoutParams.MATCH_PARENT, 1));
             }
             box.addView(buildRow(ctx, labels[i], i, checked,
-                    enabled == null || enabled[i], holder, onPick));
+                    enabled == null || enabled[i], i == dangerIndex, holder, onPick));
         }
 
         final PopupWindow popup = new PopupWindow(box, dp(ctx, widthDp),
@@ -68,7 +76,7 @@ public final class OptionMenuPopup {
     }
 
     private static View buildRow(Context ctx, String label, int index, int checked,
-                                 boolean enabled, PopupWindow[] holder, OnPick onPick) {
+                                 boolean enabled, boolean danger, PopupWindow[] holder, OnPick onPick) {
         TextView row = new TextView(ctx);
         row.setText(label);
         row.setTextSize(TypedValue.COMPLEX_UNIT_PX,
@@ -81,8 +89,10 @@ public final class OptionMenuPopup {
         boolean on = enabled && index == checked;
         int color = !enabled
                 ? ContextCompat.getColor(ctx, R.color.text_hint)
-                : (on ? ContextCompat.getColor(ctx, R.color.detail_primary)
-                      : ContextCompat.getColor(ctx, R.color.text_primary));
+                : (danger
+                      ? ContextCompat.getColor(ctx, R.color.state_danger_text)
+                      : (on ? ContextCompat.getColor(ctx, R.color.detail_primary)
+                            : ContextCompat.getColor(ctx, R.color.text_primary)));
         row.setTextColor(color);
         if (on) row.setTypeface(Typeface.DEFAULT_BOLD);
 

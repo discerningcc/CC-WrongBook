@@ -42,6 +42,8 @@ public class ReviewActivity extends AppCompatActivity {
     private ImageView btnFavorite;
     private LinearLayout metaRow;
     private LinearLayout reviewImageLayout, answerImageLayout, answerLayout;
+    private View reviewImageScroll, answerImageScroll;
+    private com.google.android.material.card.MaterialCardView btnAnswer;
     private LinearLayout bannerContainer;
 
     private ReviewSession session;
@@ -67,8 +69,8 @@ public class ReviewActivity extends AppCompatActivity {
     private boolean menuOpen;
     /** 当前展开的右上角菜单；null 表示未展开 */
     private PopupWindow reviewMenu;
-    /** 右上角菜单的选项，顺序与 onReviewMenuPick 的下标一致 */
-    private static final String[] REVIEW_MENU_LABELS = {"上一题", "跳过", "斩题", "管理本题"};
+    /** 右上角菜单的选项，顺序与 onReviewMenuPick 的下标一致；末项为危险动作 */
+    private static final String[] REVIEW_MENU_LABELS = {"上一题", "跳过", "斩题", "管理本题", "退出复习"};
     /** 复习页菜单标签最多四字，卡片比列表页排序菜单窄一些 */
     private static final int REVIEW_MENU_WIDTH_DP = 150;
 
@@ -275,7 +277,10 @@ public class ReviewActivity extends AppCompatActivity {
         tvAnswer = findViewById(R.id.tv_answer);
         reviewImageLayout = findViewById(R.id.review_image_layout);
         answerImageLayout = findViewById(R.id.answer_image_layout);
+        reviewImageScroll = findViewById(R.id.review_image_scroll);
+        answerImageScroll = findViewById(R.id.answer_image_scroll);
         answerLayout = findViewById(R.id.answer_layout);
+        btnAnswer = findViewById(R.id.btn_answer);
         bannerContainer = findViewById(R.id.session_banner);
         tvBanner = findViewById(R.id.tv_banner);
         btnBannerNew = findViewById(R.id.btn_banner_new);
@@ -483,6 +488,10 @@ public class ReviewActivity extends AppCompatActivity {
         if (q.answerImages != null) {
             for (String path : q.answerImages) if (path != null && !path.isEmpty()) addImage(answerImageLayout, path, idx++);
         }
+
+        // 无图时整条横滚容器一起收起，避免纯文字题下方多出 16dp 外边距 + 8dp 内边距的空白
+        reviewImageScroll.setVisibility(reviewImageLayout.getChildCount() > 0 ? View.VISIBLE : View.GONE);
+        answerImageScroll.setVisibility(answerImageLayout.getChildCount() > 0 ? View.VISIBLE : View.GONE);
 
         enableButtons(true);
         beginQuestionDwell(session.currentIndex);
@@ -1057,17 +1066,18 @@ public class ReviewActivity extends AppCompatActivity {
         return n + 1;
     }
 
-    /** 右上角菜单：上一题 / 跳过 / 斩题 / 管理本题；与列表页排序菜单同一套观感 */
+    /** 右上角菜单：上一题 / 跳过 / 斩题 / 管理本题 / 退出复习；与列表页排序菜单同一套观感 */
     private void openReviewMenu(View anchor) {
         menuOpen = true;
         boolean[] enabled = new boolean[]{
                 pending != null && !finished,
                 true,
                 true,
-                currentQuestion() != null && !finished
+                currentQuestion() != null && !finished,
+                !finished
         };
         reviewMenu = OptionMenuPopup.show(this, anchor, REVIEW_MENU_LABELS, -1, enabled,
-                REVIEW_MENU_WIDTH_DP, this::onReviewMenuPick);
+                REVIEW_MENU_WIDTH_DP, REVIEW_MENU_LABELS.length - 1, this::onReviewMenuPick);
         reviewMenu.setOnDismissListener(new PopupWindow.OnDismissListener() {
             @Override
             public void onDismiss() {
@@ -1089,6 +1099,8 @@ public class ReviewActivity extends AppCompatActivity {
             Intent detail = new Intent(this, QuestionDetailActivity.class);
             detail.putExtra("qid", q.id);
             startActivity(detail);
+        } else if (index == 4) {
+            confirmExit();
         }
     }
 
@@ -1142,8 +1154,15 @@ public class ReviewActivity extends AppCompatActivity {
     }
 
     private void syncAnswerButton() {
-        if (btnAnswerText != null) {
-            btnAnswerText.setText(answerLayout.getVisibility() == View.VISIBLE ? "收起" : "答案");
+        if (btnAnswerText == null) return;
+        boolean shown = answerLayout != null && answerLayout.getVisibility() == View.VISIBLE;
+        btnAnswerText.setText(shown ? "收起" : "答案");
+        // 已揭晓时退为次级样式：浅蓝实底只留给「去揭示」这个主动作
+        btnAnswerText.setTextColor(ContextCompat.getColor(this,
+                shown ? R.color.text_primary : R.color.white));
+        if (btnAnswer != null) {
+            btnAnswer.setCardBackgroundColor(ContextCompat.getColor(this,
+                    shown ? R.color.dialog_secondary_bg : R.color.action_primary));
         }
     }
 

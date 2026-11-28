@@ -52,19 +52,19 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private static final String DIALOG_RESTORE = "restore";
     private static final String DIALOG_DELETE = "delete";
 
-    // 四个操作确认弹窗的统一文案（重显与首弹共用，避免两处口径漂移）
-    private static final String T_RESTUDY = "重学本题";
-    private static final String M_RESTUDY = "确定要重学本题吗？\n将重置为 E 级，重新进入复习计划。";
-    private static final String B_RESTUDY = "确认重学";
-    private static final String T_RESTORE = "恢复本题";
-    private static final String M_RESTORE = "确定恢复本题吗？\n将重置为 E 级，重新进入复习计划。";
-    private static final String B_RESTORE = "确认恢复";
-    private static final String T_EXCLUDE = "斩题";
-    private static final String M_EXCLUDE = "本题将退出复习队列和长期抽查，题目本体保留，可在题目列表恢复。\n确定斩题吗？";
-    private static final String B_EXCLUDE = "确认斩题";
-    private static final String T_DELETE = "删除本题";
-    private static final String M_DELETE = "确定要删除本题吗？\n本题引用的图片将一并清理，删除后无法恢复！";
-    private static final String B_DELETE = "删除";
+    // 四个操作确认弹窗的统一文案：统一放 QuestionActions，与列表长按菜单共用一份，避免两处口径漂移
+    private static final String T_RESTUDY = QuestionActions.T_RESTUDY;
+    private static final String M_RESTUDY = QuestionActions.M_RESTUDY;
+    private static final String B_RESTUDY = QuestionActions.B_RESTUDY;
+    private static final String T_RESTORE = QuestionActions.T_RESTORE;
+    private static final String M_RESTORE = QuestionActions.M_RESTORE;
+    private static final String B_RESTORE = QuestionActions.B_RESTORE;
+    private static final String T_EXCLUDE = QuestionActions.T_EXCLUDE;
+    private static final String M_EXCLUDE = QuestionActions.M_EXCLUDE;
+    private static final String B_EXCLUDE = QuestionActions.B_EXCLUDE;
+    private static final String T_DELETE = QuestionActions.T_DELETE;
+    private static final String M_DELETE = QuestionActions.M_DELETE;
+    private static final String B_DELETE = QuestionActions.B_DELETE;
 
     /** 编辑图片：详情页没有草稿态，编辑结果回来即落库 */
     private final ActivityResultLauncher<Intent> editLauncher = registerForActivityResult(
@@ -152,26 +152,22 @@ public class QuestionDetailActivity extends AppCompatActivity {
     }
 
     private void confirmRestudy() {
-        QuestionStorage.restudyQuestion(this, currentQuestion);
-        Toast.makeText(this, "已重置，将重新复习", Toast.LENGTH_SHORT).show();
+        QuestionActions.execRestudy(this, currentQuestion);
         loadQuestionData(); // 刷新页面等级显示
     }
 
     private void confirmRestore() {
-        QuestionStorage.restoreQuestion(this, currentQuestion);
-        Toast.makeText(this, "已恢复，重新开始复习", Toast.LENGTH_SHORT).show();
+        QuestionActions.execRestore(this, currentQuestion);
         loadQuestionData();
     }
 
     private void confirmExclude() {
-        QuestionStorage.excludeQuestion(this, currentQuestion);
-        Toast.makeText(this, "已斩题，不再进入复习", Toast.LENGTH_SHORT).show();
+        QuestionActions.execExclude(this, currentQuestion);
         loadQuestionData();
     }
 
     private void confirmDelete() {
-        QuestionStorage.delete(this, currentQuestion);
-        Toast.makeText(this, "题目已删除", Toast.LENGTH_SHORT).show();
+        QuestionActions.execDelete(this, currentQuestion);
         finish();
     }
 

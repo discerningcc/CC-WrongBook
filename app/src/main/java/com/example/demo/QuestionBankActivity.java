@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
@@ -7,6 +8,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
+import android.view.HapticFeedbackConstants;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -55,6 +57,10 @@ public class QuestionBankActivity extends AppCompatActivity {
     private TextView tvSortLabel;
     /** 当前展开的排序菜单；null 表示未展开 */
     private PopupWindow sortMenu;
+    /** 当前展开的卡片长按菜单；null 表示未展开 */
+    private PopupWindow itemMenu;
+    /** 卡片动作确认弹窗打开期间置忙，避免连点叠弹 */
+    private boolean actionBusy;
     /** 旋转重建后是否要重弹排序菜单（仅配置变更时置位） */
     private boolean sortMenuOpenForRestore;
     private Adapter adapter;
@@ -374,8 +380,42 @@ public class QuestionBankActivity extends AppCompatActivity {
         reload();
     }
 
-    private void refreshTitle() {
-        ((TextView) findViewById(R.id.tv_bank_title))
+    // ==================== 卡片长按菜单 ====================
+
+    /** 长按卡片就地弹动作菜单：普通题 修改/重学/斩题/删除；已斩题 修改/恢复/删除 */
+    private void showItemMenu(View card, Question q) {
+        if (actionBusy || q == null) return;
+        String[] labels = QuestionActions.menuLabels(q);
+        // 菜单与卡片等宽：视觉上像卡片自己展开的一层，也不会只盖住半边卡
+        int cardDp = (int) (card.getWidth() / getResources().getDisplayMetrics().density);
+        int widthDp = Math.max(OptionMenuPopup.DEFAULT_WIDTH_DP, cardDp);
+        final PopupWindow popup = OptionMenuPopup.showForCard(this, card, labels, widthDp,
+                QuestionActions.dangerIndexOf(q), index -> onItemAction(q, index));
+        popup.setOnDismissListener(() -> {
+            if (itemMenu == popup) itemMenu = null;
+        });
+        itemMenu = popup;
+    }
+
+    /** 菜单项派发：修改跳编辑页；其余走统一确认弹窗，确认后执行并回刷列表 */
+    private void onItemAction(Question q, int index) {
+        int kind = QuestionActions.kindAt(q, index);
+        if (kind == QuestionActions.EDIT) {
+            Intent intent = new Intent(this, AddQuestionActivity.class);
+            intent.putExtra("edit_qid", q.id);
+            startActivity(intent);
+            return;
+        }
+        actionBusy = true;
+        Dialog dialog = QuestionActions.confirm(this, kind, q, this::reload);
+        if (dialog == null) {
+            actionBusy = false;
+            return;
+        }
+        dialog.setOnDismissListener(d -> actionBusy = false);
+    }
+
+    private void refreshTitle() {        ((TextView) findViewById(R.id.tv_bank_title))
                 .setText("题库：" + QuestionStorage.getCurrentBankName(this) + " ▾");
     }
 
@@ -509,6 +549,8 @@ public class QuestionBankActivity extends AppCompatActivity {
         // 只有旋转这类配置变更才在重建后重弹；切到别的页面不重弹
         sortMenuOpenForRestore = showing && isChangingConfigurations();
         if (showing) sortMenu.dismiss();
+        // 卡片长按菜单是就地操作，切页面一律收起，旋转后不重弹
+        if (itemMenu != null && itemMenu.isShowing()) itemMenu.dismiss();
     }
 
     private int dp(int value) {
@@ -549,6 +591,13 @@ public class QuestionBankActivity extends AppCompatActivity {
                 Intent intent = new Intent(v.getContext(), QuestionDetailActivity.class);
                 intent.putExtra("qid", q.id);
                 v.getContext().startActivity(intent);
+            });
+
+            // 长按卡片：就地弹动作菜单，免去先进详情页再操作
+            holder.itemView.setOnLongClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                showItemMenu(v, q);
+                return true;
             });
 
             holder.star.setOnClickListener(v -> {

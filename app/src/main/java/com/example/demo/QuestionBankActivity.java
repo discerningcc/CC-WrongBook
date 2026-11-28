@@ -50,7 +50,11 @@ public class QuestionBankActivity extends AppCompatActivity {
     private static final String STATE_LEVEL = "list_level";
     private static final String STATE_SORT = "list_sort";
     private static final String STATE_SORT_MENU = "list_sort_menu_open";
+    private static final String STATE_ITEM_MENU = "list_item_menu_qid";
+    private static final String STATE_ACTION_QID = "list_action_qid";
+    private static final String STATE_ACTION_KIND = "list_action_kind";
 
+    private RecyclerView recyclerView;
     private SearchView searchView;
     private TextView tvStats;
     private TextView tvEmpty;
@@ -59,8 +63,19 @@ public class QuestionBankActivity extends AppCompatActivity {
     private PopupWindow sortMenu;
     /** 当前展开的卡片长按菜单；null 表示未展开 */
     private PopupWindow itemMenu;
+    /** 卡片菜单对应的题目 id；菜单展开期间有效 */
+    private String itemMenuQid;
     /** 卡片动作确认弹窗打开期间置忙，避免连点叠弹 */
     private boolean actionBusy;
+    /** 打开中的确认弹窗对应题目与动作类型；无弹窗时 actionQid 为 null */
+    private String actionQid;
+    private int actionKind = -1;
+    /** 当前确认弹窗实例：旋转/离开页面前主动收掉，避免窗口泄漏与重弹叠层 */
+    private Dialog currentActionDialog;
+    /** 旋转重建后要重弹的卡片菜单 / 确认弹窗（仅配置变更时置位） */
+    private String restoreItemMenuQid;
+    private String restoreActionQid;
+    private int restoreActionKind = -1;
     /** 旋转重建后是否要重弹排序菜单（仅配置变更时置位） */
     private boolean sortMenuOpenForRestore;
     private Adapter adapter;
@@ -99,7 +114,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_question_bank);
 
-        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        recyclerView = findViewById(R.id.recyclerView);
         searchView = findViewById(R.id.search_view);
         tvStats = findViewById(R.id.tv_stats);
         tvEmpty = findViewById(R.id.tv_empty);
@@ -129,6 +144,9 @@ public class QuestionBankActivity extends AppCompatActivity {
             levelFilter = savedInstanceState.getInt(STATE_LEVEL, -1);
             sortOption = QuestionSort.clamp(savedInstanceState.getInt(STATE_SORT, sortOption));
             restoreSortMenu = savedInstanceState.getBoolean(STATE_SORT_MENU, false);
+            restoreItemMenuQid = savedInstanceState.getString(STATE_ITEM_MENU);
+            restoreActionQid = savedInstanceState.getString(STATE_ACTION_QID);
+            restoreActionKind = savedInstanceState.getInt(STATE_ACTION_KIND, -1);
         }
         updateSortLabel();
 
@@ -174,6 +192,18 @@ public class QuestionBankActivity extends AppCompatActivity {
         }
 
         reload();
+
+        // 旋转重建后重弹长按菜单 / 确认弹窗：等网格排好版、卡片视图就位再弹
+        if (restoreItemMenuQid != null || restoreActionQid != null) {
+            final String menuQid = restoreItemMenuQid;
+            final String actionForRestore = restoreActionQid;
+            final int kindForRestore = restoreActionKind;
+            recyclerView.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                if (actionForRestore != null) restoreActionDialog(actionForRestore, kindForRestore);
+                if (menuQid != null) restoreItemMenu(menuQid);
+            });
+        }
     }
 
     // ==================== 顶部筛选胶囊 ====================
@@ -392,9 +422,13 @@ public class QuestionBankActivity extends AppCompatActivity {
         final PopupWindow popup = OptionMenuPopup.showForCard(this, card, labels, widthDp,
                 QuestionActions.dangerIndexOf(q), index -> onItemAction(q, index));
         popup.setOnDismissListener(() -> {
-            if (itemMenu == popup) itemMenu = null;
+            if (itemMenu == popup) {
+                itemMenu = null;
+                itemMenuQid = null;
+            }
         });
         itemMenu = popup;
+        itemMenuQid = q.id;
     }
 
     /** 菜单项派发：修改跳编辑页；其余走统一确认弹窗，确认后执行并回刷列表 */
@@ -407,15 +441,89 @@ public class QuestionBankActivity extends AppCompatActivity {
             return;
         }
         actionBusy = true;
+        actionQid = q.id;
+        actionKind = kind;
         Dialog dialog = QuestionActions.confirm(this, kind, q, this::reload);
         if (dialog == null) {
             actionBusy = false;
+            actionQid = null;
+            actionKind = -1;
             return;
         }
-        dialog.setOnDismissListener(d -> actionBusy = false);
+        currentActionDialog = dialog;
+        dialog.setOnDismissListener(d -> {
+            currentActionDialog = null;
+            actionBusy = false;
+            actionQid = null;
+            actionKind = -1;
+        });
     }
 
-    private void refreshTitle() {        ((TextView) findViewById(R.id.tv_bank_title))
+    /** 按 id 找题：旋转重建后重弹菜单/弹窗都用它定位 */
+    private Question questionById(String qid) {
+        if (qid == null) return null;
+        for (Question q : allQuestions) {
+            if (qid.equals(q.id)) return q;
+        }
+        return null;
+    }
+
+    private int positionOf(String qid) {
+        for (int i = 0; i < shown.size(); i++) {
+            Question q = shown.get(i);
+            if (qid != null && qid.equals(q.id)) return i;
+        }
+        return -1;
+    }
+
+    /** 旋转重建后重弹卡片长按菜单：卡片还在原位就直接贴回去，被滚出屏幕则先滚到再弹 */
+    private void restoreItemMenu(String qid) {
+        Question q = questionById(qid);
+        int pos = positionOf(qid);
+        if (q == null || pos < 0) return;   // 题目被删/被筛掉，菜单没有归属，不再重弹
+        recyclerView.post(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(pos);
+            if (holder != null) {
+                showItemMenu(holder.itemView, q);
+                return;
+            }
+            recyclerView.scrollToPosition(pos);
+            recyclerView.postDelayed(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                RecyclerView.ViewHolder again = recyclerView.findViewHolderForAdapterPosition(pos);
+                if (again != null) showItemMenu(again.itemView, q);
+            }, 250);
+        });
+    }
+
+    /** 旋转重建后重弹确认弹窗：题目没了或类型失效就安静放弃，别弹半截 */
+    private void restoreActionDialog(String qid, int kind) {
+        Question q = questionById(qid);
+        if (q == null || kind <= QuestionActions.EDIT) return;
+        if (kind == QuestionActions.RESTORE && !q.excluded) return;
+        if (kind == QuestionActions.EXCLUDE && q.excluded) return;
+        actionBusy = true;
+        actionQid = qid;
+        actionKind = kind;
+        Dialog dialog = QuestionActions.confirm(this, kind, q, this::reload);
+        if (dialog == null) {
+            actionBusy = false;
+            actionQid = null;
+            actionKind = -1;
+            return;
+        }
+        currentActionDialog = dialog;
+        dialog.setOnDismissListener(d -> {
+            currentActionDialog = null;
+            actionBusy = false;
+            actionQid = null;
+            actionKind = -1;
+        });
+    }
+
+    private void refreshTitle() {
+        ((TextView) findViewById(R.id.tv_bank_title))
                 .setText("题库：" + QuestionStorage.getCurrentBankName(this) + " ▾");
     }
 
@@ -532,6 +640,10 @@ public class QuestionBankActivity extends AppCompatActivity {
         outState.putInt(STATE_SORT, sortOption);
         // 旋转时保住菜单展开态（只认配置变更，切到别的页面不该重弹）
         outState.putBoolean(STATE_SORT_MENU, sortMenuOpenForRestore);
+        // 卡片长按菜单与确认弹窗同样按配置变更留存，重弹时靠题目 id 找位置
+        outState.putString(STATE_ITEM_MENU, restoreItemMenuQid);
+        outState.putString(STATE_ACTION_QID, restoreActionQid);
+        outState.putInt(STATE_ACTION_KIND, restoreActionKind);
     }
 
     @Override
@@ -549,8 +661,34 @@ public class QuestionBankActivity extends AppCompatActivity {
         // 只有旋转这类配置变更才在重建后重弹；切到别的页面不重弹
         sortMenuOpenForRestore = showing && isChangingConfigurations();
         if (showing) sortMenu.dismiss();
-        // 卡片长按菜单是就地操作，切页面一律收起，旋转后不重弹
-        if (itemMenu != null && itemMenu.isShowing()) itemMenu.dismiss();
+
+        // 卡片长按菜单：旋转时记下所属题目，重建后贴回原卡；切页面则安静收起
+        boolean itemShowing = itemMenu != null && itemMenu.isShowing();
+        restoreItemMenuQid = (itemShowing && isChangingConfigurations()) ? itemMenuQid : null;
+        if (itemShowing) itemMenu.dismiss();
+
+        // 确认弹窗同理：旋转时记下题目与动作类型，重建后重弹；切页面则丢弃
+        boolean dialogOpen = actionQid != null;
+        if (dialogOpen && isChangingConfigurations()) {
+            restoreActionQid = actionQid;
+            restoreActionKind = actionKind;
+        } else {
+            restoreActionQid = null;
+            restoreActionKind = -1;
+        }
+        if (dialogOpen) {
+            // Dialog 随 Activity 窗口一起销毁，这里主动收掉，避免重弹时叠两层
+            dismissOpenActionDialog();
+        }
+    }
+
+    /** 收掉当前确认弹窗并复位忙标记（保留 restore* 快照，供旋转重建后重弹） */
+    private void dismissOpenActionDialog() {
+        if (currentActionDialog != null && currentActionDialog.isShowing()) {
+            currentActionDialog.dismiss();
+        }
+        currentActionDialog = null;
+        actionBusy = false;
     }
 
     private int dp(int value) {

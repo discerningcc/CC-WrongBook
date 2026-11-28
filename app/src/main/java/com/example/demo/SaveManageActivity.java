@@ -1,6 +1,5 @@
 package com.example.demo;
 
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.net.Uri;
@@ -147,28 +146,33 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
     }
 
     private void showBankActions(QuestionStorage.BankInfo info) {
-        String[] actions = {"切换到此题库", "重命名", "导出", "删除"};
-        new AlertDialog.Builder(this)
-                .setTitle(info.name)
-                .setItems(actions, (d, which) -> {
-                    switch (which) {
-                        case 0:
-                            QuestionStorage.switchBank(this, info.id);
-                            Toast.makeText(this, "已切换到：" + info.name, Toast.LENGTH_SHORT).show();
-                            finish();
-                            break;
-                        case 1:
-                            showRenameDialog(info);
-                            break;
-                        case 2:
-                            exportBank(info);
-                            break;
-                        case 3:
-                            showDeleteDialog(info);
-                            break;
-                    }
-                })
-                .show();
+        // 统一弹窗基座：标题放题库名，正文放题数与更新时间；当前题库不显示「切换到此题库」
+        String message = info.count + " 题 · " + formatTime(info.updatedAt);
+        if (info.current) {
+            AppDialog.actions(this, info.name, message,
+                    new String[]{"重命名", "导出", "删除"},
+                    new Runnable[]{
+                            () -> showRenameDialog(info),
+                            () -> exportBank(info),
+                            () -> showDeleteDialog(info)},
+                    new int[]{AppDialog.STYLE_PRIMARY, AppDialog.STYLE_SECONDARY, AppDialog.STYLE_DANGER},
+                    () -> { });
+        } else {
+            AppDialog.actions(this, info.name, message,
+                    new String[]{"切换到此题库", "重命名", "导出", "删除"},
+                    new Runnable[]{
+                            () -> {
+                                QuestionStorage.switchBank(this, info.id);
+                                Toast.makeText(this, "已切换到：" + info.name, Toast.LENGTH_SHORT).show();
+                                finish();
+                            },
+                            () -> showRenameDialog(info),
+                            () -> exportBank(info),
+                            () -> showDeleteDialog(info)},
+                    new int[]{AppDialog.STYLE_PRIMARY, AppDialog.STYLE_SECONDARY,
+                            AppDialog.STYLE_SECONDARY, AppDialog.STYLE_DANGER},
+                    () -> { });
+        }
     }
 
     private void showRenameDialog(QuestionStorage.BankInfo info) {

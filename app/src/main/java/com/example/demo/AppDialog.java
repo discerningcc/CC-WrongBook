@@ -103,6 +103,15 @@ public final class AppDialog {
      */
     public static Dialog actions(Activity activity, String title, String message,
                                  String[] labels, Runnable[] runs, Runnable onCancel) {
+        return actions(activity, title, message, labels, runs, null, onCancel);
+    }
+
+    /**
+     * 同上，styles 可逐行指定按钮样式（AppDialog.STYLE_*）；为 null 或长度不足时按默认：
+     * 第一行主按钮、其余次级按钮。
+     */
+    public static Dialog actions(Activity activity, String title, String message,
+                                 String[] labels, Runnable[] runs, int[] styles, Runnable onCancel) {
         Dialog dialog = build(activity, title, message, null);
         LinearLayout actions = dialog.findViewById(R.id.ll_card_actions);
         // 只改宽高，保留布局里定义的正文与按钮区间距；直接 new LayoutParams 会把 margin 一起抹掉
@@ -115,7 +124,11 @@ public final class AppDialog {
         int index = 0;
         for (int i = 0; i < labels.length; i++) {
             if (labels[i] == null) continue;
-            TextView btn = button(activity, index == 0 ? STYLE_PRIMARY : STYLE_SECONDARY, labels[i]);
+            TextView btn = button(activity,
+                    styles != null && i < styles.length && styles[i] >= 0
+                            ? styles[i]
+                            : (index == 0 ? STYLE_PRIMARY : STYLE_SECONDARY),
+                    labels[i]);
             actions.addView(btn, verticalParams(activity, index));
             index++;
         }
@@ -140,10 +153,11 @@ public final class AppDialog {
 
     // ==================== 内部实现 ====================
 
-    private static final int STYLE_PRIMARY = 0;
-    private static final int STYLE_SECONDARY = 1;
-    private static final int STYLE_DANGER = 2;
-    private static final int STYLE_TERTIARY = 3;
+    /** 竖排动作行样式：0 主按钮、1 次级、2 危险、3 弱化（取消行用） */
+    public static final int STYLE_PRIMARY = 0;
+    public static final int STYLE_SECONDARY = 1;
+    public static final int STYLE_DANGER = 2;
+    public static final int STYLE_TERTIARY = 3;
 
     /** 建卡片：标题必填，正文/输入提示按需 */
     private static Dialog build(Activity activity, String title, String message, String hint) {

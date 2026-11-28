@@ -22,6 +22,7 @@ import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -813,7 +814,7 @@ public class ReviewActivity extends AppCompatActivity {
         String text = "总 " + formatDuration(totalNow())
                 + " · 本题 " + formatDuration(dwellNow());
         tvTimer.setText(text);
-        int color = paused ? 0xFF9E9E9E : 0xFF2E7D32;
+        int color = ContextCompat.getColor(this, paused ? R.color.level_e : R.color.timer_active);
         tvTimer.setTextColor(color);
         if (ivTimerState != null) {
             ivTimerState.setImageResource(paused ? R.drawable.ic_timer_pause : R.drawable.ic_timer_play);
@@ -888,16 +889,9 @@ public class ReviewActivity extends AppCompatActivity {
         }
     }
 
-    /** 等级徽章颜色：与题库列表页保持一致 E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红 */
+    /** 等级徽章颜色：口径统一在 QuestionStorage.statusColor（E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红） */
     private static int levelColor(String status) {
-        switch (status) {
-            case "S": return 0xfff44336;
-            case "A": return 0xffff9800;
-            case "B": return 0xff9c27b0;
-            case "C": return 0xff2196f3;
-            case "D": return 0xff4caf50;
-            default: return 0xff9e9e9e;
-        }
+        return QuestionStorage.statusColor(status);
     }
 
     /**

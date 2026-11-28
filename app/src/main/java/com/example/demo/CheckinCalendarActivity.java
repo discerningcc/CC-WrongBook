@@ -189,7 +189,7 @@ public class CheckinCalendarActivity extends AppCompatActivity {
 
         if (rec != null) {
             tv.setBackgroundResource(R.drawable.bg_checkin_checked);
-            tv.setTextColor(0xFFFFFFFF);
+            tv.setTextColor(getColor(R.color.white));
             tv.setOnClickListener(v -> showDetail(rec));
         } else if (isToday) {
             // 可打卡时描边加粗并加粗数字，点了直接打卡；未达标仍是浅描边
@@ -200,7 +200,7 @@ public class CheckinCalendarActivity extends AppCompatActivity {
             if (readyToday) tv.setTypeface(null, Typeface.BOLD);
             tv.setOnClickListener(v -> onTodayClick());
         } else if (future) {
-            tv.setTextColor(0xFF999999);
+            tv.setTextColor(getColor(R.color.text_hint));
         } else {
             tv.setTextColor(getColor(R.color.text_secondary));
         }

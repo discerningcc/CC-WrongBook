@@ -13,6 +13,8 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import androidx.core.content.ContextCompat;
+
 /**
  * 贴着锚点展开的选项菜单：白色圆角卡片，选项之间用 1px 细灰线分隔。
  * 列表页「排序」与复习页「右上角菜单」共用，保证两处观感一致。
@@ -21,11 +23,6 @@ public final class OptionMenuPopup {
 
     /** 卡片默认宽度（dp）；必须是固定值，PopupWindow 会把内容视图撑满窗口 */
     public static final int DEFAULT_WIDTH_DP = 184;
-
-    private static final int COLOR_TEXT = 0xFF222222;
-    private static final int COLOR_TEXT_ON = 0xff1f6aa5;
-    private static final int COLOR_TEXT_OFF = 0xFF999999;
-    private static final int COLOR_DIVIDER = 0xffececec;
 
     public interface OnPick {
         /**
@@ -50,7 +47,7 @@ public final class OptionMenuPopup {
         for (int i = 0; i < labels.length; i++) {
             if (i > 0) {
                 View line = new View(ctx);
-                line.setBackgroundColor(COLOR_DIVIDER);
+                line.setBackgroundColor(ContextCompat.getColor(ctx, R.color.divider));
                 box.addView(line, new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, 1));
             }
@@ -81,7 +78,11 @@ public final class OptionMenuPopup {
         row.setEnabled(enabled);
 
         boolean on = enabled && index == checked;
-        row.setTextColor(!enabled ? COLOR_TEXT_OFF : (on ? COLOR_TEXT_ON : COLOR_TEXT));
+        int color = !enabled
+                ? ContextCompat.getColor(ctx, R.color.text_hint)
+                : (on ? ContextCompat.getColor(ctx, R.color.detail_primary)
+                      : ContextCompat.getColor(ctx, R.color.text_primary));
+        row.setTextColor(color);
         if (on) row.setTypeface(Typeface.DEFAULT_BOLD);
 
         if (enabled) {

@@ -137,7 +137,7 @@
                 android:orientation="vertical"
                 android:layout_marginTop="24dp"
                 android:paddingTop="16dp"
-                android:background="#f8f8f8">
+                android:background="@color/surface_subtle">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -145,7 +145,7 @@
                     android:text="【答案】"
                     android:textSize="@dimen/text_size_title"
                     android:textStyle="bold"
-                    android:textColor="#1f6aa5" />
+                    android:textColor="@color/detail_primary" />
 
                 <TextView
                     android:id="@+id/tv_answer"

@@ -13,6 +13,30 @@
     <color name="text_hint">#999999</color>
     <color name="divider">#E0E0E0</color>
 
+    <!-- 面与特殊底：非文字、非分隔线的填充色 -->
+    <!-- 答案区等浅底分块 -->
+    <color name="surface_subtle">#F8F8F8</color>
+    <!-- 图片加载前的占位底 / 缩略图占位底 -->
+    <color name="image_placeholder">#EFEFEF</color>
+    <!-- 选中胶囊底（深灰底 + 白字） -->
+    <color name="chip_selected_bg">#222222</color>
+    <!-- 复习量选项选中底 -->
+    <color name="option_selected_bg">#E8F1FC</color>
+    <!-- 看图页底部圆点：未选中态（白色 40%） -->
+    <color name="on_image_dot_off">#66FFFFFF</color>
+    <!-- 计时器运行中文字与图标（深绿，比语义绿更沉） -->
+    <color name="timer_active">#2E7D32</color>
+    <!-- 列表搜索命中的高亮字 -->
+    <color name="highlight_match">#F56C00</color>
+
+    <!-- 等级徽章配色：与 QuestionStorage.statusColor 保持同一套值 -->
+    <color name="level_s">#F44336</color>
+    <color name="level_a">#FF9800</color>
+    <color name="level_b">#9C27B0</color>
+    <color name="level_c">#2196F3</color>
+    <color name="level_d">#4CAF50</color>
+    <color name="level_e">#9E9E9E</color>
+
     <!-- 全应用统一：页底与主操作色 -->
     <color name="page_bg">#F0F2F5</color>
     <!-- 主操作（按钮底、开关、选中描边、进度）：沿用品牌浅蓝 -->

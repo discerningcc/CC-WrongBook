@@ -22,6 +22,7 @@ import android.widget.SearchView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
@@ -207,7 +208,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             if (chip == null) continue;
             boolean on = (i == 0) ? catMask == 0 : (catMask & (1 << i)) != 0;
             chip.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
-            chip.setTextColor(on ? 0xffffffff : 0xFF616161);
+            chip.setTextColor(on ? getColor(R.color.white) : getColor(R.color.text_secondary));
         }
     }
 
@@ -265,7 +266,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             int chipLevel = i - 1; // 0 号胶囊对应全部等级
             boolean on = (chipLevel == levelFilter);
             chip.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
-            chip.setTextColor(on ? 0xffffffff : 0xFF616161);
+            chip.setTextColor(on ? getColor(R.color.white) : getColor(R.color.text_secondary));
         }
     }
 
@@ -610,7 +611,7 @@ public class QuestionBankActivity extends AppCompatActivity {
                 String status = q.status == null ? "E" : q.status;
                 if (q.excluded) {
                     badge.setText("斩");
-                    badge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
+                    badge.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(itemView.getContext(), R.color.text_secondary)));
                 } else {
                     badge.setText(status);
                     badge.setBackgroundTintList(ColorStateList.valueOf(statusColor(status)));
@@ -643,7 +644,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             for (String t : tokens) {
                 int idx = lower.indexOf(t);
                 while (idx >= 0) {
-                    span.setSpan(new ForegroundColorSpan(0xfff56c00), idx, idx + t.length(),
+                    span.setSpan(new ForegroundColorSpan(ContextCompat.getColor(QuestionBankActivity.this, R.color.highlight_match)), idx, idx + t.length(),
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     span.setSpan(new StyleSpan(Typeface.BOLD), idx, idx + t.length(),
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);

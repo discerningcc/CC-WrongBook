@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#ffffff"
+    android:background="@color/white"
     android:orientation="vertical"
     android:layout_marginHorizontal="12dp"
     android:layout_marginTop="8dp"
@@ -61,7 +61,7 @@
                     android:paddingVertical="1dp"
                     android:textSize="@dimen/text_size_caption"
                     android:textStyle="bold"
-                    android:textColor="#ffffff"
+                    android:textColor="@color/white"
                     android:text="E"/>
 
                 <!-- 图片张数 · 到期情况 · 上次更新时间 -->

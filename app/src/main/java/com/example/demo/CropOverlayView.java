@@ -2,6 +2,7 @@ package com.example.demo;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
@@ -72,13 +73,13 @@ public class CropOverlayView extends View {
 
         maskPaint.setColor(0xCC000000);
         maskPaint.setStyle(Paint.Style.FILL);
-        borderPaint.setColor(0xFFFFFFFF);
+        borderPaint.setColor(Color.WHITE);
         borderPaint.setStyle(Paint.Style.STROKE);
         borderPaint.setStrokeWidth(borderWidth);
         guidePaint.setColor(0x66FFFFFF);
         guidePaint.setStyle(Paint.Style.STROKE);
         guidePaint.setStrokeWidth(1f * d);
-        handlePaint.setColor(0xFFFFFFFF);
+        handlePaint.setColor(Color.WHITE);
         handlePaint.setStyle(Paint.Style.FILL);
 
         // 深色垫层：边框垫在下面稍粗，白线才有黑边轮廓；三分线同理

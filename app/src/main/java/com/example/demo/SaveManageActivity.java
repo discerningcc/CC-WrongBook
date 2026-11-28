@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -303,7 +304,7 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
         public void onBindViewHolder(@NonNull VH holder, int position) {
             QuestionStorage.BankInfo info = items.get(position);
             holder.tvName.setText(info.name + (info.current ? "（当前）" : ""));
-            holder.tvName.setTextColor(info.current ? 0xFF1f6aa5 : 0xFF222222);
+            holder.tvName.setTextColor(info.current ? ContextCompat.getColor(holder.itemView.getContext(), R.color.detail_primary) : ContextCompat.getColor(holder.itemView.getContext(), R.color.text_primary));
             holder.tvSub.setText(info.count + " 题 · " + formatTime(info.updatedAt));
             holder.itemView.setOnClickListener(v -> {
                 QuestionStorage.switchBank(SaveManageActivity.this, info.id);

@@ -40,7 +40,7 @@
             android:text="开始新一轮"
             android:textSize="@dimen/text_size_caption"
             android:textStyle="bold"
-            android:textColor="#1f6aa5"
+            android:textColor="@color/detail_primary"
             android:visibility="gone" />
 
         <TextView
@@ -115,7 +115,7 @@
                     android:paddingRight="12dp"
                     android:text="⋮"
                     android:textSize="@dimen/text_size_body"
-                    android:textColor="#1f6aa5" />
+                    android:textColor="@color/detail_primary" />
             </LinearLayout>
 
             <!-- 工具栏与正文分隔线 -->
@@ -145,7 +145,7 @@
                     android:paddingBottom="2dp"
                     android:textSize="@dimen/text_size_caption"
                     android:textStyle="bold"
-                    android:textColor="#ffffff" />
+                    android:textColor="@color/white" />
 
                 <TextView
                     android:id="@+id/tv_progress"
@@ -249,7 +249,7 @@
                 android:visibility="gone"
                 android:layout_marginTop="24dp"
                 android:paddingTop="16dp"
-                android:background="#f8f8f8">
+                android:background="@color/surface_subtle">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -257,7 +257,7 @@
                     android:text="【答案】"
                     android:textSize="@dimen/text_size_title"
                     android:textStyle="bold"
-                    android:textColor="#1f6aa5"/>
+                    android:textColor="@color/detail_primary"/>
 
                 <TextView
                     android:id="@+id/tv_answer"

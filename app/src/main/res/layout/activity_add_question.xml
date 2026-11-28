@@ -93,7 +93,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:text="添加题目图片"
-                    android:textColor="#1f6aa5"
+                    android:textColor="@color/detail_primary"
                     android:gravity="center" />
 
                 <View
@@ -174,7 +174,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:text="添加答案图片"
-                    android:textColor="#1f6aa5"
+                    android:textColor="@color/detail_primary"
                     android:gravity="center" />
 
                 <View

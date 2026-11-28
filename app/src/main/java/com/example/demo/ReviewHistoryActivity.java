@@ -74,7 +74,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
             TextView empty = new TextView(this);
             empty.setText("暂无复习记录\n\n完成一次复习，或中途退出复习后，这里会留下足迹");
             empty.setTextSize(14);
-            empty.setTextColor(0xFF999999);
+            empty.setTextColor(getColor(R.color.text_hint));
             empty.setGravity(android.view.Gravity.CENTER);
             empty.setPadding(dp(24), dp(64), dp(24), dp(24));
             container.addView(empty);
@@ -116,7 +116,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         TextView footer = new TextView(this);
         footer.setText("每个题库最多保留最近 100 条记录，更早的会自动清理");
         footer.setTextSize(12);
-        footer.setTextColor(0xFF999999);
+        footer.setTextColor(getColor(R.color.text_hint));
         footer.setGravity(android.view.Gravity.CENTER);
         footer.setPadding(dp(16), dp(24), dp(16), dp(24));
         container.addView(footer);
@@ -131,7 +131,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         TextView head = new TextView(this);
         head.setText(header + " · " + count + " 条 " + (open ? "▾" : "▸"));
         head.setTextSize(14);
-        head.setTextColor(0xFF999999);
+        head.setTextColor(getColor(R.color.text_hint));
         head.setPadding(dp(16), dp(16), dp(16), dp(6));
 
         LinearLayout body = new LinearLayout(this);
@@ -155,7 +155,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         TextView tv = new TextView(this);
         tv.setText(text);
         tv.setTextSize(14);
-        tv.setTextColor(0xFF999999);
+        tv.setTextColor(getColor(R.color.text_hint));
         tv.setPadding(dp(16), dp(16), dp(16), dp(6));
         return tv;
     }
@@ -247,7 +247,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
             if (it.dwellMs > 0) text += " · " + SessionStorage.formatDuration(it.dwellMs);
             row.setText(text);
             row.setTextSize(12);
-            row.setTextColor(0xFF616161);
+            row.setTextColor(getColor(R.color.text_secondary));
             row.setLineSpacing(dp(2), 1.1f);
             row.setPadding(0, dp(6), 0, dp(6));
 

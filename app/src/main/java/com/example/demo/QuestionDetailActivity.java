@@ -249,7 +249,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         tvLevelBadge.setText(status);
         tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(QuestionStorage.statusColor(status)));
         tvExcludedBadge.setVisibility(currentQuestion.excluded ? View.VISIBLE : View.GONE);
-        tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(0xff616161));
+        tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(getColor(R.color.text_secondary)));
 
         applyEncounterVisibility(currentQuestion, status);
 

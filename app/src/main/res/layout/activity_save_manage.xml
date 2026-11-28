@@ -30,7 +30,7 @@
             android:layout_marginEnd="8dp"
             android:text="新建"
             android:textSize="@dimen/text_size_emphasis"
-            android:textColor="#1f6aa5"/>
+            android:textColor="@color/detail_primary"/>
 
         <TextView
             android:id="@+id/btn_import_bank"
@@ -40,7 +40,7 @@
             android:layout_marginEnd="8dp"
             android:text="导入"
             android:textSize="@dimen/text_size_emphasis"
-            android:textColor="#1f6aa5"/>
+            android:textColor="@color/detail_primary"/>
 
         <TextView
             android:id="@+id/btn_export_bank"
@@ -50,7 +50,7 @@
             android:layout_marginEnd="16dp"
             android:text="导出"
             android:textSize="@dimen/text_size_emphasis"
-            android:textColor="#1f6aa5"/>
+            android:textColor="@color/detail_primary"/>
     </LinearLayout>
 
     <!-- 操作提示 -->

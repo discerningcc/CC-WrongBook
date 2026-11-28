@@ -219,7 +219,7 @@ public class CheckinCalendarActivity extends AppCompatActivity {
                 Toast.makeText(this, "题库为空，暂无可打卡记录", Toast.LENGTH_SHORT).show();
                 return;
             case NOT_YET:
-                Toast.makeText(this, "完成今日目标或无到期题目后可打卡", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "完成今日目标或待复习清零后可打卡", Toast.LENGTH_SHORT).show();
                 return;
             case READY:
             default:

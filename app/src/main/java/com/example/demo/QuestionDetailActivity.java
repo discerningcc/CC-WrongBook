@@ -21,6 +21,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     private TextView tvQuestion, tvAnswer, tvLevelBadge, tvExcludedBadge;
     private TextView tvEncId, tvEncCount, tvEncTime;
     private LinearLayout encounterBlock, reviewImageLayout, answerImageLayout, answerLayout, actionGroup;
+    private View answerImageScroll;
     private View btnExclude, btnRestudy, btnDelete;
     private TextView btnExcludeText;
     private ImageView btnExcludeIcon;
@@ -86,6 +87,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
         reviewImageLayout = findViewById(R.id.review_image_layout);
         answerLayout = findViewById(R.id.answer_layout);
         answerImageLayout = findViewById(R.id.answer_image_layout);
+        answerImageScroll = findViewById(R.id.answer_image_scroll);
         actionGroup = findViewById(R.id.action_group);
         btnExclude = findViewById(R.id.btn_exclude);
         btnExcludeText = findViewById(R.id.btn_exclude_text);
@@ -238,6 +240,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
             encounterBlock.setVisibility(View.GONE);
             btnFavorite.setVisibility(View.GONE);
             answerLayout.setVisibility(View.GONE);
+            answerImageScroll.setVisibility(View.GONE);
             actionGroup.setVisibility(View.GONE);
             reviewImageLayout.removeAllViews();
             answerImageLayout.removeAllViews();
@@ -269,6 +272,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
         boolean hasAnswerText = currentQuestion.answer != null && !currentQuestion.answer.trim().isEmpty();
         boolean hasAnswerImages = currentQuestion.answerImages != null && !currentQuestion.answerImages.isEmpty();
         answerLayout.setVisibility(hasAnswerText || hasAnswerImages ? View.VISIBLE : View.GONE);
+        // 无答案图时整条横滚收起，避免卡片底部多出一条空白
+        answerImageScroll.setVisibility(hasAnswerImages ? View.VISIBLE : View.GONE);
 
         // 斩题 / 恢复按钮状态：已斩题只留「恢复」，隐藏「重学」；普通题保留「重学 + 斩题」
         int secondaryText = getColor(R.color.text_secondary);

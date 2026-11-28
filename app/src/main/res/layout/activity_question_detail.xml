@@ -179,9 +179,11 @@
                     android:layout_marginTop="8dp" />
 
                 <HorizontalScrollView
+                    android:id="@+id/answer_image_scroll"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp">
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone">
                     <LinearLayout
                         android:id="@+id/answer_image_layout"
                         android:layout_width="wrap_content"

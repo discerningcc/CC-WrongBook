@@ -172,7 +172,7 @@ public final class AppDialog {
         btn.setText(text);
         btn.setGravity(android.view.Gravity.CENTER);
         btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        btn.setTextColor(textColor(activity, style));
+        btn.setTextColor(ContextCompat.getColor(activity, textColor(activity, style)));
         if (style == STYLE_DANGER) {
             btn.setBackgroundResource(R.drawable.bg_dialog_danger);
         } else {

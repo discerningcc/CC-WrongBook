@@ -408,7 +408,6 @@ public class ReviewActivity extends AppCompatActivity {
 
     private void showCrossDayPrompt(ReviewSession active) {
         int remaining = Math.max(0, active.originalTotal() - active.closedOriginalCount());
-        int dueToday = QuestionStorage.getTodayReview(this).size();
 
         StringBuilder msg = new StringBuilder();
         msg.append(SessionStorage.formatDateHeader(active.startTime)).append(" ")
@@ -419,9 +418,6 @@ public class ReviewActivity extends AppCompatActivity {
         msg.append("本次会话已跨日，将按 ")
                 .append(SessionStorage.formatDateHeader(active.startTime))
                 .append(" 归入复习记录");
-        if (dueToday > remaining) {
-            msg.append("\n\n今天共有 ").append(dueToday).append(" 题待复习");
-        }
 
         restoreDialog = DIALOG_CROSSDAY;
         showPrompt("上次复习未完成", msg.toString(),

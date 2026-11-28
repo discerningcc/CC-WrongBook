@@ -98,7 +98,7 @@
                     android:layout_marginTop="10dp"
                     android:max="100"
                     android:progress="0"
-                    android:progressTint="@color/home_primary"
+                    android:progressTint="@color/action_primary"
                     android:progressBackgroundTint="@color/home_stroke" />
 
                 <!-- 未来 7 天到期分布：今天 + 后 6 天；7 天全空时整块隐藏 -->
@@ -194,7 +194,7 @@
             android:layout_height="@dimen/home_primary_height"
             android:clickable="true"
             android:focusable="true"
-            app:cardBackgroundColor="@color/home_primary"
+            app:cardBackgroundColor="@color/action_primary"
             app:cardCornerRadius="@dimen/home_card_corner"
             android:foreground="?attr/selectableItemBackground"
             android:contentDescription="开始复习"

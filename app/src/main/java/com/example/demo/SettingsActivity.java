@@ -57,6 +57,8 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
         Switch switchNaturalDay = findViewById(R.id.switch_natural_day);
         SharedPreferences sp = getSharedPreferences("settings", MODE_PRIVATE);
 

@@ -6,35 +6,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#f0f2f5">
+    android:background="@color/page_bg">
 
     <!-- 标题栏：返回 + 居中标题 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:background="#ffffff"
-        android:elevation="4dp">
+    <LinearLayout style="@style/TopBar">
 
         <TextView
             android:id="@+id/btn_back"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:paddingHorizontal="16dp"
-            android:gravity="center"
-            android:text="←"
-            android:textSize="20sp"
-            android:textColor="#333333" />
+            style="@style/TopBarBack" />
 
         <TextView
             android:id="@+id/title_bar"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:text="添加题目"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            style="@style/TopBarTitle"
+            android:text="添加题目" />
+
+        <View
+            android:layout_width="56dp"
+            android:layout_height="1dp" />
     </LinearLayout>
 
     <ScrollView
@@ -232,7 +220,7 @@
                     android:layout_height="60dp"
                     android:layout_weight="1"
                     app:cardCornerRadius="12dp"
-                    app:cardBackgroundColor="#5d9cec">
+                    app:cardBackgroundColor="@color/action_primary">
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"

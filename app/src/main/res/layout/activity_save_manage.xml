@@ -3,22 +3,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#f5f5f5">
+    android:background="@color/page_bg">
 
     <!-- 标题栏 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="#ffffff"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:elevation="4dp">
+    <LinearLayout style="@style/TopBar">
+
+        <TextView
+            android:id="@+id/btn_back"
+            style="@style/TopBarBack" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="16dp"
+            android:paddingStart="8dp"
             android:text="题库管理"
             android:textSize="18sp"
             android:textStyle="bold"

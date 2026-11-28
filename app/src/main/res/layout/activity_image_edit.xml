@@ -109,7 +109,7 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_gravity="center"
-            android:indeterminateTint="@color/home_primary" />
+            android:indeterminateTint="@color/action_primary" />
     </FrameLayout>
 
     <!-- 编辑工具条：旋转两个方向 + 裁剪（裁剪会按设置自动去白边） -->

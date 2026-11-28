@@ -3,37 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#f0f2f5">
+    android:background="@color/page_bg">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="#5d9cec"
-        android:paddingLeft="8dp"
-        android:paddingRight="8dp">
+    <LinearLayout style="@style/TopBar">
 
         <TextView
             android:id="@+id/btn_history_back"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
-            android:text="返回"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp" />
+            style="@style/TopBarBack" />
 
         <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="复习记录"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            style="@style/TopBarTitle"
+            android:text="复习记录" />
 
         <View
             android:layout_width="56dp"

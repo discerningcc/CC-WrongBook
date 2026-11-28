@@ -59,6 +59,7 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
         adapter = new BankAdapter();
         recycler.setAdapter(adapter);
 
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_new_bank).setOnClickListener(v -> showNewBankDialog());
         findViewById(R.id.btn_import_bank).setOnClickListener(v -> openImport());
         findViewById(R.id.btn_export_bank).setOnClickListener(v -> {

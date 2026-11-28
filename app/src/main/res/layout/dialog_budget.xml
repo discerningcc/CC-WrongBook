@@ -296,7 +296,7 @@
             android:textSize="15sp"
             android:textColor="@color/home_card"
             android:background="@drawable/bg_prompt_button"
-            android:backgroundTint="@color/home_primary"
+            android:backgroundTint="@color/action_primary"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground" />

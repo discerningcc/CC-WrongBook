@@ -11,6 +11,38 @@
 
     <style name="Theme.Demo" parent="Base.Theme.Demo" />
 
+    <!-- 全应用统一顶栏：白底 56dp + 4dp 投影，左侧返回箭头 + 居中 18sp 粗体标题 -->
+    <style name="TopBar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:background">@color/home_card</item>
+        <item name="android:elevation">4dp</item>
+    </style>
+
+    <!-- 顶栏左侧返回：56dp 宽热区，「←」20sp 深灰 -->
+    <style name="TopBarBack">
+        <item name="android:layout_width">56dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:gravity">center</item>
+        <item name="android:text">←</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/home_text_primary</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+    </style>
+
+    <!-- 顶栏标题：占满剩余宽度、居中、18sp 粗体 -->
+    <style name="TopBarTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/home_text_primary</item>
+    </style>
+
     <!-- 图片编辑页：与详情页同一套浅底，状态栏与导航栏同色、图标转深色 -->
     <style name="Theme.Demo.ImageEdit" parent="Theme.Demo">
         <item name="android:windowBackground">@color/edit_bg</item>

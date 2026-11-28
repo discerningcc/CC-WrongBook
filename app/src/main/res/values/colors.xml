@@ -4,8 +4,13 @@
     <color name="white">#FFFFFFFF</color>
     <color name="switch_thumb">#FFFFFF</color>
     <color name="switch_thumb_disabled">#BDBDBD</color>
-    <color name="switch_track">#5d9cec</color>
+    <color name="switch_track">@color/action_primary</color>
     <color name="switch_track_disabled">#E0E0E0</color>
+
+    <!-- 全应用统一：页底与主操作色 -->
+    <color name="page_bg">#F0F2F5</color>
+    <!-- 主操作（按钮底、开关、选中描边、进度、链接）：白字对比约 6:1 -->
+    <color name="action_primary">#1F6AA5</color>
 
     <!-- 详情页操作区语义色 -->
     <color name="detail_primary">#1F6AA5</color>
@@ -18,13 +23,14 @@
     <color name="detail_text_secondary">#616161</color>
     <color name="favorite_gold">#FFB300</color>
 
-    <!-- 图片编辑页：与详情页一致的浅灰页底 -->
-    <color name="edit_bg">#F5F5F5</color>
+    <!-- 图片编辑页：与其他页共用同一档页底 -->
+    <color name="edit_bg">@color/page_bg</color>
     <color name="edit_stage_bg">#111111</color>
 
     <!-- 主页 -->
+    <!-- 品牌浅蓝：仅用于图表等数据可视化，不再作按钮/顶栏底色 -->
     <color name="home_primary">#5D9CEC</color>
-    <color name="home_bg">#F0F2F5</color>
+    <color name="home_bg">@color/page_bg</color>
     <color name="home_card">#FFFFFF</color>
     <color name="home_stroke">#E0E0E0</color>
     <color name="home_text_primary">#333333</color>

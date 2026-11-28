@@ -29,7 +29,7 @@
         android:layout_height="46dp"
         android:layout_marginTop="20dp"
         android:background="@drawable/bg_prompt_button"
-        android:backgroundTint="#5d9cec"
+        android:backgroundTint="@color/action_primary"
         android:gravity="center"
         android:textColor="#FFFFFF"
         android:textSize="16sp" />

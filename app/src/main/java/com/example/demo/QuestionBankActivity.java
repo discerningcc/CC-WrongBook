@@ -132,6 +132,9 @@ public class QuestionBankActivity extends AppCompatActivity {
                 startActivity(new Intent(this, SaveManageActivity.class))
         );
 
+        // 顶栏左侧返回
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
         // 标题栏右侧：切换排序
         tvSortLabel.setOnClickListener(v -> showSortMenu());
 

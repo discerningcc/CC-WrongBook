@@ -159,8 +159,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:layout_marginTop="24dp"
-                android:paddingTop="16dp"
-                android:background="@color/surface_subtle">
+                android:padding="16dp"
+                android:background="@drawable/bg_answer_block">
 
                 <TextView
                     android:layout_width="wrap_content"

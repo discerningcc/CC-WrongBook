@@ -105,9 +105,13 @@ public final class AppDialog {
                                  String[] labels, Runnable[] runs, Runnable onCancel) {
         Dialog dialog = build(activity, title, message, null);
         LinearLayout actions = dialog.findViewById(R.id.ll_card_actions);
+        // 只改宽高，保留布局里定义的正文与按钮区间距；直接 new LayoutParams 会把 margin 一起抹掉
+        LinearLayout.LayoutParams actionParams =
+                (LinearLayout.LayoutParams) actions.getLayoutParams();
+        actionParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        actionParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        actions.setLayoutParams(actionParams);
         actions.setOrientation(LinearLayout.VERTICAL);
-        actions.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         int index = 0;
         for (int i = 0; i < labels.length; i++) {
             if (labels[i] == null) continue;
@@ -215,11 +219,11 @@ public final class AppDialog {
         return lp;
     }
 
-    /** 竖排按钮：整宽 46dp，非首个按钮上方 8dp */
+    /** 竖排按钮：整宽 46dp，非首个按钮上方 10dp（与并排按钮一致） */
     private static LinearLayout.LayoutParams verticalParams(Activity activity, int index) {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 46));
-        if (index > 0) lp.topMargin = dp(activity, 8);
+        if (index > 0) lp.topMargin = dp(activity, 10);
         return lp;
     }
 

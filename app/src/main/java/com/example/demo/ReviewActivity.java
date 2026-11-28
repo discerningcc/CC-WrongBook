@@ -436,7 +436,7 @@ public class ReviewActivity extends AppCompatActivity {
                     restoreDialog = null;
                     startNewSession(true);
                 },
-                "取消（退出复习）", this::finish,
+                null, null,
                 this::finish);
     }
 

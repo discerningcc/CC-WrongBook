@@ -156,6 +156,8 @@ public class ReviewActivity extends AppCompatActivity {
         // 重新进入复习时自动恢复计时：暂停态只在本次停留（含旋转重建）内保留，退出后重进不再保持暂停
         if (savedInstanceState == null && active != null) {
             active.timerPaused = false;
+            // 答案展开态同样只在本次停留内保留：退出后重进一律收起，不把「已看答案」带到下一题和下一次
+            active.answerShown = false;
         }
         if (active == null) {
             startNewSession(false);

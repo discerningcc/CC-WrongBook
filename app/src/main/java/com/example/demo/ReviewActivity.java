@@ -26,9 +26,7 @@ import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * 复习页：一次复习 = 一个 ReviewSession。
@@ -410,7 +408,7 @@ public class ReviewActivity extends AppCompatActivity {
 
     private void showCrossDayPrompt(ReviewSession active) {
         int remaining = Math.max(0, active.originalTotal() - active.closedOriginalCount());
-        int fresh = countFreshToday(active);
+        int dueToday = QuestionStorage.getTodayReview(this).size();
 
         StringBuilder msg = new StringBuilder();
         msg.append(SessionStorage.formatDateHeader(active.startTime)).append(" ")
@@ -421,8 +419,8 @@ public class ReviewActivity extends AppCompatActivity {
         msg.append("本次会话已跨日，将按 ")
                 .append(SessionStorage.formatDateHeader(active.startTime))
                 .append(" 归入复习记录");
-        if (fresh > 0) {
-            msg.append("\n\n今日另有 ").append(fresh).append(" 题新到期，不在本次会话内");
+        if (dueToday > remaining) {
+            msg.append("\n\n今天共有 ").append(dueToday).append(" 题待复习");
         }
 
         restoreDialog = DIALOG_CROSSDAY;
@@ -438,17 +436,6 @@ public class ReviewActivity extends AppCompatActivity {
                 },
                 null, null,
                 this::finish);
-    }
-
-    /** 今日到期但完全不在这条会话里的题数 */
-    private int countFreshToday(ReviewSession active) {
-        Set<String> inSession = new HashSet<>();
-        for (ReviewSession.Item it : active.items) inSession.add(it.questionId);
-        int fresh = 0;
-        for (Question q : QuestionStorage.getTodayReview(this)) {
-            if (!inSession.contains(q.id)) fresh++;
-        }
-        return fresh;
     }
 
     // ==================== 显示 ====================

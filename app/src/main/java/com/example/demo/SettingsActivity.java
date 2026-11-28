@@ -18,6 +18,8 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_SHOW_DUE_CHART = "show_due_chart";
     /** 主页是否显示「备份提醒」一行（默认开） */
     public static final String KEY_SHOW_BACKUP_HINT = "show_backup_hint";
+    /** 做题时屏幕常亮（默认开）；复习页与题目详情页读它，见 {@link ScreenOn} */
+    public static final String KEY_SCREEN_ON = "screen_on_while_practicing";
 
     /** 设置项的存储位置，编辑页等别处读同一份 */
     private static final String SP_SETTINGS = "settings";
@@ -86,6 +88,15 @@ public class SettingsActivity extends AppCompatActivity {
         switchTimer.setOnCheckedChangeListener((buttonView, isChecked) -> {
             sp.edit().putBoolean(KEY_TIMER_ENABLED, isChecked).apply();
             applySwitchState(switchTimer, isChecked, true);
+        });
+
+        Switch switchScreenOn = findViewById(R.id.switch_screen_on);
+        boolean screenOn = sp.getBoolean(KEY_SCREEN_ON, true);
+        switchScreenOn.setChecked(screenOn);
+        applySwitchState(switchScreenOn, screenOn, true);
+        switchScreenOn.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            sp.edit().putBoolean(KEY_SCREEN_ON, isChecked).apply();
+            applySwitchState(switchScreenOn, isChecked, true);
         });
 
         Switch switchAutoTrim = findViewById(R.id.switch_auto_trim);

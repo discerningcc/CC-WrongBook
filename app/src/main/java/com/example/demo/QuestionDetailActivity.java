@@ -209,6 +209,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadQuestionData(); // 关键：每次回来都重新加载
+        ScreenOn.apply(this); // 看题目详情时不自动息屏，跟随设置项
     }
 
     // 抽取成方法，方便刷新

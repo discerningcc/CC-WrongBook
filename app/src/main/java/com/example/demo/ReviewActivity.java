@@ -685,6 +685,7 @@ public class ReviewActivity extends AppCompatActivity {
             showCurrentQuestion();
         }
         resumeTimer();
+        ScreenOn.apply(this);   // 做题时常亮：按设置项给窗口加/清标记，旋转重建后也要重新加
     }
 
     /** 磁盘记录已被外部删除：丢弃内存会话与未提交缓冲，重新拉起一轮复习 */

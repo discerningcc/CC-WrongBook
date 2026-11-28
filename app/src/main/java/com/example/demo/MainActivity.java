@@ -296,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (already) {
             tv.setText("今日已打卡 ✓" + (streak > 0 ? " · 连续 " + streak + " 天" : ""));
-            tv.setTextColor(getColor(R.color.detail_success));
+            tv.setTextColor(getColor(R.color.state_success_text));
             tv.setClickable(false);
         } else if (eligible) {
             tv.setText("今日打卡");

@@ -183,7 +183,7 @@
                     android:visibility="gone"
                     android:text="当前题库还没有题目，先添加新题吧"
                     android:textSize="13sp"
-                    android:textColor="@color/detail_warn" />
+                    android:textColor="@color/state_warn_text" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

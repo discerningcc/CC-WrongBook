@@ -12,12 +12,19 @@
     <!-- 主操作（按钮底、开关、选中描边、进度）：沿用品牌浅蓝 -->
     <color name="action_primary">#5D9CEC</color>
 
-    <!-- 详情页操作区语义色 -->
+    <!-- 语义色：填充用基础色，文字/描边/图标用加深档，保证白底可读 -->
+    <color name="state_success">#52C41A</color>
+    <color name="state_success_text">#389E0D</color>
+    <color name="state_warn">#FAAD14</color>
+    <color name="state_warn_text">#AD6800</color>
+    <!-- 提示条底色：与警告文字配套的浅底 -->
+    <color name="state_warn_bg">#FFF7E6</color>
+    <color name="state_danger">#FF4D4F</color>
+    <color name="state_danger_text">#CF1322</color>
+
+    <!-- 详情页操作区 -->
     <color name="detail_primary">#1F6AA5</color>
     <color name="detail_secondary_stroke">#9E9E9E</color>
-    <color name="detail_warn">#FF9800</color>
-    <color name="detail_success">#4CAF50</color>
-    <color name="detail_danger">#FF4D4F</color>
     <color name="detail_divider">#E0E0E0</color>
     <color name="detail_text_primary">#333333</color>
     <color name="detail_text_secondary">#616161</color>

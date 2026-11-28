@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="#fff7e6"
+        android:background="@color/state_warn_bg"
         android:paddingLeft="12dp"
         android:paddingRight="8dp"
         android:paddingTop="8dp"
@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textSize="13sp"
-            android:textColor="#ad6800" />
+            android:textColor="@color/state_warn_text" />
 
         <TextView
             android:id="@+id/btn_banner_new"
@@ -50,7 +50,7 @@
             android:gravity="center"
             android:text="×"
             android:textSize="18sp"
-            android:textColor="#ad6800" />
+            android:textColor="@color/state_warn_text" />
 
     </LinearLayout>
 
@@ -297,8 +297,8 @@
             android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            app:cardCornerRadius="14dp"
-            app:cardBackgroundColor="#52c41a">
+            app:cardCornerRadius="@dimen/corner_card"
+            app:cardBackgroundColor="@color/state_success">
 
             <TextView
                 android:layout_width="match_parent"
@@ -315,8 +315,8 @@
             android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            app:cardCornerRadius="14dp"
-            app:cardBackgroundColor="#faad14">
+            app:cardCornerRadius="@dimen/corner_card"
+            app:cardBackgroundColor="@color/state_warn">
 
             <TextView
                 android:layout_width="match_parent"
@@ -333,8 +333,8 @@
             android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            app:cardCornerRadius="14dp"
-            app:cardBackgroundColor="#ff4d4f">
+            app:cardCornerRadius="@dimen/corner_card"
+            app:cardBackgroundColor="@color/state_danger">
 
             <TextView
                 android:layout_width="match_parent"
@@ -350,8 +350,8 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            app:cardCornerRadius="14dp"
-            app:cardBackgroundColor="#1f6aa5">
+            app:cardCornerRadius="@dimen/corner_card"
+            app:cardBackgroundColor="@color/detail_primary">
 
             <TextView
                 android:id="@+id/btn_answer_text"

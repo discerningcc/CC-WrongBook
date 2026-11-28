@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 全应用圆角三档：卡片 / 按钮与输入类控件 / 胶囊 -->
+    <dimen name="corner_card">14dp</dimen>
+    <dimen name="corner_control">12dp</dimen>
+    <dimen name="corner_pill">100dp</dimen>
+
     <!-- 主页间距与尺寸 -->
     <dimen name="home_padding">16dp</dimen>
-    <dimen name="home_card_corner">14dp</dimen>
+    <dimen name="home_card_corner">@dimen/corner_card</dimen>
     <dimen name="home_primary_height">64dp</dimen>
-    <dimen name="home_secondary_height">54dp</dimen>
+    <!-- 次级入口与复习页四键同高 -->
+    <dimen name="home_secondary_height">52dp</dimen>
     <dimen name="home_card_margin">10dp</dimen>
     <dimen name="home_inner_margin">5dp</dimen>
     <dimen name="home_info_padding">16dp</dimen>

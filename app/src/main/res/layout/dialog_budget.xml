@@ -272,7 +272,7 @@
         <EditText
             android:id="@+id/row_custom_input"
             android:layout_width="104dp"
-            android:layout_height="38dp"
+            android:layout_height="46dp"
             android:gravity="center"
             android:inputType="number"
             android:maxLength="3"
@@ -287,7 +287,7 @@
         <TextView
             android:id="@+id/btn_custom_confirm"
             android:layout_width="wrap_content"
-            android:layout_height="38dp"
+            android:layout_height="46dp"
             android:layout_marginStart="10dp"
             android:paddingLeft="16dp"
             android:paddingRight="16dp"

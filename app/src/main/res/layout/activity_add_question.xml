@@ -206,20 +206,20 @@
                 <TextView
                     android:id="@+id/btn_save_continue"
                     android:layout_width="0dp"
-                    android:layout_height="60dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
                     android:layout_marginRight="10dp"
                     android:background="@drawable/bg_add_button"
                     android:text="保存并继续"
-                    android:textColor="#1f6aa5"
+                    android:textColor="@color/action_primary"
                     android:gravity="center" />
 
                 <androidx.cardview.widget.CardView
                     android:id="@+id/btn_save"
                     android:layout_width="0dp"
-                    android:layout_height="60dp"
+                    android:layout_height="52dp"
                     android:layout_weight="1"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="@dimen/corner_card"
                     app:cardBackgroundColor="@color/action_primary">
                     <TextView
                         android:layout_width="match_parent"

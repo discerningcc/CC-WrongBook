@@ -157,7 +157,7 @@ public class SettingsActivity extends AppCompatActivity {
         } else {
             tvCheckinTitle.setTextColor(getColor(R.color.home_text_secondary));
             tvCheckinHint.setText("24 小时模式无固定日界，打卡功能不可用；历史记录仍保留");
-            tvCheckinHint.setTextColor(getColor(R.color.detail_warn));
+            tvCheckinHint.setTextColor(getColor(R.color.state_warn_text));
             checkinGuide.setBackgroundColor(getColor(R.color.home_stroke));
         }
     }

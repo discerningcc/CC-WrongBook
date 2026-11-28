@@ -47,7 +47,7 @@
                 android:layout_height="wrap_content"
                 android:visibility="gone"
                 android:textSize="12sp"
-                android:textColor="@color/detail_warn"
+                android:textColor="@color/state_warn_text"
                 android:layout_marginTop="6dp" />
 
             <LinearLayout

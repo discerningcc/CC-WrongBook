@@ -2,6 +2,6 @@
 <!-- 编辑页顶栏：与详情页同款白色卡片 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <corners android:radius="14dp" />
+    <corners android:radius="@dimen/corner_card" />
     <solid android:color="@android:color/white" />
 </shape>

@@ -257,7 +257,7 @@ public class QuestionDetailActivity extends AppCompatActivity {
 
         // 斩题 / 恢复按钮状态：已斩题只留「恢复」，隐藏「重学」；普通题保留「重学 + 斩题」
         int secondaryText = getColor(R.color.detail_text_secondary);
-        int success = getColor(R.color.detail_success);
+        int success = getColor(R.color.state_success_text);
         if (currentQuestion.excluded) {
             btnRestudy.setVisibility(View.GONE);
             btnExcludeText.setText("恢复");

@@ -181,7 +181,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:visibility="gone"
-                    android:text="当前题库还没有题目，先添加新题吧"
+                    android:text="当前题库还没有题目，先添加题目吧"
                     android:textSize="13sp"
                     android:textColor="@color/state_warn_text" />
             </LinearLayout>
@@ -285,14 +285,14 @@
                 android:focusable="true"
                 android:background="@drawable/bg_home_secondary"
                 android:foreground="?attr/selectableItemBackground"
-                android:contentDescription="添加新题"
+                android:contentDescription="添加题目"
                 android:gravity="center"
                 android:layout_margin="@dimen/home_inner_margin">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="添加新题"
+                    android:text="添加题目"
                     android:textColor="@color/detail_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />

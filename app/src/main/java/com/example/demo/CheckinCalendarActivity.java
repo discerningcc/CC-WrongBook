@@ -8,7 +8,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.text.SimpleDateFormat;
@@ -259,11 +258,7 @@ public class CheckinCalendarActivity extends AppCompatActivity {
         String timeText = SessionStorage.formatTime(rec.checkedAt);
         String bankText = rec.bankName == null || rec.bankName.isEmpty() ? "—" : rec.bankName;
 
-        new AlertDialog.Builder(this)
-                .setTitle(dateText)
-                .setMessage(goalText + "\n打卡时间：" + timeText + "\n题库：" + bankText)
-                .setPositiveButton("关闭", null)
-                .show();
+        AppDialog.info(this, dateText, goalText + "\n打卡时间：" + timeText + "\n题库：" + bankText);
     }
 
     private static String dateKeyOf(int y, int m, int d) {

@@ -1,6 +1,5 @@
 package com.example.demo;
 
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -15,8 +14,6 @@ import android.os.SystemClock;
 import android.graphics.Rect;
 import android.view.TouchDelegate;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -1123,16 +1120,13 @@ public class ReviewActivity extends AppCompatActivity {
         Question q = currentQuestion();
         if (q == null) return;
         restoreDialog = DIALOG_EXCLUDE;
-        new AlertDialog.Builder(this)
-                .setTitle("斩题")
-                .setMessage("这道题将退出复习队列和长期抽查，不再占用今日任务；题目本体保留，可在题目列表恢复。\n确定斩题吗？")
-                .setPositiveButton("斩题", (dialog, which) -> {
+        Dialog dialog = AppDialog.confirm(this, "斩题",
+                "本题将退出复习队列和长期抽查，不再占用今日任务；题目本体保留，可在题目列表恢复。\n确定斩题吗？",
+                "确认斩题", false, () -> {
                     restoreDialog = null;
                     answerQuestion(ReviewSession.RESULT_EXCLUDED);
-                })
-                .setNegativeButton("取消", (dialog, which) -> restoreDialog = null)
-                .setOnCancelListener(d -> restoreDialog = null)
-                .show();
+                });
+        dialog.setOnDismissListener(d -> restoreDialog = null);
     }
 
     /** 跳过：不动等级、不刷新 updateTime，只把这道题记成跳过 */
@@ -1299,12 +1293,15 @@ public class ReviewActivity extends AppCompatActivity {
             return;
         }
         restoreDialog = DIALOG_EXIT;
-        showPrompt("退出复习？",
+        Dialog exitDialog = AppDialog.actions(this, "退出复习？",
                 "已完成 " + session.closedOriginalCount() + " / " + session.originalTotal() + " 题，进度已保存\n下次进入可继续",
-                "继续复习", () -> { restoreDialog = null; },
-                "退出", () -> { restoreDialog = null; finish(); },
-                null, null,
-                () -> restoreDialog = null);
+                new String[]{"继续复习", "退出"},
+                new Runnable[]{() -> restoreDialog = null, () -> {
+                    restoreDialog = null;
+                    finish();
+                }},
+                null);
+        exitDialog.setOnCancelListener(d -> restoreDialog = null);
     }
 
     private void openHistory() {
@@ -1323,42 +1320,9 @@ public class ReviewActivity extends AppCompatActivity {
                             String b2Text, Runnable b2,
                             String b3Text, Runnable b3,
                             Runnable onCancel) {
-        Dialog dialog = new Dialog(this);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-
-        View view = getLayoutInflater().inflate(R.layout.dialog_common_prompt, null);
-        ((TextView) view.findViewById(R.id.tv_dialog_title)).setText(title);
-        ((TextView) view.findViewById(R.id.tv_dialog_message)).setText(message);
-
-        setupPromptButton(view, dialog, R.id.btn_dialog_primary, b1Text, b1);
-        setupPromptButton(view, dialog, R.id.btn_dialog_secondary, b2Text, b2);
-        setupPromptButton(view, dialog, R.id.btn_dialog_tertiary, b3Text, b3);
-
-        if (onCancel != null) {
-            dialog.setOnCancelListener(d -> onCancel.run());
-        }
-
-        dialog.setContentView(view);
-        dialog.show();
-
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawableResource(android.R.color.transparent);
-            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.9f);
-            window.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT);
-        }
-    }
-
-    private void setupPromptButton(View root, Dialog dialog, int id, String text, Runnable action) {
-        TextView btn = root.findViewById(id);
-        if (text == null || action == null) {
-            btn.setVisibility(View.GONE);
-            return;
-        }
-        btn.setText(text);
-        btn.setOnClickListener(v -> {
-            dialog.dismiss();
-            action.run();
-        });
+        AppDialog.actions(this, title, message,
+                new String[]{b1Text, b2Text, b3Text},
+                new Runnable[]{b1, b2, b3},
+                onCancel);
     }
 }

@@ -1,6 +1,6 @@
 package com.example.demo;
 
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
@@ -475,16 +475,12 @@ public class AddQuestionActivity extends AppCompatActivity {
     private void confirmDelete(int group, String path) {
         deleteGroup = group;
         deletePath = path;
-        new AlertDialog.Builder(this)
-                .setTitle("删除图片")
-                .setMessage("确定删除这张图吗？")
-                .setOnDismissListener(d -> {
-                    deleteGroup = -1;
-                    deletePath = null;
-                })
-                .setPositiveButton("删除", (dialog, which) -> doDelete(group, path))
-                .setNegativeButton("取消", null)
-                .show();
+        Dialog dialog = AppDialog.confirm(this, "删除图片", "确定删除这张图吗？", "删除", true,
+                () -> doDelete(group, path));
+        dialog.setOnDismissListener(d -> {
+            deleteGroup = -1;
+            deletePath = null;
+        });
     }
 
     private void doDelete(int group, String path) {
@@ -733,25 +729,20 @@ public class AddQuestionActivity extends AppCompatActivity {
 
     private void showDiscardConfirm() {
         discardConfirmOpen = true;
-        new AlertDialog.Builder(this)
-                .setTitle("放弃当前编辑")
-                .setMessage("内容尚未保存，确定放弃吗？")
-                .setOnDismissListener(d -> discardConfirmOpen = false)
-                .setPositiveButton("放弃", (dialog, which) -> {
-                    discarding = true;
-                    // 本次新选、未保存进题库的图片随草稿一并删除，避免残留孤儿文件；基线既有图不在此列
-                    List<String> unsaved = new ArrayList<>();
-                    for (String p : combinedPaths()) {
-                        if (!initContentImgs.contains(p) && !initAnswerImgs.contains(p)) unsaved.add(p);
-                    }
-                    clearDraft();
-                    for (String p : unsaved) {
-                        QuestionStorage.deletePrivateImageIfUnused(this, p);
-                    }
-                    finish();
-                })
-                .setNegativeButton("继续编辑", null)
-                .show();
+        Dialog dialog = AppDialog.confirm(this, "放弃当前编辑", "内容尚未保存，确定放弃吗？", "放弃", true, () -> {
+            discarding = true;
+            // 本次新选、未保存进题库的图片随草稿一并删除，避免残留孤儿文件；基线既有图不在此列
+            List<String> unsaved = new ArrayList<>();
+            for (String p : combinedPaths()) {
+                if (!initContentImgs.contains(p) && !initAnswerImgs.contains(p)) unsaved.add(p);
+            }
+            clearDraft();
+            for (String p : unsaved) {
+                QuestionStorage.deletePrivateImageIfUnused(this, p);
+            }
+            finish();
+        });
+        dialog.setOnDismissListener(d -> discardConfirmOpen = false);
     }
 
     // ==================== 网格适配器 + 直接拖拽 ====================

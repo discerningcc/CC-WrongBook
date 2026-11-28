@@ -22,6 +22,9 @@
     <color name="state_danger">#FF4D4F</color>
     <color name="state_danger_text">#CF1322</color>
 
+    <!-- 弹窗次要按钮底色：浅蓝灰，配主色文字 -->
+    <color name="dialog_secondary_bg">#E9EEF6</color>
+
     <!-- 详情页操作区 -->
     <color name="detail_primary">#1F6AA5</color>
     <color name="detail_secondary_stroke">#9E9E9E</color>

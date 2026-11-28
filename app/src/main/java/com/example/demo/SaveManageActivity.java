@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -119,23 +118,15 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
     }
 
     private void showNewBankDialog() {
-        EditText et = new EditText(this);
-        et.setHint("题库名称，如：数学");
-        new AlertDialog.Builder(this)
-                .setTitle("新建题库")
-                .setView(et)
-                .setPositiveButton("创建", (d, w) -> {
-                    String name = et.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        Toast.makeText(this, "名称不能为空", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    QuestionStorage.createBank(this, name);
-                    Toast.makeText(this, "已创建并切换到：" + name, Toast.LENGTH_SHORT).show();
-                    loadBanks();
-                })
-                .setNegativeButton("取消", null)
-                .show();
+        AppDialog.input(this, "新建题库", "题库名称，如：数学", null, "创建", name -> {
+            if (name.isEmpty()) {
+                Toast.makeText(this, "名称不能为空", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            QuestionStorage.createBank(this, name);
+            Toast.makeText(this, "已创建并切换到：" + name, Toast.LENGTH_SHORT).show();
+            loadBanks();
+        });
     }
 
     private void openImport() {
@@ -180,33 +171,21 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
     }
 
     private void showRenameDialog(QuestionStorage.BankInfo info) {
-        EditText et = new EditText(this);
-        et.setText(info.name);
-        et.setSelection(info.name.length());
-        new AlertDialog.Builder(this)
-                .setTitle("重命名题库")
-                .setView(et)
-                .setPositiveButton("确定", (d, w) -> {
-                    String name = et.getText().toString().trim();
-                    if (name.isEmpty()) return;
-                    QuestionStorage.renameBank(this, info.id, name);
-                    loadBanks();
-                })
-                .setNegativeButton("取消", null)
-                .show();
+        AppDialog.input(this, "重命名题库", null, info.name, "确定", name -> {
+            if (name.isEmpty()) return;
+            QuestionStorage.renameBank(this, info.id, name);
+            loadBanks();
+        });
     }
 
     private void showDeleteDialog(QuestionStorage.BankInfo info) {
-        new AlertDialog.Builder(this)
-                .setTitle("删除题库")
-                .setMessage("确定删除题库「" + info.name + "」吗？\n其中的 " + info.count + " 道题和关联图片将一并删除，无法恢复！")
-                .setPositiveButton("删除", (d, w) -> {
+        AppDialog.confirm(this, "删除题库",
+                "确定删除题库「" + info.name + "」吗？\n其中的 " + info.count + " 道题和关联图片将一并删除，无法恢复！",
+                "删除", true, () -> {
                     QuestionStorage.deleteBank(this, info.id);
                     Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
                     loadBanks();
-                })
-                .setNegativeButton("取消", null)
-                .show();
+                });
     }
 
     private String formatTime(long t) {
@@ -276,16 +255,11 @@ public class SaveManageActivity extends AppCompatActivity implements TaskHolderF
                 message.append("\n同时补回 ").append(checkinCount).append(" 条打卡记录");
             }
             message.append("，是否现在切换？");
-            new AlertDialog.Builder(this)
-                    .setTitle("导入成功")
-                    .setMessage(message.toString())
-                    .setPositiveButton("切换", (d, w) -> {
-                        QuestionStorage.switchBank(this, bank.id);
-                        Toast.makeText(this, "已切换到：" + bank.name, Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .setNegativeButton("暂不", null)
-                    .show();
+            AppDialog.confirm(this, "导入成功", message.toString(), "切换", false, () -> {
+                QuestionStorage.switchBank(this, bank.id);
+                Toast.makeText(this, "已切换到：" + bank.name, Toast.LENGTH_SHORT).show();
+                finish();
+            });
         });
     }
 

@@ -1,6 +1,6 @@
 package com.example.demo;
 
-import androidx.appcompat.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -338,14 +338,9 @@ public class MainActivity extends AppCompatActivity {
                 "⚠️ 全部数据本地存储，卸载会丢失，请记得备份！\n" +
                 "联系作者：QQ2916388726";
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("CC错题本 · 帮助说明")
-                .setMessage(helpContent)
-                .setPositiveButton("知道了", null)
-                .create();
+        Dialog dialog = AppDialog.info(this, "CC错题本 · 帮助说明", helpContent);
         dialog.setOnDismissListener(d -> helpOpen = false);
         helpOpen = true;
-        dialog.show();
     }
 
     /** 「未来 7 天 · 用法」：只说明柱子是什么，并给一条安排复习计划的建议 */
@@ -354,14 +349,9 @@ public class MainActivity extends AppCompatActivity {
                 "表示未来几天预计会到期的题目数量\n" +
                 "建议结合具体复习情况安排复习计划";
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("未来 7 天")
-                .setMessage(content)
-                .setPositiveButton("知道了", null)
-                .create();
+        Dialog dialog = AppDialog.info(this, "未来 7 天", content);
         dialog.setOnDismissListener(d -> chartHelpOpen = false);
         chartHelpOpen = true;
-        dialog.show();
     }
 
     @Override

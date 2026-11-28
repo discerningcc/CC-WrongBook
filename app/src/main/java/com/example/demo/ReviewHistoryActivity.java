@@ -8,7 +8,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
@@ -224,15 +223,10 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         });
 
         card.setOnLongClickListener(v -> {
-            new AlertDialog.Builder(this)
-                    .setTitle("删除这条记录")
-                    .setMessage("只删除复习足迹，不会删除题目。")
-                    .setPositiveButton("删除", (d, w) -> {
-                        SessionStorage.remove(this, s.id);
-                        loadData();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+            AppDialog.confirm(this, "删除这条记录", "只删除复习足迹，不会删除题目。", "删除", true, () -> {
+                SessionStorage.remove(this, s.id);
+                loadData();
+            });
             return true;
         });
 

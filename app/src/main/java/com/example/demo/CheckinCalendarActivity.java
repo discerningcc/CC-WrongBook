@@ -2,6 +2,7 @@ package com.example.demo;
 
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -123,7 +124,8 @@ public class CheckinCalendarActivity extends AppCompatActivity {
             tv.setLayoutParams(lp);
             tv.setGravity(Gravity.CENTER);
             tv.setText(label);
-            tv.setTextSize(12);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.text_size_caption));
             tv.setTextColor(getColor(R.color.text_secondary));
             weekdayHeader.addView(tv);
         }
@@ -185,7 +187,8 @@ public class CheckinCalendarActivity extends AppCompatActivity {
         tv.setLayoutParams(lp);
         tv.setGravity(Gravity.CENTER);
         tv.setText(String.valueOf(day));
-        tv.setTextSize(14);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                getResources().getDimension(R.dimen.text_size_body));
 
         if (rec != null) {
             tv.setBackgroundResource(R.drawable.bg_checkin_checked);

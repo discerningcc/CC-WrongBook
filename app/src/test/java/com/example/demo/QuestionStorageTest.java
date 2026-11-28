@@ -48,22 +48,22 @@ public class QuestionStorageTest {
     }
 
     @Test
-    public void statusColor_mapsEachLevelToDistinctColor() {
-        assertEquals(0xfff44336, QuestionStorage.statusColor("S"));
-        assertEquals(0xffff9800, QuestionStorage.statusColor("A"));
-        assertEquals(0xff9c27b0, QuestionStorage.statusColor("B"));
-        assertEquals(0xff2196f3, QuestionStorage.statusColor("C"));
-        assertEquals(0xff4caf50, QuestionStorage.statusColor("D"));
-        assertEquals(0xff9e9e9e, QuestionStorage.statusColor("E"));
+    public void statusColorRes_mapsEachLevelToOwnColor() {
+        assertEquals(R.color.level_s, QuestionStorage.statusColorRes("S"));
+        assertEquals(R.color.level_a, QuestionStorage.statusColorRes("A"));
+        assertEquals(R.color.level_b, QuestionStorage.statusColorRes("B"));
+        assertEquals(R.color.level_c, QuestionStorage.statusColorRes("C"));
+        assertEquals(R.color.level_d, QuestionStorage.statusColorRes("D"));
+        assertEquals(R.color.level_e, QuestionStorage.statusColorRes("E"));
         // 空值与未知等级都落回 E 的灰色
-        assertEquals(0xff9e9e9e, QuestionStorage.statusColor(null));
-        assertEquals(0xff9e9e9e, QuestionStorage.statusColor("X"));
+        assertEquals(R.color.level_e, QuestionStorage.statusColorRes(null));
+        assertEquals(R.color.level_e, QuestionStorage.statusColorRes("X"));
 
-        // 五个有颜色的等级互不相同
-        assertNotEquals(QuestionStorage.statusColor("S"), QuestionStorage.statusColor("A"));
-        assertNotEquals(QuestionStorage.statusColor("A"), QuestionStorage.statusColor("B"));
-        assertNotEquals(QuestionStorage.statusColor("B"), QuestionStorage.statusColor("C"));
-        assertNotEquals(QuestionStorage.statusColor("C"), QuestionStorage.statusColor("D"));
+        // 各等级互不相同
+        assertNotEquals(QuestionStorage.statusColorRes("S"), QuestionStorage.statusColorRes("A"));
+        assertNotEquals(QuestionStorage.statusColorRes("A"), QuestionStorage.statusColorRes("B"));
+        assertNotEquals(QuestionStorage.statusColorRes("B"), QuestionStorage.statusColorRes("C"));
+        assertNotEquals(QuestionStorage.statusColorRes("C"), QuestionStorage.statusColorRes("D"));
     }
 
     @Test

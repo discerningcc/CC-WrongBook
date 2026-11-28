@@ -2,6 +2,7 @@ package com.example.demo;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -73,7 +74,8 @@ public class ReviewHistoryActivity extends AppCompatActivity {
         if (list.isEmpty()) {
             TextView empty = new TextView(this);
             empty.setText("暂无复习记录\n\n完成一次复习，或中途退出复习后，这里会留下足迹");
-            empty.setTextSize(14);
+            empty.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.text_size_body));
             empty.setTextColor(getColor(R.color.text_hint));
             empty.setGravity(android.view.Gravity.CENTER);
             empty.setPadding(dp(24), dp(64), dp(24), dp(24));
@@ -115,7 +117,8 @@ public class ReviewHistoryActivity extends AppCompatActivity {
 
         TextView footer = new TextView(this);
         footer.setText("每个题库最多保留最近 100 条记录，更早的会自动清理");
-        footer.setTextSize(12);
+        footer.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                getResources().getDimension(R.dimen.text_size_caption));
         footer.setTextColor(getColor(R.color.text_hint));
         footer.setGravity(android.view.Gravity.CENTER);
         footer.setPadding(dp(16), dp(24), dp(16), dp(24));
@@ -130,7 +133,8 @@ public class ReviewHistoryActivity extends AppCompatActivity {
 
         TextView head = new TextView(this);
         head.setText(header + " · " + count + " 条 " + (open ? "▾" : "▸"));
-        head.setTextSize(14);
+        head.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                getResources().getDimension(R.dimen.text_size_body));
         head.setTextColor(getColor(R.color.text_hint));
         head.setPadding(dp(16), dp(16), dp(16), dp(6));
 
@@ -154,7 +158,8 @@ public class ReviewHistoryActivity extends AppCompatActivity {
     private TextView createHeader(String text) {
         TextView tv = new TextView(this);
         tv.setText(text);
-        tv.setTextSize(14);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                getResources().getDimension(R.dimen.text_size_body));
         tv.setTextColor(getColor(R.color.text_hint));
         tv.setPadding(dp(16), dp(16), dp(16), dp(6));
         return tv;
@@ -246,7 +251,8 @@ public class ReviewHistoryActivity extends AppCompatActivity {
             if (it.hadImages) text += "（含图片）";
             if (it.dwellMs > 0) text += " · " + SessionStorage.formatDuration(it.dwellMs);
             row.setText(text);
-            row.setTextSize(12);
+            row.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.text_size_caption));
             row.setTextColor(getColor(R.color.text_secondary));
             row.setLineSpacing(dp(2), 1.1f);
             row.setPadding(0, dp(6), 0, dp(6));

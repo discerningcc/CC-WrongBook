@@ -103,6 +103,9 @@ public class QuestionDetailActivity extends AppCompatActivity {
         restoreActionDialog(savedInstanceState);
         restoreInlineMenu(savedInstanceState);
 
+        // 顶栏返回
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+
         // 修改本题
         findViewById(R.id.btn_edit).setOnClickListener(v -> {
             if (currentQuestion == null || actionBusy) return;
@@ -247,7 +250,8 @@ public class QuestionDetailActivity extends AppCompatActivity {
         // 头部徽章：等级 + 已斩
         String status = currentQuestion.status == null ? "E" : currentQuestion.status;
         tvLevelBadge.setText(status);
-        tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(QuestionStorage.statusColor(status)));
+        tvLevelBadge.setBackgroundTintList(ColorStateList.valueOf(
+                getColor(QuestionStorage.statusColorRes(status))));
         tvExcludedBadge.setVisibility(currentQuestion.excluded ? View.VISIBLE : View.GONE);
         tvExcludedBadge.setBackgroundTintList(ColorStateList.valueOf(getColor(R.color.text_secondary)));
 

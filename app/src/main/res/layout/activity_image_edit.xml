@@ -165,12 +165,12 @@
                 style="@style/ImageEditBarIcon"
                 android:contentDescription="裁剪"
                 android:src="@drawable/ic_edit_crop"
-                android:tint="@android:color/white" />
+                android:tint="@color/white" />
 
             <TextView
                 style="@style/ImageEditBarText"
                 android:text="裁剪"
-                android:textColor="@android:color/white" />
+                android:textColor="@color/white" />
         </LinearLayout>
     </LinearLayout>
 
@@ -228,12 +228,12 @@
                 style="@style/ImageEditBarIcon"
                 android:contentDescription="确定"
                 android:src="@drawable/ic_edit_check"
-                android:tint="@android:color/white" />
+                android:tint="@color/white" />
 
             <TextView
                 style="@style/ImageEditBarText"
                 android:text="确定"
-                android:textColor="@android:color/white" />
+                android:textColor="@color/white" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

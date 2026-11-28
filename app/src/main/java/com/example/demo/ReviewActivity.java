@@ -889,9 +889,9 @@ public class ReviewActivity extends AppCompatActivity {
         }
     }
 
-    /** 等级徽章颜色：口径统一在 QuestionStorage.statusColor（E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红） */
-    private static int levelColor(String status) {
-        return QuestionStorage.statusColor(status);
+    /** 等级徽章颜色：口径统一在 QuestionStorage.statusColorRes（E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红） */
+    private int levelColor(String status) {
+        return getColor(QuestionStorage.statusColorRes(status));
     }
 
     /**

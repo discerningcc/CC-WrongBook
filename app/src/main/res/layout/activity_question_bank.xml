@@ -5,29 +5,34 @@
     android:background="@color/page_bg"
     android:orientation="vertical">
 
-    <!-- 标题栏：显示当前题库名，点击进题库管理 -->
-    <LinearLayout style="@style/TopBar">
-
-        <TextView
-            android:id="@+id/btn_back"
-            style="@style/TopBarBack" />
+    <!-- 标题栏：显示当前题库名，点击进题库管理；标题居中于整栏 -->
+    <FrameLayout style="@style/TopBarOverlay">
 
         <TextView
             android:id="@+id/tv_bank_title"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_gravity="center"
+            android:maxWidth="520dp"
             android:padding="8dp"
             android:gravity="center"
+            android:singleLine="true"
+            android:ellipsize="end"
             android:text="题库"
             android:textSize="@dimen/text_size_title"
             android:textStyle="bold"
             android:textColor="@color/text_primary"/>
 
         <TextView
+            android:id="@+id/btn_back"
+            style="@style/TopBarBack"
+            android:layout_gravity="start|center_vertical" />
+
+        <TextView
             android:id="@+id/tv_sort_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
             android:paddingStart="8dp"
             android:paddingEnd="14dp"
             android:paddingTop="8dp"
@@ -42,7 +47,7 @@
             android:text="添加 · 新→旧"
             android:textSize="@dimen/text_size_caption"
             android:textColor="@color/text_secondary"/>
-    </LinearLayout>
+    </FrameLayout>
 
     <!-- 搜索框（已修复：点击任何地方都能输入） -->
     <SearchView

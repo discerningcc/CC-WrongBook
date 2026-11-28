@@ -5,53 +5,64 @@
     android:orientation="vertical"
     android:background="@color/page_bg">
 
-    <!-- 标题栏 -->
-    <LinearLayout style="@style/TopBar">
+    <!-- 标题栏：标题居中于整栏，右侧三个文字动作 -->
+    <FrameLayout style="@style/TopBarOverlay">
 
         <TextView
-            android:id="@+id/btn_back"
-            style="@style/TopBarBack" />
-
-        <TextView
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:paddingStart="8dp"
+            android:layout_gravity="center"
+            android:padding="8dp"
+            android:gravity="center"
+            android:singleLine="true"
             android:text="题库管理"
             android:textSize="@dimen/text_size_title"
             android:textStyle="bold"
             android:textColor="@color/text_primary"/>
 
         <TextView
-            android:id="@+id/btn_new_bank"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:layout_marginEnd="8dp"
-            android:text="新建"
-            android:textSize="@dimen/text_size_emphasis"
-            android:textColor="@color/detail_primary"/>
+            android:id="@+id/btn_back"
+            style="@style/TopBarBack"
+            android:layout_gravity="start|center_vertical" />
 
-        <TextView
-            android:id="@+id/btn_import_bank"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:layout_marginEnd="8dp"
-            android:text="导入"
-            android:textSize="@dimen/text_size_emphasis"
-            android:textColor="@color/detail_primary"/>
+            android:layout_gravity="end|center_vertical"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/btn_export_bank"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:layout_marginEnd="16dp"
-            android:text="导出"
-            android:textSize="@dimen/text_size_emphasis"
-            android:textColor="@color/detail_primary"/>
-    </LinearLayout>
+            <TextView
+                android:id="@+id/btn_new_bank"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:text="新建"
+                android:textSize="@dimen/text_size_emphasis"
+                android:textColor="@color/detail_primary"/>
+
+            <TextView
+                android:id="@+id/btn_import_bank"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:text="导入"
+                android:textSize="@dimen/text_size_emphasis"
+                android:textColor="@color/detail_primary"/>
+
+            <TextView
+                android:id="@+id/btn_export_bank"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:layout_marginEnd="16dp"
+                android:text="导出"
+                android:textSize="@dimen/text_size_emphasis"
+                android:textColor="@color/detail_primary"/>
+        </LinearLayout>
+    </FrameLayout>
 
     <!-- 操作提示 -->
     <TextView

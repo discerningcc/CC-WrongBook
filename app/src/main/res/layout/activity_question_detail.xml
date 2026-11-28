@@ -5,14 +5,37 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/page_bg"
-    android:padding="16dp">
+    android:background="@color/page_bg">
+
+    <!-- 统一顶栏：← + 居中标题 + 56dp 占位 -->
+    <LinearLayout style="@style/TopBar">
+
+        <TextView
+            android:id="@+id/btn_back"
+            style="@style/TopBarBack" />
+
+        <TextView
+            style="@style/TopBarTitle"
+            android:text="题目详情" />
+
+        <View
+            android:layout_width="56dp"
+            android:layout_height="1dp" />
+    </LinearLayout>
+
+    <!-- 内容区：保留原 16dp 内边距，滚动区在上、操作区在下 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="16dp">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@android:color/white"
+        android:background="@color/white"
         android:padding="20dp">
 
         <LinearLayout
@@ -35,7 +58,7 @@
                     android:background="@drawable/bg_level_badge"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="3dp"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/white"
                     android:textSize="@dimen/text_size_caption"
                     android:textStyle="bold"
                     android:text="E" />
@@ -48,7 +71,7 @@
                     android:background="@drawable/bg_level_badge"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="3dp"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/white"
                     android:textSize="@dimen/text_size_caption"
                     android:textStyle="bold"
                     android:text="已斩"
@@ -210,7 +233,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="修改"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/white"
                     android:textSize="@dimen/text_size_emphasis" />
             </LinearLayout>
 
@@ -314,6 +337,8 @@
                     android:textSize="@dimen/text_size_emphasis" />
             </LinearLayout>
         </LinearLayout>
+
+    </LinearLayout>
 
     </LinearLayout>
 

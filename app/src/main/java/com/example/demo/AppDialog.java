@@ -171,7 +171,8 @@ public final class AppDialog {
         TextView btn = new TextView(activity);
         btn.setText(text);
         btn.setGravity(android.view.Gravity.CENTER);
-        btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        btn.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                activity.getResources().getDimension(R.dimen.text_size_emphasis));
         btn.setTextColor(ContextCompat.getColor(activity, textColor(activity, style)));
         if (style == STYLE_DANGER) {
             btn.setBackgroundResource(R.drawable.bg_dialog_danger);

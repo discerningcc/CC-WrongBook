@@ -264,17 +264,17 @@ public class QuestionStorage {
     }
 
     /**
-     * 等级徽章颜色：E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红。
-     * 全应用唯一出处，取值与 res/values/colors.xml 的 level_s…level_e 保持一致。
+     * 等级徽章颜色资源：E 灰 → D 绿 → C 蓝 → B 紫 → A 橙 → S 红。
+     * 全应用唯一出处，返回 res/values/colors.xml 的 level_s…level_e。
      */
-    public static int statusColor(String status) {
+    public static int statusColorRes(String status) {
         switch (status == null ? "E" : status) {
-            case "S": return 0xfff44336;   // = level_s
-            case "A": return 0xffff9800;   // = level_a
-            case "B": return 0xff9c27b0;   // = level_b
-            case "C": return 0xff2196f3;   // = level_c
-            case "D": return 0xff4caf50;   // = level_d
-            default: return 0xff9e9e9e;    // = level_e
+            case "S": return R.color.level_s;
+            case "A": return R.color.level_a;
+            case "B": return R.color.level_b;
+            case "C": return R.color.level_c;
+            case "D": return R.color.level_d;
+            default: return R.color.level_e;
         }
     }
 

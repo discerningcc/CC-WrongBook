@@ -21,24 +21,32 @@
         <item name="android:elevation">4dp</item>
     </style>
 
-    <!-- 顶栏左侧返回：56dp 宽热区，「←」20sp 深灰 -->
+    <!-- 顶栏叠层版：用于右侧动作宽度不等的页面（题库列表/题库管理），标题居中于整栏 -->
+    <style name="TopBarOverlay">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:background">@color/home_card</item>
+        <item name="android:elevation">4dp</item>
+    </style>
+
+    <!-- 顶栏左侧返回：56dp 宽热区，「←」= 展示档 20sp 深灰 -->
     <style name="TopBarBack">
         <item name="android:layout_width">56dp</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:gravity">center</item>
         <item name="android:text">←</item>
-        <item name="android:textSize">20sp</item>
+        <item name="android:textSize">@dimen/text_size_display</item>
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
     </style>
 
-    <!-- 顶栏标题：占满剩余宽度、居中、18sp 粗体 -->
+    <!-- 顶栏标题：占满剩余宽度、居中、标题档 18sp 粗体 -->
     <style name="TopBarTitle">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">center</item>
-        <item name="android:textSize">18sp</item>
+        <item name="android:textSize">@dimen/text_size_title</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/text_primary</item>
     </style>
@@ -71,11 +79,11 @@
         <item name="android:layout_marginEnd">8dp</item>
     </style>
 
-    <!-- 工具条按钮里的文字：16sp，颜色在布局里按主/次分别指定 -->
+    <!-- 工具条按钮里的文字：强调档 16sp，颜色在布局里按主/次分别指定 -->
     <style name="ImageEditBarText">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textSize">16sp</item>
+        <item name="android:textSize">@dimen/text_size_emphasis</item>
         <item name="android:letterSpacing">0.02</item>
     </style>
 </resources>

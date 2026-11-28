@@ -71,7 +71,8 @@ public final class OptionMenuPopup {
                                  boolean enabled, PopupWindow[] holder, OnPick onPick) {
         TextView row = new TextView(ctx);
         row.setText(label);
-        row.setTextSize(14);
+        row.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                ctx.getResources().getDimension(R.dimen.text_size_body));
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(ctx, 18), dp(ctx, 9), dp(ctx, 18), dp(ctx, 9));
         row.setMinHeight(dp(ctx, 42));

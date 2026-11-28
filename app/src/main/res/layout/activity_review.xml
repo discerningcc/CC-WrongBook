@@ -59,7 +59,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@android:color/white"
+        android:background="@color/white"
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:paddingTop="12dp"
@@ -304,7 +304,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:text="记得"
-                android:textColor="@android:color/white"
+                android:textColor="@color/white"
                 android:textSize="@dimen/text_size_emphasis"
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
@@ -322,7 +322,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:text="模糊"
-                android:textColor="@android:color/white"
+                android:textColor="@color/white"
                 android:textSize="@dimen/text_size_emphasis"
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
@@ -340,7 +340,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:text="不会"
-                android:textColor="@android:color/white"
+                android:textColor="@color/white"
                 android:textSize="@dimen/text_size_emphasis"
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>
@@ -358,7 +358,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:text="答案"
-                android:textColor="@android:color/white"
+                android:textColor="@color/white"
                 android:textSize="@dimen/text_size_emphasis"
                 android:gravity="center"/>
         </com.google.android.material.card.MaterialCardView>

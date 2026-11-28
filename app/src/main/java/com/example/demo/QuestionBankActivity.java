@@ -6,6 +6,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.TypedValue;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -176,7 +177,8 @@ public class QuestionBankActivity extends AppCompatActivity {
             final int index = i;
             TextView chip = new TextView(this);
             chip.setText(CAT_LABELS[i]);
-            chip.setTextSize(12);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.text_size_caption));
             chip.setGravity(Gravity.CENTER);
             chip.setPadding(dp(14), dp(7), dp(14), dp(7));
 
@@ -216,7 +218,8 @@ public class QuestionBankActivity extends AppCompatActivity {
         // 第 0 个胶囊为「全部」，其后依次对应 S A B C D E
         TextView allChip = new TextView(this);
         allChip.setText("全部");
-        allChip.setTextSize(12);
+        allChip.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                getResources().getDimension(R.dimen.text_size_caption));
         allChip.setGravity(Gravity.CENTER);
         allChip.setPadding(dp(14), dp(7), dp(14), dp(7));
         LinearLayout.LayoutParams allLp = new LinearLayout.LayoutParams(
@@ -230,7 +233,8 @@ public class QuestionBankActivity extends AppCompatActivity {
         for (int i = 0; i < LEVEL_LABELS.length; i++) {
             final int level = i;
             TextView chip = new TextView(this);
-            chip.setTextSize(12);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                    getResources().getDimension(R.dimen.text_size_caption));
             chip.setGravity(Gravity.CENTER);
             chip.setPadding(dp(14), dp(7), dp(14), dp(7));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -614,7 +618,9 @@ public class QuestionBankActivity extends AppCompatActivity {
                     badge.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(itemView.getContext(), R.color.text_secondary)));
                 } else {
                     badge.setText(status);
-                    badge.setBackgroundTintList(ColorStateList.valueOf(statusColor(status)));
+                    badge.setBackgroundTintList(ColorStateList.valueOf(
+                            ContextCompat.getColor(itemView.getContext(),
+                                    QuestionStorage.statusColorRes(status))));
                 }
 
                 // 副信息：N 张图 · 到期情况 · 上次更新
@@ -653,10 +659,5 @@ public class QuestionBankActivity extends AppCompatActivity {
             }
             return span;
         }
-    }
-
-    /** 等级徽章颜色：口径统一在 QuestionStorage.statusColor */
-    private static int statusColor(String status) {
-        return QuestionStorage.statusColor(status);
     }
 }

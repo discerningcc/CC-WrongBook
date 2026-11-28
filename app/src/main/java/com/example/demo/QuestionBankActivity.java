@@ -175,7 +175,7 @@ public class QuestionBankActivity extends AppCompatActivity {
             final int index = i;
             TextView chip = new TextView(this);
             chip.setText(CAT_LABELS[i]);
-            chip.setTextSize(13);
+            chip.setTextSize(12);
             chip.setGravity(Gravity.CENTER);
             chip.setPadding(dp(14), dp(7), dp(14), dp(7));
 
@@ -215,7 +215,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         // 第 0 个胶囊为「全部」，其后依次对应 S A B C D E
         TextView allChip = new TextView(this);
         allChip.setText("全部");
-        allChip.setTextSize(13);
+        allChip.setTextSize(12);
         allChip.setGravity(Gravity.CENTER);
         allChip.setPadding(dp(14), dp(7), dp(14), dp(7));
         LinearLayout.LayoutParams allLp = new LinearLayout.LayoutParams(
@@ -229,7 +229,7 @@ public class QuestionBankActivity extends AppCompatActivity {
         for (int i = 0; i < LEVEL_LABELS.length; i++) {
             final int level = i;
             TextView chip = new TextView(this);
-            chip.setTextSize(13);
+            chip.setTextSize(12);
             chip.setGravity(Gravity.CENTER);
             chip.setPadding(dp(14), dp(7), dp(14), dp(7));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(

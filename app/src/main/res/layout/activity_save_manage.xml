@@ -18,7 +18,7 @@
             android:layout_weight="1"
             android:paddingStart="8dp"
             android:text="题库管理"
-            android:textSize="18sp"
+            android:textSize="@dimen/text_size_title"
             android:textStyle="bold"
             android:textColor="#222222"/>
 
@@ -29,7 +29,7 @@
             android:padding="8dp"
             android:layout_marginEnd="8dp"
             android:text="新建"
-            android:textSize="16sp"
+            android:textSize="@dimen/text_size_emphasis"
             android:textColor="#1f6aa5"/>
 
         <TextView
@@ -39,7 +39,7 @@
             android:padding="8dp"
             android:layout_marginEnd="8dp"
             android:text="导入"
-            android:textSize="16sp"
+            android:textSize="@dimen/text_size_emphasis"
             android:textColor="#1f6aa5"/>
 
         <TextView
@@ -49,7 +49,7 @@
             android:padding="8dp"
             android:layout_marginEnd="16dp"
             android:text="导出"
-            android:textSize="16sp"
+            android:textSize="@dimen/text_size_emphasis"
             android:textColor="#1f6aa5"/>
     </LinearLayout>
 
@@ -59,7 +59,7 @@
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:text="点击题库切换使用；长按题库可重命名 / 导出 / 删除"
-        android:textSize="13sp"
+        android:textSize="@dimen/text_size_caption"
         android:textColor="#888888"/>
 
     <!-- 题库列表 -->

@@ -32,7 +32,7 @@
             android:background="@drawable/bg_level_badge"
             android:paddingHorizontal="7dp"
             android:paddingVertical="1dp"
-            android:textSize="12sp"
+            android:textSize="@dimen/text_size_caption"
             android:textStyle="bold"
             android:textColor="#ffffff"
             android:text="E"/>
@@ -48,7 +48,7 @@
                 android:id="@+id/text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
+                android:textSize="@dimen/text_size_body"
                 android:textColor="#222222"
                 android:maxLines="1"
                 android:ellipsize="end"/>
@@ -58,7 +58,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="#888888"
                 android:maxLines="1"
                 android:ellipsize="end"/>

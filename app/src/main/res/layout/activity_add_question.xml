@@ -46,7 +46,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="题目内容"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_size_emphasis"
                     android:textStyle="bold" />
 
                 <TextView
@@ -54,7 +54,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0/9"
-                    android:textSize="14sp"
+                    android:textSize="@dimen/text_size_body"
                     android:textColor="#999999" />
             </LinearLayout>
 
@@ -127,7 +127,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="答案内容"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_size_emphasis"
                     android:textStyle="bold" />
 
                 <TextView
@@ -135,7 +135,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0/9"
-                    android:textSize="14sp"
+                    android:textSize="@dimen/text_size_body"
                     android:textColor="#999999" />
             </LinearLayout>
 
@@ -225,7 +225,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:text="保存题目"
-                        android:textSize="18sp"
+                        android:textSize="@dimen/text_size_title"
                         android:textColor="#fff"
                         android:gravity="center" />
                 </androidx.cardview.widget.CardView>

@@ -20,7 +20,7 @@
             android:padding="8dp"
             android:gravity="center"
             android:text="题库"
-            android:textSize="18sp"
+            android:textSize="@dimen/text_size_title"
             android:textStyle="bold"
             android:textColor="#222222"/>
 
@@ -40,7 +40,7 @@
             android:gravity="center_vertical"
             android:contentDescription="切换排序方式"
             android:text="添加 · 新→旧"
-            android:textSize="12sp"
+            android:textSize="@dimen/text_size_caption"
             android:textColor="#666666"/>
     </LinearLayout>
 
@@ -95,7 +95,7 @@
         android:layout_height="wrap_content"
         android:paddingHorizontal="16dp"
         android:paddingVertical="2dp"
-        android:textSize="12sp"
+        android:textSize="@dimen/text_size_caption"
         android:textColor="#666666"
         android:maxLines="2"
         android:ellipsize="end"/>
@@ -120,7 +120,7 @@
             android:gravity="center"
             android:padding="24dp"
             android:lineSpacingExtra="6dp"
-            android:textSize="14sp"
+            android:textSize="@dimen/text_size_body"
             android:textColor="#999999"
             android:visibility="gone"
             android:text="没有符合条件的题目"/>

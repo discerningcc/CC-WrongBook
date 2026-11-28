@@ -36,7 +36,7 @@
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="3dp"
                     android:textColor="@android:color/white"
-                    android:textSize="13sp"
+                    android:textSize="@dimen/text_size_caption"
                     android:textStyle="bold"
                     android:text="E" />
 
@@ -49,7 +49,7 @@
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="3dp"
                     android:textColor="@android:color/white"
-                    android:textSize="13sp"
+                    android:textSize="@dimen/text_size_caption"
                     android:textStyle="bold"
                     android:text="已斩"
                     android:visibility="gone" />
@@ -84,7 +84,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/detail_text_secondary"
-                    android:textSize="12sp"
+                    android:textSize="@dimen/text_size_caption"
                     android:singleLine="true"
                     android:clickable="true"
                     android:focusable="true"
@@ -97,7 +97,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:textColor="@color/detail_text_secondary"
-                    android:textSize="12sp"
+                    android:textSize="@dimen/text_size_caption"
                     android:singleLine="true" />
 
                 <TextView
@@ -106,7 +106,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:textColor="@color/detail_text_secondary"
-                    android:textSize="12sp"
+                    android:textSize="@dimen/text_size_caption"
                     android:singleLine="true" />
             </LinearLayout>
 
@@ -114,7 +114,7 @@
                 android:id="@+id/tv_question"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="20sp"
+                android:textSize="@dimen/text_size_display"
                 android:textColor="@color/detail_text_primary"
                 android:lineSpacingExtra="8dp" />
 
@@ -143,7 +143,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="【答案】"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold"
                     android:textColor="#1f6aa5" />
 
@@ -151,7 +151,7 @@
                     android:id="@+id/tv_answer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textColor="@color/detail_text_primary"
                     android:layout_marginTop="8dp" />
 
@@ -211,7 +211,7 @@
                     android:layout_height="wrap_content"
                     android:text="修改"
                     android:textColor="@android:color/white"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_size_emphasis" />
             </LinearLayout>
 
             <LinearLayout
@@ -239,7 +239,7 @@
                     android:layout_height="wrap_content"
                     android:text="重学"
                     android:textColor="@color/state_warn_strong"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_size_emphasis" />
             </LinearLayout>
         </LinearLayout>
 
@@ -283,7 +283,7 @@
                     android:layout_height="wrap_content"
                     android:text="斩题"
                     android:textColor="@color/detail_text_secondary"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_size_emphasis" />
             </LinearLayout>
 
             <LinearLayout
@@ -311,7 +311,7 @@
                     android:layout_height="wrap_content"
                     android:text="删除"
                     android:textColor="@color/state_danger_text"
-                    android:textSize="16sp" />
+                    android:textSize="@dimen/text_size_emphasis" />
             </LinearLayout>
         </LinearLayout>
 

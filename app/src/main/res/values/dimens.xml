@@ -20,4 +20,11 @@
 
     <!-- 加题/改题页图片缩略网格：单格高度（网格总高按行数 × 该值显式计算） -->
     <dimen name="thumb_item_height">120dp</dimen>
+
+    <!-- 字号五档：展示 / 标题 / 强调 / 正文 / 辅助 -->
+    <dimen name="text_size_display">20sp</dimen>
+    <dimen name="text_size_title">18sp</dimen>
+    <dimen name="text_size_emphasis">16sp</dimen>
+    <dimen name="text_size_body">14sp</dimen>
+    <dimen name="text_size_caption">12sp</dimen>
 </resources>

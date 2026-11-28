@@ -66,7 +66,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="自然日模式"
-                            android:textSize="16sp"
+                            android:textSize="@dimen/text_size_emphasis"
                             android:textStyle="bold"
                             android:textColor="@color/home_text_primary" />
 
@@ -74,7 +74,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="以每日 0 点划分新一天；关闭后按 24 小时滚动间隔"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_size_caption"
                             android:textColor="@color/home_text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -114,14 +114,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="日历打卡"
-                            android:textSize="15sp"
+                            android:textSize="@dimen/text_size_emphasis"
                             android:textColor="@color/home_text_primary" />
 
                         <TextView
                             android:id="@+id/tv_checkin_hint"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_size_caption"
                             android:textColor="@color/home_text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -167,7 +167,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="复习计时"
-                            android:textSize="16sp"
+                            android:textSize="@dimen/text_size_emphasis"
                             android:textStyle="bold"
                             android:textColor="@color/home_text_primary" />
 
@@ -175,7 +175,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="页头显示总时长与本题用时"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_size_caption"
                             android:textColor="@color/home_text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -206,7 +206,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="做题时屏幕常亮"
-                            android:textSize="16sp"
+                            android:textSize="@dimen/text_size_emphasis"
                             android:textStyle="bold"
                             android:textColor="@color/home_text_primary" />
 
@@ -214,7 +214,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="复习和看题目详情时不自动息屏，退出页面后恢复系统设置"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_size_caption"
                             android:textColor="@color/home_text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -260,7 +260,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="未来 7 天到期柱"
-                            android:textSize="16sp"
+                            android:textSize="@dimen/text_size_emphasis"
                             android:textStyle="bold"
                             android:textColor="@color/home_text_primary" />
 
@@ -268,7 +268,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="主页信息卡里显示今天到第 6 天的到期分布，点柱子可看当天题数"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_size_caption"
                             android:textColor="@color/home_text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -299,7 +299,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="备份提醒"
-                            android:textSize="16sp"
+                            android:textSize="@dimen/text_size_emphasis"
                             android:textStyle="bold"
                             android:textColor="@color/home_text_primary" />
 
@@ -307,7 +307,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="超过 30 天没导出、或题库建了 7 天还没备份过时，主页底部提示一次"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_size_caption"
                             android:textColor="@color/home_text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -348,7 +348,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="自动去白边"
-                        android:textSize="16sp"
+                        android:textSize="@dimen/text_size_emphasis"
                         android:textStyle="bold"
                         android:textColor="@color/home_text_primary" />
 
@@ -356,7 +356,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="点裁剪时自动把选框收紧到题目内容上，仍可手动微调"
-                        android:textSize="12sp"
+                        android:textSize="@dimen/text_size_caption"
                         android:textColor="@color/home_text_secondary"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -383,7 +383,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="每日复习量：50 题/天"
-                android:textSize="16sp"
+                android:textSize="@dimen/text_size_emphasis"
                 android:textColor="@color/home_text_primary"
                 android:foreground="?attr/selectableItemBackground"
                 android:clickable="true"

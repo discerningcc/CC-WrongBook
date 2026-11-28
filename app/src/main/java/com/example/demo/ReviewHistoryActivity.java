@@ -246,7 +246,7 @@ public class ReviewHistoryActivity extends AppCompatActivity {
             if (it.hadImages) text += "（含图片）";
             if (it.dwellMs > 0) text += " · " + SessionStorage.formatDuration(it.dwellMs);
             row.setText(text);
-            row.setTextSize(13);
+            row.setTextSize(12);
             row.setTextColor(0xFF555555);
             row.setLineSpacing(dp(2), 1.1f);
             row.setPadding(0, dp(6), 0, dp(6));

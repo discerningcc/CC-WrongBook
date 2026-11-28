@@ -16,7 +16,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="每日复习量"
-        android:textSize="18sp"
+        android:textSize="@dimen/text_size_title"
         android:textStyle="bold"
         android:textColor="@color/home_text_primary" />
 
@@ -25,7 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textSize="13sp"
+        android:textSize="@dimen/text_size_caption"
         android:textColor="@color/home_text_secondary" />
 
     <!-- 档位网格：2 列 × 3 行 -->
@@ -52,7 +52,7 @@
                 android:id="@+id/chip_num_0"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
+                android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
                 android:textColor="@color/home_text_primary" />
 
@@ -61,7 +61,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="题/天"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
 
@@ -82,7 +82,7 @@
                 android:id="@+id/chip_num_1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
+                android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
                 android:textColor="@color/home_text_primary" />
 
@@ -91,7 +91,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="题/天"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
     </LinearLayout>
@@ -119,7 +119,7 @@
                 android:id="@+id/chip_num_2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
+                android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
                 android:textColor="@color/home_text_primary" />
 
@@ -128,7 +128,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="题/天"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
 
@@ -149,7 +149,7 @@
                 android:id="@+id/chip_num_3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
+                android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
                 android:textColor="@color/home_text_primary" />
 
@@ -158,7 +158,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="题/天"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
     </LinearLayout>
@@ -186,7 +186,7 @@
                 android:id="@+id/chip_num_4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
+                android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
                 android:textColor="@color/home_text_primary" />
 
@@ -195,7 +195,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="题/天"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
 
@@ -216,7 +216,7 @@
                 android:id="@+id/chip_num_5"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
+                android:textSize="@dimen/text_size_title"
                 android:textStyle="bold"
                 android:textColor="@color/home_text_primary" />
 
@@ -225,7 +225,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="题/天"
-                android:textSize="11sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
     </LinearLayout>
@@ -256,7 +256,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="自定义（1~500）"
-                android:textSize="16sp"
+                android:textSize="@dimen/text_size_emphasis"
                 android:textColor="@color/home_text_primary" />
 
             <TextView
@@ -265,7 +265,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="输入其他数值"
-                android:textSize="12sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
 
@@ -277,7 +277,7 @@
             android:inputType="number"
             android:maxLength="3"
             android:hint="1~500"
-            android:textSize="15sp"
+            android:textSize="@dimen/text_size_body"
             android:textColor="@color/home_text_primary"
             android:textColorHint="@color/home_text_secondary"
             android:background="@drawable/bg_budget_option_normal"
@@ -293,7 +293,7 @@
             android:paddingRight="16dp"
             android:gravity="center"
             android:text="确定"
-            android:textSize="15sp"
+            android:textSize="@dimen/text_size_emphasis"
             android:textColor="@color/home_card"
             android:background="@drawable/bg_prompt_button"
             android:backgroundTint="@color/action_primary"
@@ -328,7 +328,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="不限量"
-                android:textSize="16sp"
+                android:textSize="@dimen/text_size_emphasis"
                 android:textColor="@color/home_text_primary" />
 
             <TextView
@@ -337,7 +337,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="到期题全部进入队列"
-                android:textSize="12sp"
+                android:textSize="@dimen/text_size_caption"
                 android:textColor="@color/home_text_secondary" />
         </LinearLayout>
     </LinearLayout>
@@ -351,7 +351,7 @@
         android:backgroundTint="#E9EEF6"
         android:gravity="center"
         android:text="取消"
-        android:textSize="16sp"
+        android:textSize="@dimen/text_size_emphasis"
         android:textColor="@color/detail_primary"
         android:clickable="true"
         android:focusable="true" />

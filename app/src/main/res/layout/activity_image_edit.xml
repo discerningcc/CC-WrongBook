@@ -39,7 +39,7 @@
                 android:letterSpacing="0.02"
                 android:text="取消"
                 android:textColor="@color/detail_text_secondary"
-                android:textSize="15sp" />
+                android:textSize="@dimen/text_size_emphasis" />
         </LinearLayout>
 
         <TextView
@@ -48,7 +48,7 @@
             android:layout_gravity="center"
             android:text="编辑图片"
             android:textColor="@color/detail_text_primary"
-            android:textSize="16sp" />
+            android:textSize="@dimen/text_size_emphasis" />
 
         <LinearLayout
             android:id="@+id/edit_done"
@@ -77,7 +77,7 @@
                 android:letterSpacing="0.02"
                 android:text="完成"
                 android:textColor="@color/detail_primary"
-                android:textSize="16sp"
+                android:textSize="@dimen/text_size_emphasis"
                 android:textStyle="bold" />
         </LinearLayout>
     </FrameLayout>

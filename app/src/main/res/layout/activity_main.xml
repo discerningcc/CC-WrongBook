@@ -46,7 +46,7 @@
                         android:foreground="?attr/selectableItemBackground"
                         android:padding="8dp"
                         android:text="当前题库：我的题库 ▾"
-                        android:textSize="16sp"
+                        android:textSize="@dimen/text_size_emphasis"
                         android:textStyle="bold"
                         android:textColor="@color/detail_primary" />
 
@@ -73,7 +73,7 @@
                     android:padding="6dp"
                     android:contentDescription="修改每日复习量"
                     android:text="今日已完成 0 / 50"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold"
                     android:textColor="@color/home_text_primary" />
 
@@ -87,7 +87,7 @@
                     android:foreground="?attr/selectableItemBackground"
                     android:padding="6dp"
                     android:text="待复习 0 道"
-                    android:textSize="13sp"
+                    android:textSize="@dimen/text_size_caption"
                     android:textColor="@color/home_text_secondary" />
 
                 <ProgressBar
@@ -121,7 +121,7 @@
                         android:foreground="?attr/selectableItemBackground"
                         android:contentDescription="未来 7 天 · 点此看说明"
                         android:text="未来 7 天"
-                        android:textSize="12sp"
+                        android:textSize="@dimen/text_size_caption"
                         android:textColor="@color/home_text_secondary" />
 
                     <com.example.demo.DueChartView
@@ -136,7 +136,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:textSize="12sp"
+                        android:textSize="@dimen/text_size_caption"
                         android:textColor="@color/home_text_secondary"
                         android:visibility="gone" />
                 </LinearLayout>
@@ -159,7 +159,7 @@
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground"
                         android:padding="6dp"
-                        android:textSize="13sp"
+                        android:textSize="@dimen/text_size_caption"
                         android:textColor="@color/home_text_secondary" />
 
                     <ImageView
@@ -182,7 +182,7 @@
                     android:layout_marginTop="8dp"
                     android:visibility="gone"
                     android:text="当前题库还没有题目，先添加题目吧"
-                    android:textSize="13sp"
+                    android:textSize="@dimen/text_size_caption"
                     android:textColor="@color/state_warn_text" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -211,7 +211,7 @@
                     android:layout_height="wrap_content"
                     android:text="开始复习"
                     android:textColor="#FFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
             </LinearLayout>
@@ -242,7 +242,7 @@
                     android:layout_height="wrap_content"
                     android:text="复习记录"
                     android:textColor="@color/detail_primary"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_size_emphasis"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -264,7 +264,7 @@
                     android:layout_height="wrap_content"
                     android:text="题目列表"
                     android:textColor="@color/detail_primary"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_size_emphasis"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
@@ -294,7 +294,7 @@
                     android:layout_height="wrap_content"
                     android:text="添加题目"
                     android:textColor="@color/detail_primary"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_size_emphasis"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -316,7 +316,7 @@
                     android:layout_height="wrap_content"
                     android:text="帮助"
                     android:textColor="@color/detail_primary"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_size_emphasis"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
@@ -331,7 +331,7 @@
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
             android:padding="8dp"
-            android:textSize="12sp"
+            android:textSize="@dimen/text_size_caption"
             android:textColor="@color/home_text_secondary"
             android:visibility="gone" />
 

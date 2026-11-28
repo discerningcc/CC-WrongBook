@@ -351,7 +351,7 @@
             android:layout_height="52dp"
             android:layout_weight="1"
             app:cardCornerRadius="@dimen/corner_card"
-            app:cardBackgroundColor="@color/detail_primary">
+            app:cardBackgroundColor="@color/action_primary">
 
             <TextView
                 android:id="@+id/btn_answer_text"

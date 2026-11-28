@@ -1,7 +1,6 @@
 package com.example.demo;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
@@ -90,7 +89,7 @@ public final class ImageLoader {
     private static PhotoPagerAdapter sActiveAdapter;
 
     /** 当前打开中的保存菜单及其展开态；看图关闭时一并收起 */
-    private static AlertDialog sSaveMenu;
+    private static Dialog sSaveMenu;
     private static boolean sSaveMenuOpen;
 
     /** 大图内删除回调：仅加题页挂载；复习/详情页不传，菜单不出现删除项 */
@@ -428,25 +427,36 @@ public final class ImageLoader {
             Toast.makeText(context, "图片已不存在", Toast.LENGTH_SHORT).show();
             return;
         }
-        List<CharSequence> items = new ArrayList<>();
-        List<Runnable> actions = new ArrayList<>();
+        Activity activity = context instanceof Activity ? (Activity) context : null;
+        if (activity == null || activity.isFinishing()) return;
+        List<String> labels = new ArrayList<>();
+        List<Runnable> runs = new ArrayList<>();
         if (editListener != null) {
-            items.add("编辑图片");
-            actions.add(() -> editListener.onEditRequested(path));
+            labels.add("编辑图片");
+            runs.add(() -> editListener.onEditRequested(path));
         }
-        items.add("保存到本地");
-        actions.add(() -> saveImage(context.getApplicationContext(), path));
+        labels.add("保存到本地");
+        runs.add(() -> saveImage(context.getApplicationContext(), path));
         if (deleteListener != null) {
-            items.add("删除当前图");
-            actions.add(() -> deleteListener.onDeleteRequested(path));
+            labels.add("删除当前图");
+            runs.add(() -> deleteListener.onDeleteRequested(path));
         }
-        AlertDialog menu = new AlertDialog.Builder(context)
-                .setOnDismissListener(d -> {
-                    sSaveMenuOpen = false;
-                    sSaveMenu = null;
-                })
-                .setItems(items.toArray(new CharSequence[0]), (d, which) -> actions.get(which).run())
-                .show();
+        // 首行主按钮，其余次级；删除行单独走危险描边，和删除确认弹窗同一语义色
+        int[] styles = new int[labels.size()];
+        for (int i = 0; i < styles.length; i++) {
+            styles[i] = "删除当前图".equals(labels.get(i))
+                    ? AppDialog.STYLE_DANGER
+                    : (i == 0 ? AppDialog.STYLE_PRIMARY : AppDialog.STYLE_SECONDARY);
+        }
+        Dialog menu = AppDialog.actions(activity, "图片操作", null,
+                labels.toArray(new String[0]),
+                runs.toArray(new Runnable[0]),
+                styles,
+                () -> { });
+        menu.setOnDismissListener(d -> {
+            sSaveMenuOpen = false;
+            sSaveMenu = null;
+        });
         sSaveMenu = menu;
         sSaveMenuOpen = true;
     }
